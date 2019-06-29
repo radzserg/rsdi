@@ -8,7 +8,7 @@
     "esModuleInterop": true,
     "moduleResolution": "node",
     "allowJs": false,
-    "baseUrl": "./src",
+    "baseUrl": "src",
     "lib": ["es2015", "es2016", "dom"]
   },
   "include": ["src", "declarations.d.ts"],

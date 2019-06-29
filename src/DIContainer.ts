@@ -1,34 +1,32 @@
+import {IDefinition} from "definitions/IDefinition";
+
 export interface IDIContainer {
   get: <T>(serviceName: string) => T;
   // set: (serviceName: string, value: any) => IDIContainer;
   // registerClass: (className: object) => IDIContainer;
 }
 
-export default class DIContainer implements IDIContainer {
-  private definitions = {};
+interface INamedDefinitions {
+  [x: string]: IDefinition;
+}
 
-  get<T>(serviceName: string): T {
-    return null;
+export default class DIContainer implements IDIContainer {
+  private definitions: INamedDefinitions = {};
+
+  get<T>(name: string): T {
+    if (!(name in this.definitions)) {
+      throw new Error(`Dependency with name ${name} is not defined`)
+    }
+    const definition: IDefinition = this.definitions[name];
+    return definition.resolve<T>();
   };
 
-  register(value: any, name: string = undefined): void {
-    const typeofValue = typeof value;
-    if (typeofValue === "function") {
-      if (this.isConstructor(value)) {
-        console.log("constructor")
-      }
-    }
-    // console.log(value.name);
+  addDefinitions(definitions: IDefinition[]) {
+    this.definitions = definitions.reduce((namedDefinitions: INamedDefinitions, definition: IDefinition) => {
+      namedDefinitions[definition.name()] = definition;
+      return namedDefinitions;
+    }, {});
   }
-
-  registerConstructor(value: any, name: string = undefined) {
-
-  }
-
-  private isConstructor(obj: any) {
-    return !!obj.prototype && !!obj.prototype.constructor.name;
-  }
-
 
   /**
   set(key: any, value: any) {

@@ -1,20 +1,5 @@
 import ObjectDefinition from "definitions/ObjectDefinition";
-
-class Foo {
-    public name: string;
-    public service: Bar;
-
-    constructor(name: string, service: Bar) {
-        this.name = name;
-        this.service = service;
-    }
-}
-
-class Bar {
-    public buzz() {
-        return "buzz";
-    }
-}
+import {Bar, Foo} from "../fakeClasses";
 
 describe("ObjectDefinition",  () => {
     test("it creates object of correct class", () => {

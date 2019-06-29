@@ -1,11 +1,13 @@
-abstract class BaseDefinition {
+import {IDefinition} from "definitions/IDefinition";
+
+abstract class BaseDefinition implements IDefinition{
     private readonly definitionName: string;
 
     protected constructor(name: string) {
         this.definitionName = name;
     }
 
-    protected name(): string {
+    public name(): string {
         return this.definitionName;
     }
 

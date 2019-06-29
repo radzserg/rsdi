@@ -1,20 +1,27 @@
-import {IDefinition} from "definitions/IDefinition";
+import BaseDefinition from "definitions/BaseDefinition";
 
 export interface Type<T> extends Function {
     new (...args: any[]): T;
 }
 
-export default class ObjectDefinition implements IDefinition
+export default class ObjectDefinition extends BaseDefinition
 {
-    private readonly name: string;
     private readonly constructorFunction: Type<any>;
+    private readonly deps: Array<BaseDefinition | any>;
 
-    constructor(name: string, constructorFunction: Type<any>) {
-        this.name = name;
+    constructor(name: string, constructorFunction: Type<any>, ...deps: BaseDefinition | any) {
+        super(name);
         this.constructorFunction = constructorFunction;
+        this.deps = deps;
     }
 
     resolve = <T>(): T => {
-        return new this.constructorFunction()
-    }
+        const deps = this.deps.map((dep: BaseDefinition | any) => {
+            if (dep instanceof BaseDefinition) {
+                return dep.resolve();
+            }
+            return dep;
+        });
+        return new this.constructorFunction(...deps);
+    };
 }

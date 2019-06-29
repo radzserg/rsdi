@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist/",
+    "sourceMap": true,
+    "noImplicitAny": true,
+    "module": "es6",
+    "target": "es5",
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "allowJs": false,
+    "baseUrl": "./src",
+    "lib": ["es2015", "es2016", "dom"]
+  },
+  "include": ["src", "declarations.d.ts"],
+  "exclude": ["node_modules", "**/__tests__/*"]
+}

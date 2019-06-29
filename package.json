@@ -1,0 +1,25 @@
+{
+  "name": "rdi",
+  "version": "1.0.0",
+  "description": "dependency injection container",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "build": "rm -R ./dist/* && tsc --build tsconfig.json"
+  },
+  "keywords": [
+    "dependency",
+    "injection",
+    "dic",
+    "injector"
+  ],
+  "author": "radzserg@gmail.com",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/jest": "^24.0.15",
+    "jest": "^24.8.0",
+    "ts-jest": "^24.0.2",
+    "typescript": "^3.5.2"
+  },
+  "dependencies": {}
+}

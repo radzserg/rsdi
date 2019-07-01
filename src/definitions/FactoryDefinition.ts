@@ -1,7 +1,7 @@
 import BaseDefinition from "../definitions/BaseDefinition";
 import {IDIContainer} from "../DIContainer";
 
-type Factory = (container: IDIContainer) => any;
+export type Factory = (container: IDIContainer) => any;
 
 export default class FactoryDefinition extends BaseDefinition {
 

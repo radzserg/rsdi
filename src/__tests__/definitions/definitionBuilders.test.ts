@@ -1,9 +1,9 @@
 import {Bar, Foo} from "../fakeClasses";
-import {diObject} from "../../";
+
 import ObjectDefinition from "../../definitions/ObjectDefinition";
 import ValueDefinition from "../../definitions/ValueDefinition";
 import DIContainer from "../../DIContainer";
-
+import {diObject} from "../..";
 
 describe("definitionBuilders", () => {
     const container = new DIContainer();

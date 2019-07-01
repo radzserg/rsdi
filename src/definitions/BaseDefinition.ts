@@ -1,4 +1,5 @@
 import { IDefinition } from "definitions/IDefinition";
+import {IDIContainer} from "DIContainer";
 
 abstract class BaseDefinition implements IDefinition {
     private readonly definitionName: string;
@@ -11,7 +12,7 @@ abstract class BaseDefinition implements IDefinition {
         return this.definitionName;
     }
 
-    public abstract resolve: <T>() => T;
+    public abstract resolve: <T>(container: IDIContainer) => T;
 }
 
 export default BaseDefinition;

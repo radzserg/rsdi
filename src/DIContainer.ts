@@ -17,7 +17,11 @@ export default class DIContainer implements IDIContainer {
             throw new DependencyIsMissingError(name);
         }
         const definition: IDefinition = this.definitions[name];
-        return definition.resolve<T>();
+        return definition.resolve<T>(this);
+    }
+
+    addDefinition(definition: IDefinition) {
+        this.definitions[definition.name()] = definition;
     }
 
     addDefinitions(definitions: IDefinition[]) {

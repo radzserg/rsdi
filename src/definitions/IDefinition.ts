@@ -1,4 +1,6 @@
+import {IDIContainer} from "DIContainer";
+
 export interface IDefinition {
     name: () => string;
-    resolve: <T>() => T;
+    resolve: <T>(container: IDIContainer) => T;
 }

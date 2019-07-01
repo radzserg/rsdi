@@ -1,5 +1,6 @@
 import BaseDefinition from "definitions/BaseDefinition";
 import ConstructorArgumentError from "errors/ConstructorArgumentError";
+import {IDIContainer} from "DIContainer";
 
 export interface Type<T> extends Function {
     new (...args: any[]): T;
@@ -26,10 +27,10 @@ export default class ObjectDefinition extends BaseDefinition {
         return this;
     }
 
-    resolve = <T>(): T => {
+    resolve = <T>(diContainer: IDIContainer): T => {
         const deps = this.deps.map((dep: BaseDefinition | any) => {
             if (dep instanceof BaseDefinition) {
-                return dep.resolve();
+                return dep.resolve(diContainer);
             }
             return dep;
         });

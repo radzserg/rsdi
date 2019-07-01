@@ -1,4 +1,5 @@
 import BaseDefinition from "definitions/BaseDefinition";
+import ConstructorArgumentError from "errors/ConstructorArgumentError";
 
 export interface Type<T> extends Function {
     new (...args: any[]): T;
@@ -6,16 +7,23 @@ export interface Type<T> extends Function {
 
 export default class ObjectDefinition extends BaseDefinition {
     private readonly constructorFunction: Type<any>;
-    private readonly deps: Array<BaseDefinition | any>;
+    private deps: Array<BaseDefinition | any> = [];
 
     constructor(
         name: string,
-        constructorFunction: Type<any>,
-        ...deps: BaseDefinition | any
+        constructorFunction: Type<any>
     ) {
         super(name);
         this.constructorFunction = constructorFunction;
+    }
+
+    construct(...deps: BaseDefinition | any): ObjectDefinition {
+        const constructorArgumentsNumber = this.constructorFunction.prototype.constructor.length;
+        if (constructorArgumentsNumber !== deps.length) {
+            throw new ConstructorArgumentError(constructorArgumentsNumber);
+        }
         this.deps = deps;
+        return this;
     }
 
     resolve = <T>(): T => {

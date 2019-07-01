@@ -1,16 +1,18 @@
 import ObjectDefinition from "definitions/ObjectDefinition";
 import { Bar, Foo } from "__tests__/fakeClasses";
+import ConstructorArgumentError from "errors/ConstructorArgumentError";
 
 describe("ObjectDefinition", () => {
-    test("it creates object of correct class", () => {
-        const definition = new ObjectDefinition("Foo", Foo);
-        const instance = definition.resolve<Foo>();
-        expect(instance).toBeInstanceOf(Foo);
+    test("it throws an error if constructor arguments are not provided", () => {
+        expect(() => {
+            new ObjectDefinition("Foo", Foo).construct("a")
+        }).toThrow(new ConstructorArgumentError(2))
     });
 
-    test("it passes constructor params", () => {
+    test("it creates object of correct class and initiate constructor with deps", () => {
         const fakeName = "My name is Foo";
-        const definition = new ObjectDefinition("Foo", Foo, fakeName);
+        const bar = new ObjectDefinition("Bar", Bar);
+        const definition = new ObjectDefinition("Foo", Foo).construct(fakeName, bar);
         const instance = definition.resolve<Foo>();
         expect(instance).toBeInstanceOf(Foo);
         expect(instance.name).toEqual(fakeName);
@@ -21,10 +23,8 @@ describe("ObjectDefinition", () => {
         const BarDefinition = new ObjectDefinition("Bar", Bar);
         const definition = new ObjectDefinition(
             "Foo",
-            Foo,
-            fakeName,
-            BarDefinition
-        );
+            Foo
+        ).construct(fakeName, BarDefinition);
         const instance = definition.resolve<Foo>();
         expect(instance).toBeInstanceOf(Foo);
         expect(instance.name).toEqual(fakeName);

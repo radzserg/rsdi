@@ -1,10 +1,21 @@
+import {Bar, Foo} from "../fakeClasses";
+import { diObject } from "definitions/definitionBuilders";
 import ObjectDefinition from "definitions/ObjectDefinition";
-import { Foo } from "../fakeClasses";
-import { create } from "definitions/definitionBuilders";
 
 describe("definitionBuilders", () => {
     test("it creates object of correct class", () => {
-        const definition = create(Foo, "Foo", "a");
-        console.log("test\n", definition);
+        const bar = new ObjectDefinition("Bar", Bar);
+        const definition = diObject(Foo, "Foo").construct("a", bar);
+
+        expect(definition).toBeInstanceOf(ObjectDefinition);
+        expect(definition.name()).toEqual("Foo");
+        const foo = definition.resolve();
+        expect(foo).toBeInstanceOf(Foo);
+    });
+
+    test("it names dependency using class name", () => {
+        const definition = diObject(Foo);
+        expect(definition).toBeInstanceOf(ObjectDefinition);
+        expect(definition.name()).toEqual("Foo");
     });
 });

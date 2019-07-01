@@ -1,5 +1,5 @@
-import { IDefinition } from "definitions/IDefinition";
-import DependencyIsMissingError from "errors/DependencyIsMissingError";
+import { IDefinition } from "./definitions/IDefinition";
+import DependencyIsMissingError from "./errors/DependencyIsMissingError";
 
 export interface IDIContainer {
     get: <T>(serviceName: string) => T;

@@ -1,5 +1,5 @@
-import { IDefinition } from "definitions/IDefinition";
-import {IDIContainer} from "DIContainer";
+import { IDefinition } from "../definitions/IDefinition";
+import {IDIContainer} from "../DIContainer";
 
 abstract class BaseDefinition implements IDefinition {
     private readonly definitionName: string;

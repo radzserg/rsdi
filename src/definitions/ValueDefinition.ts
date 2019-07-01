@@ -1,4 +1,4 @@
-import BaseDefinition from "definitions/BaseDefinition";
+import BaseDefinition from "./BaseDefinition";
 
 export default class ValueDefinition extends BaseDefinition {
     private readonly value: any;

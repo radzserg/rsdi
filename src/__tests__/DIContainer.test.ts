@@ -1,6 +1,6 @@
 import { Foo } from "./fakeClasses";
-import DIContainer from "DIContainer";
-import ObjectDefinition from "definitions/ObjectDefinition";
+import DIContainer from "../DIContainer";
+import ObjectDefinition from "../definitions/ObjectDefinition";
 
 describe("DIContainer", () => {
     test("it adds definitions", () => {

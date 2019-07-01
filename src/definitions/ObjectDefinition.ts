@@ -1,6 +1,6 @@
-import BaseDefinition from "definitions/BaseDefinition";
-import ConstructorArgumentError from "errors/ConstructorArgumentError";
-import {IDIContainer} from "DIContainer";
+import BaseDefinition from "../definitions/BaseDefinition";
+import ConstructorArgumentError from "../errors/ConstructorArgumentError";
+import {IDIContainer} from "../DIContainer";
 
 export interface Type<T> extends Function {
     new (...args: any[]): T;

@@ -1,4 +1,4 @@
-import {IDIContainer} from "DIContainer";
+import {IDIContainer} from "../DIContainer";
 
 export interface IDefinition {
     name: () => string;

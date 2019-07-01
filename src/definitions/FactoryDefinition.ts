@@ -1,5 +1,5 @@
-import BaseDefinition from "definitions/BaseDefinition";
-import {IDIContainer} from "DIContainer";
+import BaseDefinition from "../definitions/BaseDefinition";
+import {IDIContainer} from "../DIContainer";
 
 type Factory = (container: IDIContainer) => any;
 

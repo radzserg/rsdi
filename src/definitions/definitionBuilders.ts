@@ -1,5 +1,5 @@
-import ObjectDefinition, { Type } from "definitions/ObjectDefinition";
-import ValueDefinition from "definitions/ValueDefinition";
+import ObjectDefinition, { Type } from "../definitions/ObjectDefinition";
+import ValueDefinition from "../definitions/ValueDefinition";
 
 export function diObject(
     classConstructor: Type<any>,

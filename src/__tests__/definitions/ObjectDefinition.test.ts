@@ -1,8 +1,10 @@
-import ObjectDefinition from "definitions/ObjectDefinition";
-import { Bar, Foo } from "__tests__/fakeClasses";
-import ConstructorArgumentError from "errors/ConstructorArgumentError";
+import ObjectDefinition from "../../definitions/ObjectDefinition";
+import { Bar, Foo } from "../fakeClasses";
+import ConstructorArgumentError from "../../errors/ConstructorArgumentError";
+import DIContainer from "../../";
 
 describe("ObjectDefinition", () => {
+    const container = new DIContainer();
     test("it throws an error if constructor arguments are not provided", () => {
         expect(() => {
             new ObjectDefinition("Foo", Foo).construct("a")
@@ -13,7 +15,7 @@ describe("ObjectDefinition", () => {
         const fakeName = "My name is Foo";
         const bar = new ObjectDefinition("Bar", Bar);
         const definition = new ObjectDefinition("Foo", Foo).construct(fakeName, bar);
-        const instance = definition.resolve<Foo>();
+        const instance = definition.resolve<Foo>(container);
         expect(instance).toBeInstanceOf(Foo);
         expect(instance.name).toEqual(fakeName);
     });
@@ -25,7 +27,7 @@ describe("ObjectDefinition", () => {
             "Foo",
             Foo
         ).construct(fakeName, BarDefinition);
-        const instance = definition.resolve<Foo>();
+        const instance = definition.resolve<Foo>(container);
         expect(instance).toBeInstanceOf(Foo);
         expect(instance.name).toEqual(fakeName);
         expect(instance.service.buzz()).toEqual("buzz");

@@ -1,9 +1,10 @@
-import DIContainer from "./DIContainer";
-import {diObject, diValue} from "definitions/definitionBuilders";
+import DIContainer, {IDIContainer} from "./DIContainer";
+import {diObject, diValue} from "./definitions/definitionBuilders";
 
 export default DIContainer;
 
 export {
     diObject,
-    diValue
+    diValue,
+    IDIContainer
 }

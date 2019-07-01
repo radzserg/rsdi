@@ -2,11 +2,14 @@
   "name": "rdi",
   "version": "1.0.0",
   "description": "dependency injection container",
-  "main": "index.js",
   "scripts": {
     "test": "jest",
     "build": "rm -R ./dist/* && tsc --build tsconfig.json"
   },
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
   "keywords": [
     "dependency",
     "injection",

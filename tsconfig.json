@@ -1,15 +1,15 @@
 {
   "compilerOptions": {
+    "declaration": true,
     "outDir": "./dist/",
     "sourceMap": true,
     "noImplicitAny": true,
-    "module": "es6",
+    "module": "commonjs",
     "target": "es5",
     "esModuleInterop": true,
     "moduleResolution": "node",
     "allowJs": false,
-    "baseUrl": "src",
-    "lib": ["es2015", "es2016", "dom"]
+    "lib": ["dom", "dom.iterable", "esnext"]
   },
   "include": ["src", "declarations.d.ts"],
   "exclude": ["node_modules", "**/__tests__/*"]

@@ -1,9 +1,8 @@
 import ObjectDefinition from "definitions/ObjectDefinition";
-import {Bar, Foo} from "../fakeClasses";
+import {Bar, Foo} from "__tests__/fakeClasses";
 
 describe("ObjectDefinition",  () => {
     test("it creates object of correct class", () => {
-        const fakeName = "My name is Foo";
         const definition = new ObjectDefinition("Foo", Foo);
         const instance = definition.resolve<Foo>();
         expect(instance).toBeInstanceOf(Foo);

@@ -1,11 +1,10 @@
 import BaseDefinition from "definitions/BaseDefinition";
 
 export interface Type<T> extends Function {
-    new (...args: any[]): T;
+    new(...args: any[]): T;
 }
 
-export default class ObjectDefinition extends BaseDefinition
-{
+export default class ObjectDefinition extends BaseDefinition {
     private readonly constructorFunction: Type<any>;
     private readonly deps: Array<BaseDefinition | any>;
 

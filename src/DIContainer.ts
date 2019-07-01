@@ -1,9 +1,8 @@
 import {IDefinition} from "definitions/IDefinition";
+import DependencyIsMissingError from "errors/DependencyIsMissingError";
 
 export interface IDIContainer {
   get: <T>(serviceName: string) => T;
-  // set: (serviceName: string, value: any) => IDIContainer;
-  // registerClass: (className: object) => IDIContainer;
 }
 
 interface INamedDefinitions {
@@ -15,7 +14,7 @@ export default class DIContainer implements IDIContainer {
 
   get<T>(name: string): T {
     if (!(name in this.definitions)) {
-      throw new Error(`Dependency with name ${name} is not defined`)
+      throw new DependencyIsMissingError(name)
     }
     const definition: IDefinition = this.definitions[name];
     return definition.resolve<T>();
@@ -27,22 +26,5 @@ export default class DIContainer implements IDIContainer {
       return namedDefinitions;
     }, {});
   }
-
-  /**
-  set(key: any, value: any) {
-    // @ts-ignore
-    this.deps[key] = value;
-    return this;
-  }
-
-  get(key: any) {
-    // @ts-ignore
-    if (!this.deps[key]) {
-      throw new Error(`Missing dependency: ${key}`);
-    }
-    // @ts-ignore
-    return this.deps[key];
-  }
-   */
 }
 

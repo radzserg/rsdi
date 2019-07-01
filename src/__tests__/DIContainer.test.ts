@@ -1,15 +1,13 @@
-import {Bar, Foo} from "./fakeClasses";
+import { Foo } from "./fakeClasses";
 import DIContainer from "DIContainer";
 import ObjectDefinition from "definitions/ObjectDefinition";
 
-describe("DIContainer",  () => {
+describe("DIContainer", () => {
     test("it adds definitions", () => {
         const container = new DIContainer();
-        const definitions = [
-            new ObjectDefinition("Foo", Foo)
-        ];
+        const definitions = [new ObjectDefinition("Foo", Foo)];
         container.addDefinitions(definitions);
         const foo = container.get("Foo");
         expect(foo).toBeInstanceOf(Foo);
-    })
+    });
 });

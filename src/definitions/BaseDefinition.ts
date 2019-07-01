@@ -1,6 +1,6 @@
-import {IDefinition} from "definitions/IDefinition";
+import { IDefinition } from "definitions/IDefinition";
 
-abstract class BaseDefinition implements IDefinition{
+abstract class BaseDefinition implements IDefinition {
     private readonly definitionName: string;
 
     protected constructor(name: string) {

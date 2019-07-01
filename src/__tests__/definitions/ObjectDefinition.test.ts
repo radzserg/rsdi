@@ -1,7 +1,7 @@
 import ObjectDefinition from "definitions/ObjectDefinition";
-import {Bar, Foo} from "__tests__/fakeClasses";
+import { Bar, Foo } from "__tests__/fakeClasses";
 
-describe("ObjectDefinition",  () => {
+describe("ObjectDefinition", () => {
     test("it creates object of correct class", () => {
         const definition = new ObjectDefinition("Foo", Foo);
         const instance = definition.resolve<Foo>();
@@ -19,7 +19,12 @@ describe("ObjectDefinition",  () => {
     test("it resolves Definition params passed in constructor", () => {
         const fakeName = "My name is Foo";
         const BarDefinition = new ObjectDefinition("Bar", Bar);
-        const definition = new ObjectDefinition("Foo", Foo, fakeName, BarDefinition);
+        const definition = new ObjectDefinition(
+            "Foo",
+            Foo,
+            fakeName,
+            BarDefinition
+        );
         const instance = definition.resolve<Foo>();
         expect(instance).toBeInstanceOf(Foo);
         expect(instance.name).toEqual(fakeName);

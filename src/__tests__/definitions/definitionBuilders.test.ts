@@ -1,6 +1,7 @@
 import {Bar, Foo} from "../fakeClasses";
 import { diObject } from "definitions/definitionBuilders";
 import ObjectDefinition from "definitions/ObjectDefinition";
+import ValueDefinition from "definitions/ValueDefinition";
 
 describe("definitionBuilders", () => {
     test("it creates object of correct class", () => {
@@ -17,5 +18,11 @@ describe("definitionBuilders", () => {
         const definition = diObject(Foo);
         expect(definition).toBeInstanceOf(ObjectDefinition);
         expect(definition.name()).toEqual("Foo");
+    });
+
+    test("it create value definition", () => {
+        const definition = new ValueDefinition("foo", "bar");
+        expect(definition.name()).toEqual("foo");
+        expect(definition.resolve()).toEqual("bar");
     });
 });

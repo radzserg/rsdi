@@ -10,5 +10,5 @@ export default class ValueDefinition extends BaseDefinition {
 
     resolve = <T>(): T => {
         return this.value as T;
-    }
+    };
 }

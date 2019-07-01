@@ -1,6 +1,6 @@
 import BaseDefinition from "../definitions/BaseDefinition";
 import ConstructorArgumentError from "../errors/ConstructorArgumentError";
-import {IDIContainer} from "../DIContainer";
+import { IDIContainer } from "../DIContainer";
 
 export interface Type<T> extends Function {
     new (...args: any[]): T;
@@ -10,15 +10,14 @@ export default class ObjectDefinition extends BaseDefinition {
     private readonly constructorFunction: Type<any>;
     private deps: Array<BaseDefinition | any> = [];
 
-    constructor(
-        constructorFunction: Type<any>
-    ) {
+    constructor(constructorFunction: Type<any>) {
         super();
         this.constructorFunction = constructorFunction;
     }
 
     construct(...deps: BaseDefinition | any): ObjectDefinition {
-        const constructorArgumentsNumber = this.constructorFunction.prototype.constructor.length;
+        const constructorArgumentsNumber = this.constructorFunction.prototype
+            .constructor.length;
         if (constructorArgumentsNumber !== deps.length) {
             throw new ConstructorArgumentError(constructorArgumentsNumber);
         }

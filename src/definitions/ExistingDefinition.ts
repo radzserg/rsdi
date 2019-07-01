@@ -1,5 +1,5 @@
 import BaseDefinition from "../definitions/BaseDefinition";
-import {IDIContainer} from "../DIContainer";
+import { IDIContainer } from "../DIContainer";
 
 export default class ExistingDefinition extends BaseDefinition {
     private readonly existingDefinitionName: string;

@@ -29,7 +29,7 @@ export default class DIContainer implements IDIContainer {
     addDefinitions(definitions: INamedDefinitions) {
         this.definitions = {
             ...this.definitions,
-            ...definitions
-        }
+            ...definitions,
+        };
     }
 }

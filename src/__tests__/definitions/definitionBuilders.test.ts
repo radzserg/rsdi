@@ -3,7 +3,7 @@ import {Bar, Foo} from "../fakeClasses";
 import ObjectDefinition from "../../definitions/ObjectDefinition";
 import ValueDefinition from "../../definitions/ValueDefinition";
 import DIContainer from "../../DIContainer";
-import {diObject} from "../..";
+import {diGet, diObject} from "../../definitions/definitionBuilders";
 
 describe("definitionBuilders", () => {
     const container = new DIContainer();
@@ -13,19 +13,29 @@ describe("definitionBuilders", () => {
 
         expect(definition).toBeInstanceOf(ObjectDefinition);
         expect(definition.name()).toEqual("Foo");
-        const foo = definition.resolve(container);
-        expect(foo).toBeInstanceOf(Foo);
+        expect( definition.resolve(container)).toBeInstanceOf(Foo);
     });
 
     test("it names dependency using class name", () => {
         const definition = diObject(Foo);
+
         expect(definition).toBeInstanceOf(ObjectDefinition);
         expect(definition.name()).toEqual("Foo");
     });
 
     test("it create value definition", () => {
         const definition = new ValueDefinition("foo", "bar");
+
         expect(definition.name()).toEqual("foo");
         expect(definition.resolve()).toEqual("bar");
     });
+
+    test("it resolves existing definition", () => {
+        const container = new DIContainer();
+        container.addDefinition(new ValueDefinition("key1", "value1"));
+        const definition = diGet("key1");
+
+        expect(definition.name()).toEqual("get_key1");
+        expect(definition.resolve(container)).toEqual("value1");
+    })
 });

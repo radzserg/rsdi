@@ -4,8 +4,8 @@ import {IDIContainer} from "../DIContainer";
 export default class ExistingDefinition extends BaseDefinition {
     private readonly existingDefinitionName: string;
 
-    constructor(name: string, existingDefinitionName: string) {
-        super(name);
+    constructor(existingDefinitionName: string) {
+        super();
         this.existingDefinitionName = existingDefinitionName;
     }
 

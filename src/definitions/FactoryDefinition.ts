@@ -5,13 +5,12 @@ type Factory = (container: IDIContainer) => any;
 
 export default class FactoryDefinition extends BaseDefinition {
 
-    private factory: Factory;
+    private readonly factory: Factory;
 
     constructor(
-        name: string,
         factory: Factory
     ) {
-        super(name);
+        super();
         this.factory = factory;
     }
 

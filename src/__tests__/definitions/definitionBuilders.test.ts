@@ -8,11 +8,10 @@ import {diGet, diObject} from "../../definitions/definitionBuilders";
 describe("definitionBuilders", () => {
     const container = new DIContainer();
     test("it creates object of correct class", () => {
-        const bar = new ObjectDefinition("Bar", Bar);
-        const definition = diObject(Foo, "Foo").construct("a", bar);
+        const bar = new ObjectDefinition(Bar);
+        const definition = diObject(Foo).construct("a", bar);
 
         expect(definition).toBeInstanceOf(ObjectDefinition);
-        expect(definition.name()).toEqual("Foo");
         expect( definition.resolve(container)).toBeInstanceOf(Foo);
     });
 
@@ -20,22 +19,19 @@ describe("definitionBuilders", () => {
         const definition = diObject(Foo);
 
         expect(definition).toBeInstanceOf(ObjectDefinition);
-        expect(definition.name()).toEqual("Foo");
     });
 
     test("it create value definition", () => {
-        const definition = new ValueDefinition("foo", "bar");
+        const definition = new ValueDefinition("bar");
 
-        expect(definition.name()).toEqual("foo");
         expect(definition.resolve()).toEqual("bar");
     });
 
     test("it resolves existing definition", () => {
         const container = new DIContainer();
-        container.addDefinition(new ValueDefinition("key1", "value1"));
+        container.addDefinition("key1", new ValueDefinition("value1"));
         const definition = diGet("key1");
 
-        expect(definition.name()).toEqual("get_key1");
         expect(definition.resolve(container)).toEqual("value1");
     })
 });

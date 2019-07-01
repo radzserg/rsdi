@@ -3,11 +3,8 @@ import BaseDefinition from "./BaseDefinition";
 export default class ValueDefinition extends BaseDefinition {
     private readonly value: any;
 
-    constructor(
-        name: string,
-        value: any
-    ) {
-        super(name);
+    constructor(value: any) {
+        super();
         this.value = value;
     }
 

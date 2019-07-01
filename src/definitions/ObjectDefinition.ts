@@ -11,10 +11,9 @@ export default class ObjectDefinition extends BaseDefinition {
     private deps: Array<BaseDefinition | any> = [];
 
     constructor(
-        name: string,
         constructorFunction: Type<any>
     ) {
-        super(name);
+        super();
         this.constructorFunction = constructorFunction;
     }
 

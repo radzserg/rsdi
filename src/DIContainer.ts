@@ -9,6 +9,8 @@ interface INamedDefinitions {
     [x: string]: IDefinition;
 }
 
+type DefinitionName = string;
+
 export default class DIContainer implements IDIContainer {
     private definitions: INamedDefinitions = {};
 
@@ -20,17 +22,14 @@ export default class DIContainer implements IDIContainer {
         return definition.resolve<T>(this);
     }
 
-    addDefinition(definition: IDefinition) {
-        this.definitions[definition.name()] = definition;
+    addDefinition(name: DefinitionName, definition: IDefinition) {
+        this.definitions[name] = definition;
     }
 
-    addDefinitions(definitions: IDefinition[]) {
-        this.definitions = definitions.reduce(
-            (namedDefinitions: INamedDefinitions, definition: IDefinition) => {
-                namedDefinitions[definition.name()] = definition;
-                return namedDefinitions;
-            },
-            {}
-        );
+    addDefinitions(definitions: INamedDefinitions) {
+        this.definitions = {
+            ...this.definitions,
+            ...definitions
+        }
     }
 }

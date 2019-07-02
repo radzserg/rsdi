@@ -1,6 +1,6 @@
 {
-  "name": "rdi",
-  "version": "1.0.0",
+  "name": "rsdi",
+  "version": "0.0.1",
   "description": "dependency injection container",
   "scripts": {
     "test": "jest",
@@ -16,7 +16,8 @@
     "dic",
     "injector"
   ],
-  "author": "radzserg@gmail.com",
+  "homepage": "https://github.com/radzserg/rsdi",
+  "author": "Sergey Radzishevskii <radzserg@gmail.com>",
   "license": "ISC",
   "devDependencies": {
     "@types/jest": "^24.0.15",

@@ -1,10 +1,10 @@
-# RDI - Dependency Injection Container
+# RSDI - Dependency Injection Container
 
 # Getting Started
 
 ```typescript
 
-import DIContainer, { object, get, value, factory, IDIContainer } from "rdi";
+import DIContainer, { object, get, value, factory, IDIContainer } from "rsdi";
 
 const config = {
     "ENV": value("PRODUCTION"),             // define raw value

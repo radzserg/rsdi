@@ -3,8 +3,6 @@ import DependencyIsMissingError from "./errors/DependencyIsMissingError";
 
 export interface IDIContainer {
     get: <T>(serviceName: string) => T;
-    addDefinition: (name: DefinitionName, definition: IDefinition) => void;
-    addDefinitions: (definitions: INamedDefinitions) => void;
 }
 
 interface INamedDefinitions {

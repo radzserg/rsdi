@@ -11,18 +11,15 @@ const config = {
     "AuthStorage": object(AuthStorage).construct(
        get("Storage")                         // refer to another dependency       
     ),
-    "Storage": object(CookieStorage),         // constructor without arguments    
-    "dateFormatter": factory(dateFormatter),  // factory   
-    "BrowserHistory": factory(configureHistory).singleton(), // factory singleton  
+    "Storage": object(CookieStorage),         // constructor without arguments       
+    "BrowserHistory": factory(configureHistory), // factory, returns singleton  
 };
 const container = new DIContainer();
 container.addDefinitions(config);
 
-function dateFormatter(date: Date) {
-  return moment(date).format("ddd, DD MMM YYYY");
-}
 function configureHistory(container: IDIContainer): History {
-    // this factory will be called only once
+    // this factory will be called only once, during first resolving 
+    // then resolved version will be returned 
     const history = createBrowserHistory();
     const env = container.get("ENV");
     if (env === "production") {

@@ -3,6 +3,7 @@ module.exports = {
   testEnvironment: 'node',
   modulePaths: ["<rootDir>/src/"],
   modulePathIgnorePatterns: [
+      "dist/",
       "fakeClasses.ts"
   ]
 };

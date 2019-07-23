@@ -7,22 +7,22 @@
 import DIContainer, { object, get, value, factory, IDIContainer } from "rsdi";
 
 const config = {
-    "ENV": value("PRODUCTION"),             // define raw value
-    "Storage": object(CookieStorage),       // constructor without arguments    
+    "ENV": value("PRODUCTION"),               // define raw value
     "AuthStorage": object(AuthStorage).construct(
-       get("Storage")                       // refer to dependency described above       
+       get("Storage")                         // refer to another dependency       
     ),
-    "BrowserHistory": factory(configureHistory),   
+    "Storage": object(CookieStorage),         // constructor without arguments    
+    "dateFormatter": factory(dateFormatter),  // factory   
+    "BrowserHistory": factory(configureHistory).singleton(), // factory singleton  
 };
 const container = new DIContainer();
 container.addDefinitions(config);
 
-const env = container.get<string>("ENV"); // PRODUCTION
-const authStorage = container.get<AuthStorage>("AuthStorage");  // object of AuthStorage
-const history = container.get<History>("BrowserHistory");  // object of History
-
-
-function configureHistory(container: IDIContainer): History {     
+function dateFormatter(date: Date) {
+  return moment(date).format("ddd, DD MMM YYYY");
+}
+function configureHistory(container: IDIContainer): History {
+    // this factory will be called only once
     const history = createBrowserHistory();
     const env = container.get("ENV");
     if (env === "production") {
@@ -30,6 +30,14 @@ function configureHistory(container: IDIContainer): History {
     }
     return history;
 }
+
+// in your code
+
+const env = container.get<string>("ENV"); // PRODUCTION
+const authStorage = container.get<AuthStorage>("AuthStorage");  // object of AuthStorage
+const history = container.get<History>("BrowserHistory");  // History singleton will be returned
+
+
 
 ```
 
@@ -47,4 +55,6 @@ I don't like
 class Foo {  
 }
 ```
-Why component Foo should know that it's injectable? 
+Why component Foo should know that it's injectable?
+
+More details thoughts in my [blog article](https://medium.com/@radzserg/https-medium-com-radzserg-dependency-injection-in-react-part-1-c1decd9c2e7a) 

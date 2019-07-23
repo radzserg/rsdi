@@ -48,4 +48,17 @@ describe("definitionBuilders", () => {
 
         expect(definition.resolve(container)).toEqual("value1");
     });
+
+    test("it creates singleton factory definition", () => {
+        const container = new DIContainer();
+        const definition = diFactory(() => {
+            return {a: 123};
+        }).singleton();
+
+        const resolve1: any = definition.resolve(container);
+        expect(resolve1).toEqual({a: 123});
+        resolve1.b = 3;
+        const resolve2: any = definition.resolve(container);
+        expect(resolve1).toEqual({a: 123, b: 3});
+    });
 });

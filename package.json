@@ -1,17 +1,13 @@
 {
   "name": "rsdi",
-  "version": "0.0.4",
+  "version": "0.0.9",
   "description": "dependency injection container",
   "scripts": {
     "test": "jest",
     "build": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json",
-    "copy:package": "cp package.json dist/package.json",
+    "copy:package": "cp README.md package.json dist/",
     "deploy": "npm run build && npm run copy:package && npm publish dist"
   },
-  "main": "dist/index.js",
-  "files": [
-    "dist"
-  ],
   "keywords": [
     "dependency",
     "injection",

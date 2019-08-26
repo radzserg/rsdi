@@ -24,6 +24,20 @@ describe("DIContainer", () => {
         }).toThrow(new DependencyIsMissingError("Logger"));
     });
 
+    test("it always returns singleton", () => {
+        const container = new DIContainer();
+        const definitions = {
+            foo: new ObjectDefinition(Foo).construct("name1", undefined)
+        };
+        container.addDefinitions(definitions);
+
+        const foo = container.get<Foo>("foo");
+        expect(foo.name).toEqual("name1");
+        foo.name = "name2";
+        const foo2 = container.get<Foo>("foo");
+        expect(foo2.name).toEqual("name2");
+    });
+
     test("it adds definition to existing list", () => {
         const container = new DIContainer();
         const definitions = {

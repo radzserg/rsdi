@@ -17,17 +17,4 @@ describe("FactoryDefinition", () => {
         });
         expect(definition.resolve(container)).toEqual("value1");
     });
-
-    test("it returns singleton", () => {
-        const container = new DIContainer();
-        const definition: any = new FactoryDefinition(() => {
-            return {a: 123};
-        });
-        const resolved1 = definition.resolve(container);
-        expect(resolved1).toEqual({a: 123});
-        resolved1.b = 3;
-
-        const resolved2 = definition.resolve(container);
-        expect(resolved2).toEqual({a: 123, b: 3});
-    });
 });

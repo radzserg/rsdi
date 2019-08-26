@@ -13,13 +13,21 @@ type DefinitionName = string;
 
 export default class DIContainer implements IDIContainer {
     private definitions: INamedDefinitions = {};
+    private resolved: {
+        [name: string]: any
+    } = {};
 
     get<T>(name: string): T {
         if (!(name in this.definitions)) {
             throw new DependencyIsMissingError(name);
         }
+        if (this.resolved[name] !== undefined) {
+            return this.resolved[name];
+        }
+
         const definition: IDefinition = this.definitions[name];
-        return definition.resolve<T>(this);
+        this.resolved[name] = definition.resolve<T>(this);
+        return this.resolved[name];
     }
 
     addDefinition(name: DefinitionName, definition: IDefinition) {

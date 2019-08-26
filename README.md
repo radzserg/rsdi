@@ -18,8 +18,6 @@ const container = new DIContainer();
 container.addDefinitions(config);
 
 function configureHistory(container: IDIContainer): History {
-    // this factory will be called only once, during first resolving 
-    // then resolved version will be returned 
     const history = createBrowserHistory();
     const env = container.get("ENV");
     if (env === "production") {
@@ -33,10 +31,10 @@ function configureHistory(container: IDIContainer): History {
 const env = container.get<string>("ENV"); // PRODUCTION
 const authStorage = container.get<AuthStorage>("AuthStorage");  // object of AuthStorage
 const history = container.get<History>("BrowserHistory");  // History singleton will be returned
-
-
-
 ```
+
+**All definitions are resolved once and their result is kept during the life of the container.** 
+
 
 ## Motivation 
 

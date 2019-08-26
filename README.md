@@ -4,10 +4,10 @@
 
 ```typescript
 
-import DIContainer, { object, get, value, factory, IDIContainer } from "rsdi";
+import DIContainer, { object, get, factory, IDIContainer } from "rsdi";
 
 const config = {
-    "ENV": value("PRODUCTION"),               // define raw value
+    "ENV": "PRODUCTION",               // define raw value
     "AuthStorage": object(AuthStorage).construct(
        get("Storage")                         // refer to another dependency       
     ),

@@ -65,4 +65,15 @@ describe("DIContainer", () => {
         expect(container.get("key2")).toEqual("value2");
         expect(container.get("key3")).toEqual("value3");
     });
+
+    test("if value not an instance of BaseDefinition treat it as ValueDefinition", () => {
+        const container = new DIContainer();
+        const definitions = {
+            key1: "value1",
+        };
+        container.addDefinitions(definitions);
+        expect(container.get("key1")).toEqual("value1");
+        container.addDefinition("key2", "value2");
+        expect(container.get("key2")).toEqual("value2");
+    })
 });

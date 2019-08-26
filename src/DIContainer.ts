@@ -1,12 +1,14 @@
 import { IDefinition } from "./definitions/IDefinition";
 import DependencyIsMissingError from "./errors/DependencyIsMissingError";
+import BaseDefinition from "./definitions/BaseDefinition";
+import ValueDefinition from "./definitions/ValueDefinition";
 
 export interface IDIContainer {
     get: <T>(serviceName: string) => T;
 }
 
 interface INamedDefinitions {
-    [x: string]: IDefinition;
+    [x: string]: IDefinition | any;
 }
 
 type DefinitionName = string;
@@ -30,14 +32,16 @@ export default class DIContainer implements IDIContainer {
         return this.resolved[name];
     }
 
-    addDefinition(name: DefinitionName, definition: IDefinition) {
+    addDefinition(name: DefinitionName, definition: IDefinition | any) {
+        if (!(definition instanceof BaseDefinition)) {
+            definition = new ValueDefinition(definition);
+        }
         this.definitions[name] = definition;
     }
 
     addDefinitions(definitions: INamedDefinitions) {
-        this.definitions = {
-            ...this.definitions,
-            ...definitions,
-        };
+        Object.keys(definitions).map((name: string) => {
+            this.addDefinition(name, definitions[name]);
+        });
     }
 }

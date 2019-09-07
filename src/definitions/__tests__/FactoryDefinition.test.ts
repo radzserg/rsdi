@@ -1,6 +1,6 @@
-import FactoryDefinition from "../../definitions/FactoryDefinition";
-import DIContainer from "../../";
-import ValueDefinition from "../../definitions/ValueDefinition";
+import FactoryDefinition from "../FactoryDefinition";
+import DIContainer from "../../index";
+import ValueDefinition from "../ValueDefinition";
 
 describe("FactoryDefinition", () => {
     test("it invokes simple factory and resolves value", () => {

@@ -1,13 +1,13 @@
-import { Bar, Foo } from "../fakeClasses";
+import { Bar, Foo } from "../../__tests__/fakeClasses";
 
-import ObjectDefinition from "../../definitions/ObjectDefinition";
-import ValueDefinition from "../../definitions/ValueDefinition";
+import ObjectDefinition from "../ObjectDefinition";
+import ValueDefinition from "../ValueDefinition";
 import DIContainer, { IDIContainer } from "../../DIContainer";
 import {
     diFactory,
     diGet,
     diObject,
-} from "../../definitions/definitionBuilders";
+} from "../definitionBuilders";
 
 describe("definitionBuilders", () => {
     const container = new DIContainer();

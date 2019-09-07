@@ -1,4 +1,4 @@
-import ValueDefinition from "../../definitions/ValueDefinition";
+import ValueDefinition from "../ValueDefinition";
 
 describe("ValueDefinition", () => {
     test("it resolves value", () => {

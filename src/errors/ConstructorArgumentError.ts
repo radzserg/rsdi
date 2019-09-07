@@ -1,7 +1,7 @@
 export default class ConstructorArgumentError extends Error {
-    constructor(constructorArgumentsNumber: number) {
+    constructor(constructorName: string, constructorArgumentsNumber: number) {
         super(
-            `Constructor argument error, constructor expects to get ${constructorArgumentsNumber} arguments`
+            `Constructor ${constructorName} argument error, constructor expects to get ${constructorArgumentsNumber} arguments`
         );
     }
 }

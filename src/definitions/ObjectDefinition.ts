@@ -1,5 +1,4 @@
 import BaseDefinition from "../definitions/BaseDefinition";
-import ConstructorArgumentError from "../errors/ConstructorArgumentError";
 import { IDIContainer } from "../DIContainer";
 import MethodIsMissingError from "../errors/MethodIsMissingError";
 
@@ -23,11 +22,6 @@ export default class ObjectDefinition extends BaseDefinition {
     }
 
     construct(...deps: BaseDefinition | any): ObjectDefinition {
-        const constructorArgumentsNumber = this.constructorFunction.prototype
-            .constructor.length;
-        if (constructorArgumentsNumber !== deps.length) {
-            throw new ConstructorArgumentError(this.constructorFunction.name, constructorArgumentsNumber);
-        }
         this.deps = deps;
         return this;
     }

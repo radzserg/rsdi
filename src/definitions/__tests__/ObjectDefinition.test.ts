@@ -1,23 +1,25 @@
 import ObjectDefinition from "../ObjectDefinition";
-import { Bar, Foo } from "../../__tests__/fakeClasses";
-import ConstructorArgumentError from "../../errors/ConstructorArgumentError";
-import DIContainer, { get } from "../../index";
+import {Bar, Foo, FooChild} from "../../__tests__/fakeClasses";
+import DIContainer, {get} from "../../index";
 import MethodIsMissingError from "../../errors/MethodIsMissingError";
 
 describe("ObjectDefinition", () => {
     const container = new DIContainer();
-    test("it throws an error if constructor arguments are not provided", () => {
-        expect(() => {
-            new ObjectDefinition(Foo).construct("a");
-        }).toThrow(new ConstructorArgumentError("Foo", 2));
-    });
-
     test("it creates object of correct class and initiate constructor with deps", () => {
         const fakeName = "My name is Foo";
         const bar = new ObjectDefinition(Bar);
         const definition = new ObjectDefinition(Foo).construct(fakeName, bar);
         const instance = definition.resolve<Foo>(container);
         expect(instance).toBeInstanceOf(Foo);
+        expect(instance.name).toEqual(fakeName);
+    });
+
+    test("it can initiate child constructors", () => {
+        const fakeName = "My name is FooChild";
+        const bar = new ObjectDefinition(Bar);
+        const definition = new ObjectDefinition(FooChild).construct(fakeName, bar);
+        const instance = definition.resolve<Foo>(container);
+        expect(instance).toBeInstanceOf(FooChild);
         expect(instance.name).toEqual(fakeName);
     });
 

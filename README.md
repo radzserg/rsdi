@@ -31,19 +31,24 @@ function configureHistory(container: IDIContainer): History {
 const env = container.get<string>("ENV"); // PRODUCTION
 const authStorage = container.get<AuthStorage>("AuthStorage");  // object of AuthStorage
 const history = container.get<History>("BrowserHistory");  // History singleton will be returned
-```
+``` 
 
-**All definitions are resolved once and their result is kept during the life of the container.** 
+**All definitions are resolved once and their result is kept during the life of the container.**
 
+## Features
+
+- Simple but powerful 
+- Does not requires decorators
+- Works great with both javascript and typescript 
 
 ## Motivation 
 
-Popular solution like `inversify` or `tsyringe` use `reflect-metadata` that allows to fetch argument types and based on 
-that types and do autowiring. I like autowiring but the I don't like the means by which we achieve it. 
-I don't like 
-1. Those solutions in fact can deal only with typescript only. Since they rely on argument types that we don't have in JS.
-2. I have to update my tsconfig because of one package. 
-3. Let my components know about injections
+Popular solutions like `inversify` or `tsyringe` use `reflect-metadata` that allows to fetch argument types and based on 
+those types and do autowiring. Autowiring is a nice feature but the trade-off is decorators. 
+Disadvantages of other solutions
+1. Those solutions work with typescript only. Since they rely on argument types that we don't have in Javascript.
+2. I have to update my tsconfig because one package requires it. 
+3. Let my components know about injections. 
 
 ```typescript
 @injectable()

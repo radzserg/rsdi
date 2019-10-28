@@ -14,7 +14,7 @@
     "dic",
     "injector"
   ],
-  "homepage": "https://github.com/radzserg/rsdi",
+  "homepage": "https://github.com/Rezdy/rsdi",
   "author": "Sergey Radzishevskii <radzserg@gmail.com>",
   "license": "ISC",
   "devDependencies": {

@@ -19,7 +19,7 @@ export default class ObjectDefinition extends BaseDefinition {
 
     constructor(constructorFunction: Type<any>) {
         super();
-        if (!this.isConstructor(constructorFunction)) {
+        if (typeof constructorFunction !== "function") {
             throw new InvalidConstructorError();
         }
         this.constructorFunction = constructorFunction;
@@ -63,8 +63,4 @@ export default class ObjectDefinition extends BaseDefinition {
 
         return object;
     };
-
-    private isConstructor(constructorFunction: any): boolean {
-        return constructorFunction && !!constructorFunction.prototype && !!constructorFunction.prototype.constructor.name;
-    }
 }

@@ -1,10 +1,10 @@
-# Rezdy Dependency Injection Container
+# Dependency Injection Container
 
 # Getting Started
 
 ```typescript
 
-import DIContainer, { object, get, factory, IDIContainer } from "@rezdy/dependency-injection";
+import DIContainer, { object, get, factory, IDIContainer } from "rsdi";
 
 const config = {
     "ENV": "PRODUCTION",               // define raw value
@@ -62,7 +62,7 @@ More details thoughts in my [blog article](https://medium.com/@radzserg/https-me
 ### Raw values
 
 ```typescript
-import DIContainer from "@rezdy/dependency-injection";
+import DIContainer from "rsdi";
 
 const container = new DIContainer();
 container.addDefinitions({   
@@ -75,13 +75,13 @@ const authStorage = container.get<AuthStorage>("AuthStorage"); // instance of Au
 const authStorage = container.get<History>("BrowserHistory"); // instance of AuthStorage     
 ```
 
-When you specify raw values (i.e. don't use `object`, `factory` definitions) `@rezdy/dependency-injection` will resolve as it is. 
+When you specify raw values (i.e. don't use `object`, `factory` definitions) `rsdi` will resolve as it is. 
 
 ### Object definition
 
 ```typescript
   
-import DIContainer, { object, get } from "@rezdy/dependency-injection";
+import DIContainer, { object, get } from "rsdi";
   
 const container = new DIContainer();
 container.addDefinitions({
@@ -109,7 +109,7 @@ pass as an argument to the factory method.
 
 ```typescript
 
-import DIContainer, {  factory, IDIContainer } from "@rezdy/dependency-injection";
+import DIContainer, {  factory, IDIContainer } from "rsdi";
 
 const container = new DIContainer();
 container.addDefinitions({       

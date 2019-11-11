@@ -1,6 +1,7 @@
 import BaseDefinition from "../definitions/BaseDefinition";
 import { IDIContainer } from "../DIContainer";
 import MethodIsMissingError from "../errors/MethodIsMissingError";
+import InvalidConstructorError from "../errors/InvalidConstructorError";
 
 export interface Type<T> extends Function {
     new (...args: any[]): T;
@@ -18,6 +19,9 @@ export default class ObjectDefinition extends BaseDefinition {
 
     constructor(constructorFunction: Type<any>) {
         super();
+        if (!this.isConstructor(constructorFunction)) {
+            throw new InvalidConstructorError();
+        }
         this.constructorFunction = constructorFunction;
     }
 
@@ -59,4 +63,8 @@ export default class ObjectDefinition extends BaseDefinition {
 
         return object;
     };
+
+    private isConstructor(constructorFunction: any): boolean {
+        return constructorFunction && !!constructorFunction.prototype && !!constructorFunction.prototype.constructor.name;
+    }
 }

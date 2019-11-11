@@ -19,6 +19,9 @@ export class Bar {
     }
 }
 
+export class Buzz {
+}
+
 export abstract class AbstractFoo {
     public name: string;
     public service: Bar;

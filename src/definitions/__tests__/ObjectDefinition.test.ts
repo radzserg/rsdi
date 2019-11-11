@@ -1,7 +1,8 @@
 import ObjectDefinition from "../ObjectDefinition";
-import {Bar, Foo, FooChild} from "../../__tests__/fakeClasses";
+import {Bar, Buzz, Foo, FooChild} from "../../__tests__/fakeClasses";
 import DIContainer, {get} from "../../index";
 import MethodIsMissingError from "../../errors/MethodIsMissingError";
+import InvalidConstructorError from "../../errors/InvalidConstructorError";
 
 describe("ObjectDefinition", () => {
     const container = new DIContainer();
@@ -55,6 +56,16 @@ describe("ObjectDefinition", () => {
         }).toThrow(new MethodIsMissingError("Foo", "undefinedMethod"));
     });
 
+    test.each([
+        [undefined],
+        [() => {}],
+        ["abc"]
+    ])("it throws an error if invalid constructor have been provided", () => {
+        expect((constructorFunction: any) => {
+            new ObjectDefinition(constructorFunction);
+        }).toThrow(new InvalidConstructorError());
+    });
+
     test("it resolves deps while calling method", () => {
         container.addDefinition("key1", "value1");
         const definition = new ObjectDefinition(Foo).method(
@@ -63,5 +74,11 @@ describe("ObjectDefinition", () => {
         );
         const instance = definition.resolve<Foo>(container);
         expect(instance.items).toEqual(["value1"]);
+    });
+
+    test("it resolves a class without explicit controller", () => {
+        const definition = new ObjectDefinition(Buzz);
+        const instance = definition.resolve<Buzz>(container);
+        expect(instance).toBeInstanceOf(Buzz);
     });
 });

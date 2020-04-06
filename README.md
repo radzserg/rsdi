@@ -3,20 +3,27 @@
 # Getting Started
 
 ```typescript
+// your classes 
+class CookieStorage {}
+class AuthStorage {
+  constructor(storage: CookieStorage) {}
+}
 
+// configure DI container
 import DIContainer, { object, get, factory, IDIContainer } from "rsdi";
 
-const config = {
-    "ENV": "PRODUCTION",               // define raw value
-    "AuthStorage": object(AuthStorage).construct(
-       get("Storage")                         // refer to another dependency       
-    ),
-    "Storage": object(CookieStorage),         // constructor without arguments       
-    "BrowserHistory": factory(configureHistory), // factory (will be called only once)  
-};
-const container = new DIContainer();
-container.addDefinitions(config);
-
+export default function configureDI() {
+    const container = new DIContainer();
+    container.addDefinitions({
+        "ENV": "PRODUCTION",               // define raw value
+        "AuthStorage": object(AuthStorage).construct(
+            get("Storage")                         // refer to another dependency       
+        ),
+        "Storage": object(CookieStorage),         // constructor without arguments       
+        "BrowserHistory": factory(configureHistory), // factory (will be called only once)  
+    });
+}
+    
 function configureHistory(container: IDIContainer): History {
     const history = createBrowserHistory();
     const env = container.get("ENV");
@@ -26,11 +33,12 @@ function configureHistory(container: IDIContainer): History {
     return history;
 }
 
-// in your code
-
+// in your entry point code
+const container = configureDI();
 const env = container.get<string>("ENV"); // PRODUCTION
 const authStorage = container.get<AuthStorage>("AuthStorage");  // object of AuthStorage
 const history = container.get<History>("BrowserHistory");  // History singleton will be returned
+
 ``` 
 
 **All definitions are resolved once and their result is kept during the life of the container.**

@@ -22,6 +22,7 @@ export default function configureDI() {
         "Storage": object(CookieStorage),         // constructor without arguments       
         "BrowserHistory": factory(configureHistory), // factory (will be called only once)  
     });
+    return container;
 }
     
 function configureHistory(container: IDIContainer): History {

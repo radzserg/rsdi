@@ -3,6 +3,7 @@ import DIContainer from "../DIContainer";
 import ObjectDefinition from "../definitions/ObjectDefinition";
 import ValueDefinition from "../definitions/ValueDefinition";
 import DependencyIsMissingError from "../errors/DependencyIsMissingError";
+import { factory, get, object } from "../index";
 
 describe("DIContainer", () => {
     test("it adds and resolves definitions", () => {
@@ -27,7 +28,7 @@ describe("DIContainer", () => {
     test("it always returns singleton", () => {
         const container = new DIContainer();
         const definitions = {
-            foo: new ObjectDefinition(Foo).construct("name1", undefined)
+            foo: new ObjectDefinition(Foo).construct("name1", undefined),
         };
         container.addDefinitions(definitions);
 
@@ -75,5 +76,46 @@ describe("DIContainer", () => {
         expect(container.get("key1")).toEqual("value1");
         container.addDefinition("key2", "value2");
         expect(container.get("key2")).toEqual("value2");
-    })
+    });
+
+    test("it resolves factory returning pending Promise", async () => {
+        class TestUserRepository {
+            private dbConnection: any;
+            public constructor(private readonly dbConnectionPromise: any) {}
+            async init() {
+                this.dbConnection = await this.dbConnectionPromise;
+            }
+            async findUser() {
+                await this.init();
+                const dbConnection = this.dbConnection;
+                return await new Promise(resolve =>
+                    setTimeout(() => {
+                        resolve(`${dbConnection} + findUser`);
+                    })
+                );
+            }
+        }
+
+        const container = new DIContainer();
+        container.addDefinition("dsn", new ValueDefinition("DSN-secret"));
+        container.addDefinition(
+            "dbConnection",
+            factory((container: DIContainer) => {
+                return new Promise(resolve =>
+                    setTimeout(() => {
+                        resolve(container.get("dsn"));
+                    })
+                );
+            })
+        );
+        container.addDefinition(
+            "TestUserRepository",
+            object(TestUserRepository).construct(get("dbConnection"))
+        );
+
+        const userRepository = container.get<TestUserRepository>(
+            "TestUserRepository"
+        );
+        expect(await userRepository.findUser()).toBe("DSN-secret + findUser");
+    });
 });

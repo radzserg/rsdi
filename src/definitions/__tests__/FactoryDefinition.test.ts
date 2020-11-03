@@ -17,4 +17,20 @@ describe("FactoryDefinition", () => {
         });
         expect(definition.resolve(container)).toEqual("value1");
     });
+
+    test("it resolves value using async factory", async () => {
+        const container = new DIContainer();
+        container.addDefinition("key1", new ValueDefinition("value1"));
+        const definition = new FactoryDefinition(
+            async (container: DIContainer) => {
+                return await new Promise(resolve =>
+                    setTimeout(() => {
+                        resolve(container.get("key1"));
+                    })
+                );
+            }
+        );
+
+        expect(await definition.resolve(container)).toEqual("value1");
+    });
 });

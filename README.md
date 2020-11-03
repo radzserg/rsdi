@@ -41,7 +41,16 @@ const history = container.get<History>("BrowserHistory");  // History singleton 
 
 ``` 
 
-**All definitions are resolved once and their result is kept during the life of the container.**
+**All definitions are resolved once and their result persists over the life of the container.**
+
+
+- [Features](#features)
+- [Motivation](#motivation)
+- [Usage](#usage)
+    - [Raw values](#raw-values)
+    - [Object definition](#object-definition)  
+    - [Factory definition](#factory-definition)
+    - [Async factory definition](#async-factory-definition)
 
 ## Features
 
@@ -67,6 +76,8 @@ Why component Foo should know that it's injectable?
 
 More details thoughts in my [blog article](https://medium.com/@radzserg/https-medium-com-radzserg-dependency-injection-in-react-part-1-c1decd9c2e7a) 
 
+## Usage
+
 ### Raw values
 
 ```typescript
@@ -83,7 +94,7 @@ const authStorage = container.get<AuthStorage>("AuthStorage"); // instance of Au
 const authStorage = container.get<History>("BrowserHistory"); // instance of AuthStorage     
 ```
 
-When you specify raw values (i.e. don't use `object`, `factory` definitions) `rsdi` will resolve as it is. 
+When you specify raw values (i.e. don't use `object`, `factory` definitions) `rsdi` will resolve it as it is. 
 
 ### Object definition
 
@@ -106,14 +117,13 @@ container.addDefinitions({
 ```
 
 `object(ClassName)` - the simplest scenario that will call `new ClassName()`. When you need to pass arguments to the 
-constructor, you can use `constructor` method. You can refer to the existing definitions via `get` helper. 
-If you need to call object method after initialization you can use `method` it will be called after constructor. You also 
-can refer to the existing definitions via `get` method.
+constructor, you can use `construct` method. You can refer to the already defined dependencies via the `get` helper. 
+If you need to call object method after initialization you can use `method` it will be called after constructor. 
 
 ### Factory definition
 
 You can use factory definition when you need more flexibility during initialisation. `container: IDIContainer` will be
-pass as an argument to the factory method. 
+pass as an argument to the factory method. So you can resolve other dependencies inside the factory function.
 
 ```typescript
 
@@ -133,4 +143,78 @@ function configureHistory(container: IDIContainer): History {
     return history;
 }
 const history = container.get<History>("BrowserHistory"); 
+```
+
+### Async factory definition
+
+RSDI intentionally does not provide the ability to resolve asynchronous dependencies. The container works with 
+resources. All resources will be needed sooner or later. The lazy initialization feature won't be of much benefit 
+in this case. At the same time, mixing synchronous and asynchronous resolution will cause confusion primarily for 
+the consumers themselves.
+
+In most scenarios, following approach will work.
+```typescript
+
+// UserRepository.ts
+ class UserRepository {
+    public constructor(private readonly dbConnection: any) {}
+   
+    async findUser() {       
+        return await this.dbConnection.find(...)
+    }
+}
+
+import {createConnections, Connection} from "typeorm";
+import DIContainer, {  factory, IDIContainer } from "rsdi";
+
+const dbConnection = await createConnections();
+function configureDI() {}    
+    const container = new DIContainer();
+    container.addDefinitions({       
+      "DbConnection": dbConnection,
+      "UserRepository": object(UserRepository).construct(
+        get("DbConnection")
+      ) 
+    });
+    return container;
+}
+```
+
+If you still want to use lazy initialization, we advise you to resolve async calls inside your classes.
+
+```typescript
+
+// UserRepository.ts
+ class UserRepository {
+    private dbConnection: any;
+    public constructor(private readonly dbConnectionPromise: any) {}
+    async init() {
+        this.dbConnection = await this.dbConnectionPromise;
+    }
+    async findUser() {
+        await this.init();       
+        return await this.dbConnection.find(...)
+    }
+}
+
+// index.ts
+import { createConnections } from "my-orm-library";
+import DIContainer, {  factory, IDIContainer } from "rsdi";
+
+const container = new DIContainer();
+container.addDefinitions({       
+  "DbConnection": factory((container: IDIContainer) => {
+    // return Promise{<pending>} instead of await createConnection()    
+    return createConnections([{                
+        username: container.get("DB_USERNAME"),
+        // ... 
+    }])   
+  }),
+  "UserRepository": object(UserRepository).construct(
+    get("DbConnection")
+  ) 
+});
+
+const userRepository = await container.get<UserRepository>("UserRepository");
+
 ```

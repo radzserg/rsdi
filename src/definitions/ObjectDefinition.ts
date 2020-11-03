@@ -12,6 +12,9 @@ interface IExtraMethods {
     args: any;
 }
 
+/**
+ * Definition to create object by provided class name
+ */
 export default class ObjectDefinition extends BaseDefinition {
     private readonly constructorFunction: Type<any>;
     private deps: Array<BaseDefinition | any> = [];
@@ -38,10 +41,10 @@ export default class ObjectDefinition extends BaseDefinition {
         return this;
     }
 
-    resolve = <T>(diContainer: IDIContainer): T => {
+    resolve = <T>(diContainer: IDIContainer, parentDeps: string[] = []): T => {
         const deps = this.deps.map((dep: BaseDefinition | any) => {
             if (dep instanceof BaseDefinition) {
-                return dep.resolve(diContainer);
+                return dep.resolve(diContainer, parentDeps);
             }
             return dep;
         });

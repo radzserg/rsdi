@@ -1,8 +1,11 @@
 import BaseDefinition from "../definitions/BaseDefinition";
-import { IDIContainer } from "../DIContainer";
+import DIContainer, { IDIContainer } from "../DIContainer";
 
 export type Factory = (container: IDIContainer) => any;
 
+/**
+ * Factory definition - custom function to resolve dependency
+ */
 export default class FactoryDefinition extends BaseDefinition {
     private readonly factory: Factory;
 
@@ -11,7 +14,7 @@ export default class FactoryDefinition extends BaseDefinition {
         this.factory = factory;
     }
 
-    resolve = <T>(container: IDIContainer): T => {
+    resolve = <T>(container: DIContainer): T => {
         return this.factory(container);
     };
 }

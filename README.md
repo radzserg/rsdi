@@ -165,11 +165,13 @@ In most scenarios, following approach will work.
     }
 }
 
-import {createConnections, Connection} from "typeorm";
+// configureDI.ts
+import { createConnections } from "my-orm-library";
 import DIContainer, {  factory, IDIContainer } from "rsdi";
 
-const dbConnection = await createConnections();
-function configureDI() {}    
+async function configureDI() {}
+    const dbConnection = await createConnections();
+    
     const container = new DIContainer();
     container.addDefinitions({       
       "DbConnection": dbConnection,
@@ -179,9 +181,12 @@ function configureDI() {}
     });
     return container;
 }
+
+// main.ts
+const userRepository = configureDI().get<UserRepository>("UserRepository");
 ```
 
-If you still want to use lazy initialization, we advise you to resolve async calls inside your classes.
+If you still want to use lazy initialization, we advise you to resolve promises inside your classes.
 
 ```typescript
 
@@ -216,6 +221,6 @@ container.addDefinitions({
   ) 
 });
 
-const userRepository = await container.get<UserRepository>("UserRepository");
+const userRepository = container.get<UserRepository>("UserRepository");
 
 ```

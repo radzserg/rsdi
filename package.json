@@ -1,6 +1,6 @@
 {
   "name": "rsdi",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "dependency injection container",
   "scripts": {
     "test": "jest",

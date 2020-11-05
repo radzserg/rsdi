@@ -153,7 +153,8 @@ resources. All resources will be needed sooner or later. The lazy initialization
 in this case. At the same time, mixing synchronous and asynchronous resolution will cause confusion primarily for 
 the consumers themselves.
 
-In most scenarios, following approach will work.
+The following approach will work in most scenarios.
+
 ```typescript
 
 // UserRepository.ts
@@ -183,44 +184,6 @@ async function configureDI() {}
 }
 
 // main.ts
-const userRepository = configureDI().get<UserRepository>("UserRepository");
-```
-
-If you still want to use lazy initialization, we advise you to resolve promises inside your classes.
-
-```typescript
-
-// UserRepository.ts
- class UserRepository {
-    private dbConnection: any;
-    public constructor(private readonly dbConnectionPromise: any) {}
-    async init() {
-        this.dbConnection = await this.dbConnectionPromise;
-    }
-    async findUser() {
-        await this.init();       
-        return await this.dbConnection.find(...)
-    }
-}
-
-// index.ts
-import { createConnections } from "my-orm-library";
-import DIContainer, {  factory, IDIContainer } from "rsdi";
-
-const container = new DIContainer();
-container.addDefinitions({       
-  "DbConnection": factory((container: IDIContainer) => {
-    // return Promise{<pending>} instead of await createConnection()    
-    return createConnections([{                
-        username: container.get("DB_USERNAME"),
-        // ... 
-    }])   
-  }),
-  "UserRepository": object(UserRepository).construct(
-    get("DbConnection")
-  ) 
-});
-
-const userRepository = container.get<UserRepository>("UserRepository");
-
+const diContainer = await configureDI();
+const userRepository = diContainer.get<UserRepository>("UserRepository");
 ```

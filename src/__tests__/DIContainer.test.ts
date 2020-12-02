@@ -139,6 +139,34 @@ describe("DIContainer", () => {
         );
     });
 
+    test("it can detect circular dependencies, complicated case", () => {
+        class DbConnection {
+            constructor() {}
+        }
+        class UsersRepo {
+            constructor(public connection: DbConnection) {}
+        }
+        class CompaniesRepo {
+            constructor(public connection: DbConnection) {}
+        }
+        class FooController {
+            constructor(public usersRepo: UsersRepo, companiesRepo: CompaniesRepo) {}
+        }
+
+        const container = new DIContainer();
+        container.addDefinitions({
+            connection: new DbConnection(),
+            usersRepo: new ObjectDefinition(UsersRepo).construct(get("connection")),
+            companiesRepo: new ObjectDefinition(CompaniesRepo).construct(get("connection")),
+            fooController: new ObjectDefinition(FooController).construct(
+                get("usersRepo"),
+                get("companiesRepo"),
+            ),
+        });
+
+        const fooController = container.get("fooController");
+    });
+
     test("it can detect deep circular dependencies", () => {
         class Foo {
             constructor(public bar: Bar) {}

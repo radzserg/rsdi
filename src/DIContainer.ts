@@ -43,8 +43,7 @@ export default class DIContainer implements IDIContainer {
         }
 
         const definition: IDefinition = this.definitions[name];
-        parentDeps.push(name);
-        this.resolved[name] = definition.resolve<T>(this, parentDeps);
+        this.resolved[name] = definition.resolve<T>(this, [...parentDeps, name]);
         return this.resolved[name];
     }
 

@@ -75,7 +75,7 @@ class Foo {
 ```
 Why component Foo should know that it's injectable?
 
-More details thoughts in my [blog article](https://medium.com/@radzserg/https-medium-com-radzserg-dependency-injection-in-react-part-1-c1decd9c2e7a) 
+More details thoughts in the [blog article](https://radzserg.medium.com/https-medium-com-radzserg-dependency-injection-in-react-part-2-995e93b3327c) 
 
 ## Usage
 

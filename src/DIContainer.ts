@@ -1,8 +1,7 @@
 import { IDefinition } from "./definitions/IDefinition";
-import DependencyIsMissingError from "./errors/DependencyIsMissingError";
 import BaseDefinition from "./definitions/BaseDefinition";
 import ValueDefinition from "./definitions/ValueDefinition";
-import CircularDependencyError from "./errors/CircularDependencyError";
+import { CircularDependencyError, DependencyIsMissingError } from "./errors";
 
 /**
  * Dependency injection container interface to expose
@@ -23,7 +22,7 @@ type DefinitionName = string;
 export default class DIContainer implements IDIContainer {
     private definitions: INamedDefinitions = {};
     private resolved: {
-        [name: string]: any
+        [name: string]: any;
     } = {};
 
     /**
@@ -43,7 +42,10 @@ export default class DIContainer implements IDIContainer {
         }
 
         const definition: IDefinition = this.definitions[name];
-        this.resolved[name] = definition.resolve<T>(this, [...parentDeps, name]);
+        this.resolved[name] = definition.resolve<T>(this, [
+            ...parentDeps,
+            name,
+        ]);
         return this.resolved[name];
     }
 

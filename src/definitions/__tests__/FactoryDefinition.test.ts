@@ -1,8 +1,16 @@
 import FactoryDefinition from "../FactoryDefinition";
 import DIContainer from "../../index";
 import ValueDefinition from "../ValueDefinition";
+import { FactoryDefinitionError } from "../../errors";
 
 describe("FactoryDefinition", () => {
+    test("it throw an error when factory is not a function", () => {
+        expect(() => {
+            // @ts-ignore
+            new FactoryDefinition({});
+        }).toThrow(new FactoryDefinitionError());
+    });
+
     test("it invokes simple factory and resolves value", () => {
         const definition = new FactoryDefinition(() => "Value");
         expect(definition).toBeInstanceOf(FactoryDefinition);

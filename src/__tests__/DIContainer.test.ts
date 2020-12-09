@@ -2,8 +2,8 @@ import { Foo } from "./fakeClasses";
 import DIContainer from "../DIContainer";
 import ObjectDefinition from "../definitions/ObjectDefinition";
 import ValueDefinition from "../definitions/ValueDefinition";
-import DependencyIsMissingError from "../errors/DependencyIsMissingError";
 import { factory, get, object } from "../index";
+import { DependencyIsMissingError } from "../errors";
 
 describe("DIContainer", () => {
     test("it adds and resolves definitions", () => {
@@ -150,21 +150,30 @@ describe("DIContainer", () => {
             constructor(public connection: DbConnection) {}
         }
         class FooController {
-            constructor(public usersRepo: UsersRepo, companiesRepo: CompaniesRepo) {}
+            constructor(
+                public usersRepo: UsersRepo,
+                companiesRepo: CompaniesRepo
+            ) {}
         }
 
         const container = new DIContainer();
         container.addDefinitions({
             connection: new DbConnection(),
-            usersRepo: new ObjectDefinition(UsersRepo).construct(get("connection")),
-            companiesRepo: new ObjectDefinition(CompaniesRepo).construct(get("connection")),
+            usersRepo: new ObjectDefinition(UsersRepo).construct(
+                get("connection")
+            ),
+            companiesRepo: new ObjectDefinition(CompaniesRepo).construct(
+                get("connection")
+            ),
             fooController: new ObjectDefinition(FooController).construct(
                 get("usersRepo"),
-                get("companiesRepo"),
+                get("companiesRepo")
             ),
         });
 
         const fooController = container.get("fooController");
+        expect(fooController).not.toBeNull();
+        expect(fooController).toBeInstanceOf(FooController);
     });
 
     test("it can detect deep circular dependencies", () => {

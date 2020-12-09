@@ -1,7 +1,6 @@
 import BaseDefinition from "../definitions/BaseDefinition";
 import { IDIContainer } from "../DIContainer";
-import MethodIsMissingError from "../errors/MethodIsMissingError";
-import InvalidConstructorError from "../errors/InvalidConstructorError";
+import { InvalidConstructorError, MethodIsMissingError } from "../errors";
 
 export interface Type<T> extends Function {
     new (...args: any[]): T;
@@ -53,7 +52,10 @@ export default class ObjectDefinition extends BaseDefinition {
         this.methods.forEach((method: IExtraMethods) => {
             const { methodName, args } = method;
             if (object[methodName] === undefined) {
-                throw new MethodIsMissingError(object.constructor.name, methodName);
+                throw new MethodIsMissingError(
+                    object.constructor.name,
+                    methodName
+                );
             }
             const resolvedArgs = args.map((arg: any) => {
                 if (arg instanceof BaseDefinition) {

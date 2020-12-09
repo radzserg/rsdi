@@ -1,8 +1,7 @@
 import ObjectDefinition from "../ObjectDefinition";
-import {Bar, Buzz, Foo, FooChild} from "../../__tests__/fakeClasses";
-import DIContainer, {get} from "../../index";
-import MethodIsMissingError from "../../errors/MethodIsMissingError";
-import InvalidConstructorError from "../../errors/InvalidConstructorError";
+import { Bar, Buzz, Foo, FooChild } from "../../__tests__/fakeClasses";
+import DIContainer, { get } from "../../index";
+import { InvalidConstructorError, MethodIsMissingError } from "../../errors";
 
 describe("ObjectDefinition", () => {
     const container = new DIContainer();
@@ -18,7 +17,10 @@ describe("ObjectDefinition", () => {
     test("it can initiate child constructors", () => {
         const fakeName = "My name is FooChild";
         const bar = new ObjectDefinition(Bar);
-        const definition = new ObjectDefinition(FooChild).construct(fakeName, bar);
+        const definition = new ObjectDefinition(FooChild).construct(
+            fakeName,
+            bar
+        );
         const instance = definition.resolve<Foo>(container);
         expect(instance).toBeInstanceOf(FooChild);
         expect(instance.name).toEqual(fakeName);
@@ -56,15 +58,14 @@ describe("ObjectDefinition", () => {
         }).toThrow(new MethodIsMissingError("Foo", "undefinedMethod"));
     });
 
-    test.each([
-        [undefined],
-        [() => {}],
-        ["abc"]
-    ])("it throws an error if invalid constructor have been provided", () => {
-        expect((constructorFunction: any) => {
-            new ObjectDefinition(constructorFunction);
-        }).toThrow(new InvalidConstructorError());
-    });
+    test.each([[undefined], [() => {}], ["abc"]])(
+        "it throws an error if invalid constructor have been provided",
+        () => {
+            expect((constructorFunction: any) => {
+                new ObjectDefinition(constructorFunction);
+            }).toThrow(new InvalidConstructorError());
+        }
+    );
 
     test("it resolves deps while calling method", () => {
         container.addDefinition("key1", "value1");

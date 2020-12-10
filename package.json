@@ -3,7 +3,7 @@
   "version": "1.0.9",
   "description": "dependency injection container",
   "scripts": {
-    "test": "jest",
+    "test": "jest --watch",
     "build": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json",
     "copy:package": "cp README.md package.json dist/",
     "deploy": "npm run build && npm run copy:package && npm publish dist"
@@ -20,7 +20,7 @@
   "devDependencies": {
     "@types/jest": "^25.2.1",
     "jest": "^25.5.4",
-    "ts-jest": "^25.3.1",
+    "ts-jest": "^26.4.4",
     "typescript": "^3.9.7"
   },
   "dependencies": {}

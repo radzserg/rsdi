@@ -4,6 +4,7 @@ import ObjectDefinition from "../definitions/ObjectDefinition";
 import ValueDefinition from "../definitions/ValueDefinition";
 import DependencyIsMissingError from "../errors/DependencyIsMissingError";
 import { factory, get, object } from "../index";
+import { Mode } from "../definitions/BaseDefinition";
 
 describe("DIContainer", () => {
     test("it adds and resolves definitions", () => {
@@ -28,7 +29,7 @@ describe("DIContainer", () => {
     test("it always returns singleton", () => {
         const container = new DIContainer();
         const definitions = {
-            foo: new ObjectDefinition(Foo).construct("name1", undefined),
+            foo: new ObjectDefinition(Foo, Mode.SINGLETON).construct("name1", undefined),
         };
         container.addDefinitions(definitions);
 
@@ -37,6 +38,20 @@ describe("DIContainer", () => {
         foo.name = "name2";
         const foo2 = container.get<Foo>("foo");
         expect(foo2.name).toEqual("name2");
+    });
+
+    test("it always returns transient", () => {
+        const container = new DIContainer();
+        const definitions = {
+            foo: new ObjectDefinition(Foo).construct("name1", undefined),
+        };
+        container.addDefinitions(definitions);
+
+        const foo = container.get<Foo>("foo");
+        expect(foo.name).toEqual("name1");
+        foo.name = "name2";
+        const foo2 = container.get<Foo>("foo");
+        expect(foo2.name).not.toEqual("name2");
     });
 
     test("it adds definition to existing list", () => {

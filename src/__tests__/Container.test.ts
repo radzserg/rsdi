@@ -1,5 +1,5 @@
 import { Container } from "../Container";
-import { build } from "../collaborators/DependencyBuilder";
+import { build, buildSingleton } from "../collaborators/DependencyBuilder";
 import { Bar, Foo } from "./fakeClasses";
 
 describe("Container should", () => {
@@ -25,10 +25,23 @@ describe("Container should", () => {
         expect(bar).toBeInstanceOf(Bar);
     });
 
-    it("resolve injected dependency as a singleton", () => {
-        const bar1 = Container.instance.resolve(Bar);
-        const bar2 = Container.instance.resolve(Bar);
+    it("resolve dependency as transient", ()=> {
+        const foo1 = Container.instance.resolve(Foo);
+        const foo2 = Container.instance.resolve(Foo);
 
-        expect(bar1).toBe(bar2);
+        expect(foo1).not.toBe(foo2);
+    });
+
+    it("resolve injected dependency as a singleton", () => {
+        const dependencies = [buildSingleton(Foo, Bar)];
+
+        Container.instance.register(dependencies);
+        
+        const foo1 = Container.instance.resolve(Foo);
+        const foo2 = Container.instance.resolve(Foo);
+
+        foo1.addItem("FAKE");
+
+        expect(foo2.items[0]).toBe("FAKE");
     });
 });

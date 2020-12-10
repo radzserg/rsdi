@@ -14,14 +14,14 @@ export class Container {
             const injections = [];
 
             for (const parameter of dependency.parameters) {
-                injections.push(get(parameter.name));
+                injections.push(get(parameter.type.name));
 
-                this.container.addDefinition(parameter.name, object(parameter));
+                this.container.addDefinition(parameter.type.name, object(parameter.type, parameter.mode));
             }
 
             this.container.addDefinition(
                 dependency.type.name,
-                object(dependency.type).construct(...injections)
+                object(dependency.type, dependency.mode).construct(...injections)
             );
         }
     }

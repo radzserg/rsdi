@@ -1,4 +1,4 @@
-import BaseDefinition from "../definitions/BaseDefinition";
+import BaseDefinition, { Mode } from "../definitions/BaseDefinition";
 import DIContainer, { IDIContainer } from "../DIContainer";
 
 export type Factory = (container: IDIContainer) => any;
@@ -10,7 +10,7 @@ export default class FactoryDefinition extends BaseDefinition {
     private readonly factory: Factory;
 
     constructor(factory: Factory) {
-        super();
+        super(Mode.SINGLETON);
         this.factory = factory;
     }
 

@@ -38,11 +38,13 @@ export default class DIContainer implements IDIContainer {
         if (parentDeps.includes(name)) {
             throw new CircularDependencyError(name, parentDeps);
         }
-        if (this.resolved[name] !== undefined) {
+
+        const definition: IDefinition = this.definitions[name];
+
+        if (definition.isSingleton() && this.resolved[name] !== undefined) {
             return this.resolved[name];
         }
 
-        const definition: IDefinition = this.definitions[name];
         parentDeps.push(name);
         this.resolved[name] = definition.resolve<T>(this, parentDeps);
         return this.resolved[name];

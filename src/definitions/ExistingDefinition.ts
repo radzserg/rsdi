@@ -1,4 +1,4 @@
-import BaseDefinition from "../definitions/BaseDefinition";
+import BaseDefinition, { Mode } from "../definitions/BaseDefinition";
 import DIContainer  from "../DIContainer";
 
 /**
@@ -8,7 +8,7 @@ export default class ExistingDefinition extends BaseDefinition {
     private readonly existingDefinitionName: string;
 
     constructor(existingDefinitionName: string) {
-        super();
+        super(Mode.TRANSIENT);
         this.existingDefinitionName = existingDefinitionName;
     }
 

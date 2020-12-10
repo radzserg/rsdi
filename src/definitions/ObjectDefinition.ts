@@ -1,4 +1,4 @@
-import BaseDefinition from "../definitions/BaseDefinition";
+import BaseDefinition, { Mode } from "../definitions/BaseDefinition";
 import { IDIContainer } from "../DIContainer";
 import MethodIsMissingError from "../errors/MethodIsMissingError";
 import InvalidConstructorError from "../errors/InvalidConstructorError";
@@ -20,8 +20,8 @@ export default class ObjectDefinition extends BaseDefinition {
     private deps: Array<BaseDefinition | any> = [];
     private methods: IExtraMethods[] = [];
 
-    constructor(constructorFunction: Type<any>) {
-        super();
+    constructor(constructorFunction: Type<any>, mode: Mode = Mode.TRANSIENT) {
+        super(mode);
         if (typeof constructorFunction !== "function") {
             throw new InvalidConstructorError();
         }

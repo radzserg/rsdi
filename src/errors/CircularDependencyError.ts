@@ -1,5 +1,12 @@
-export default class CircularDependencyError extends Error {
+import CustomError from "./CustomError";
+
+export default class CircularDependencyError extends CustomError {
     constructor(name: string, path: string[]) {
-        super(`Circular Dependency is detected. Dependency: "${name}", path: ` + path.join(' -> ') + '.');
+        super(
+            CircularDependencyError.name,
+            `Circular Dependency is detected. Dependency: "${name}", path: ` +
+                path.join(" -> ") +
+                "."
+        );
     }
 }

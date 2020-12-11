@@ -1,5 +1,10 @@
-export default class InvalidConstructorError extends Error {
+import CustomError from "./CustomError";
+
+export default class InvalidConstructorError extends CustomError {
     constructor() {
-        super(`Invalid constructor have been provided`);
+        super(
+            InvalidConstructorError.name,
+            `Invalid constructor have been provided`
+        );
     }
 }

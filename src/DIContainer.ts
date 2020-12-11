@@ -3,6 +3,7 @@ import DependencyIsMissingError from "./errors/DependencyIsMissingError";
 import BaseDefinition from "./definitions/BaseDefinition";
 import ValueDefinition from "./definitions/ValueDefinition";
 import CircularDependencyError from "./errors/CircularDependencyError";
+import DependencyIsAlreadyDeclared from "./errors/DependencyIsAlreadyDeclared";
 
 /**
  * Dependency injection container interface to expose
@@ -23,7 +24,7 @@ type DefinitionName = string;
 export default class DIContainer implements IDIContainer {
     private definitions: INamedDefinitions = {};
     private resolved: {
-        [name: string]: any
+        [name: string]: any;
     } = {};
 
     /**
@@ -56,6 +57,9 @@ export default class DIContainer implements IDIContainer {
      * @param definition - raw value or instance of IDefinition
      */
     addDefinition(name: DefinitionName, definition: IDefinition | any) {
+        if (name in this.definitions) {
+            throw new DependencyIsAlreadyDeclared(name);
+        }
         if (!(definition instanceof BaseDefinition)) {
             definition = new ValueDefinition(definition);
         }

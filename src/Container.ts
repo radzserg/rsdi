@@ -16,12 +16,17 @@ export class Container {
             for (const parameter of dependency.parameters) {
                 injections.push(get(parameter.type.name));
 
-                this.container.addDefinition(parameter.type.name, object(parameter.type, parameter.mode));
+                this.container.addDefinition(
+                    parameter.type.name,
+                    object(parameter.type, parameter.mode)
+                );
             }
 
             this.container.addDefinition(
                 dependency.type.name,
-                object(dependency.type, dependency.mode).construct(...injections)
+                object(dependency.type, dependency.mode).construct(
+                    ...injections
+                )
             );
         }
     }
@@ -45,5 +50,9 @@ export class Container {
         }
 
         return this._instance;
+    }
+
+    public static dispose() {
+        this._instance = null;
     }
 }

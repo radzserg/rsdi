@@ -10,36 +10,20 @@ class AuthStorage {
 }
 
 // configure DI container
-import DIContainer, { object, get, factory, IDIContainer } from "rsdi";
+import Container, { build, buildSingleton } from "rsdi";
 
-export default function configureDI() {
-    const container = new DIContainer();
-    container.addDefinitions({
-        "ENV": "PRODUCTION",               // define raw value
-        "AuthStorage": object(AuthStorage).construct(
-            get("Storage")                         // refer to another dependency       
-        ),
-        "Storage": object(CookieStorage),         // constructor without arguments       
-        "BrowserHistory": factory(configureHistory), // factory (will be called only once)  
-    });
-    return container;
+export const configureDI = () => {
+    // For transient instances
+    const dependencies = [build(AuthStorage, CookieStorage)];
+
+    // For singleton instances
+    const dependencies = [buildSingleton(AuthStorage, CookieStorage)];
+
+    // For transient instance for CookieStorage and AuthStorage singleton.
+    const dependencies = [build(CookieStorage), buildSingleton(AuthStorage, CookieStorage)];
+
+    Container.instance.register(dependencies);
 }
-    
-function configureHistory(container: IDIContainer): History {
-    const history = createBrowserHistory();
-    const env = container.get("ENV");
-    if (env === "production") {
-        // do what you need
-    }
-    return history;
-}
-
-// in your entry point code
-const container = configureDI();
-const env = container.get<string>("ENV"); // PRODUCTION
-const authStorage = container.get<AuthStorage>("AuthStorage");  // object of AuthStorage
-const history = container.get<History>("BrowserHistory");  // History singleton will be returned
-
 ``` 
 
 **All definitions are resolved once and their result persists over the life of the container.**

@@ -1,5 +1,5 @@
-import BaseDefinition, { Mode } from "../definitions/BaseDefinition";
-import DIContainer  from "../DIContainer";
+import BaseDefinition, { Mode } from "definitions/BaseDefinition";
+import DIContainer  from "container/DIContainer";
 
 /**
  * Represents already defined dependency

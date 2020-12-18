@@ -1,5 +1,5 @@
+import DIContainer from "../../container/DIContainer";
 import FactoryDefinition from "../FactoryDefinition";
-import DIContainer from "../../index";
 import ValueDefinition from "../ValueDefinition";
 
 describe("FactoryDefinition", () => {

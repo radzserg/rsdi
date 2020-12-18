@@ -1,6 +1,6 @@
 import ValueDefinition from "../ValueDefinition";
-import DIContainer from "../../DIContainer";
 import ExistingDefinition from "../ExistingDefinition";
+import DIContainer from "../../container/DIContainer";
 
 describe("ExistingDefinition", () => {
     test("it resolves existing value from container", () => {

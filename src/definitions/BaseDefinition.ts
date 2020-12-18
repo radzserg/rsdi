@@ -1,4 +1,4 @@
-import { IDIContainer } from "../DIContainer";
+import { IDIContainer } from "container/DIContainer";
 import { IDefinition } from "./IDefinition";
 
 abstract class BaseDefinition implements IDefinition {

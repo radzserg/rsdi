@@ -1,7 +1,8 @@
-import { Container } from "../Container";
-import { build, buildSingleton } from "../collaborators/DependencyBuilder";
+import { Container } from "Container";
+import { build, buildSingleton } from "collaborators/DependencyBuilder";
+import DependencyIsAlreadyDeclared from "errors/DependencyIsAlreadyDeclared";
+
 import { Bar, Foo } from "./fakeClasses";
-import DependencyIsAlreadyDeclared from "../errors/DependencyIsAlreadyDeclared";
 
 describe("Container should", () => {
     describe("be singleton", () => {

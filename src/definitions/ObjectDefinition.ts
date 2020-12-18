@@ -1,7 +1,7 @@
-import BaseDefinition, { Mode } from "../definitions/BaseDefinition";
-import { IDIContainer } from "../DIContainer";
-import MethodIsMissingError from "../errors/MethodIsMissingError";
-import InvalidConstructorError from "../errors/InvalidConstructorError";
+import BaseDefinition, { Mode } from "definitions/BaseDefinition";
+import { IDIContainer } from "container/DIContainer";
+import MethodIsMissingError from "errors/MethodIsMissingError";
+import InvalidConstructorError from "errors/InvalidConstructorError";
 
 export interface Type<T> extends Function {
     new (...args: any[]): T;

@@ -1,9 +1,9 @@
-import { IDefinition } from "./definitions/IDefinition";
-import DependencyIsMissingError from "./errors/DependencyIsMissingError";
-import BaseDefinition from "./definitions/BaseDefinition";
-import ValueDefinition from "./definitions/ValueDefinition";
-import CircularDependencyError from "./errors/CircularDependencyError";
-import DependencyIsAlreadyDeclared from "./errors/DependencyIsAlreadyDeclared";
+import { IDefinition } from "definitions/IDefinition";
+import BaseDefinition from "definitions/BaseDefinition";
+import ValueDefinition from "definitions/ValueDefinition";
+import DependencyIsMissingError from "errors/DependencyIsMissingError";
+import CircularDependencyError from "errors/CircularDependencyError";
+import DependencyIsAlreadyDeclared from "errors/DependencyIsAlreadyDeclared";
 
 /**
  * Dependency injection container interface to expose

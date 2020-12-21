@@ -5,44 +5,25 @@ import DependencyIsAlreadyDeclared from "errors/DependencyIsAlreadyDeclared";
 import { Bar, Foo } from "./fakeClasses";
 
 describe("Container should", () => {
+    afterEach(() => {
+        Container.dispose();
+    });
+    
     describe("be singleton", () => {
-        beforeEach(() => {
-            const dependencies = [build(Foo, Bar)];
-
-            Container.instance.register(dependencies);
-        });
-
-        afterEach(() => {
-            Container.dispose();
-        });
-
         test("get the same instance", () => {
             expect(Container.instance).toBe(Container.instance);
         });
+    });
 
-        test("resolve dependency", () => {
+    describe("get instances in different modes", () => {
+        test("to be the correct instance of object resolved", () => {
+            const dependencies = [buildSingleton(Foo, Bar)];
+
+            Container.instance.register(dependencies);
+
             const foo = Container.instance.resolve(Foo);
 
             expect(foo).toBeInstanceOf(Foo);
-        });
-
-        test("resolve injected dependency", () => {
-            const bar = Container.instance.resolve(Bar);
-
-            expect(bar).toBeInstanceOf(Bar);
-        });
-
-        test("resolve dependency as transient", () => {
-            const foo1 = Container.instance.resolve(Foo);
-            const foo2 = Container.instance.resolve(Foo);
-
-            expect(foo1).not.toBe(foo2);
-        });
-    });
-
-    describe("register with different modes", () => {
-        afterEach(() => {
-            Container.dispose();
         });
 
         test("resolve injected dependency as a singleton", () => {
@@ -58,7 +39,7 @@ describe("Container should", () => {
             expect(foo2.items[0]).toBe("FAKE");
         });
 
-        test("resolve injected dependency for Foo as a transient", () => {
+        test("resolve injected dependency for Bar as a transient and Foo as a Singleton", () => {
             const dependencies = [build(Bar), buildSingleton(Foo)];
 
             Container.instance.register(dependencies);
@@ -84,4 +65,14 @@ describe("Container should", () => {
             }
         });
     });
+
+    describe("get instances by name", ()=> {
+        test("register dependency by name and resolve by the same name", ()=> {
+            const bar = new Bar();
+
+            Container.instance.registerInstance("BAR", bar);
+
+            expect(Container.instance.resolveByName("BAR")).toBe(bar);
+        });
+    })
 });

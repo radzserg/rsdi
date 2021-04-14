@@ -1,5 +1,5 @@
 import BaseDefinition from "../definitions/BaseDefinition";
-import DIContainer  from "../DIContainer";
+import DIContainer, { IDIContainer } from "../DIContainer";
 
 /**
  * Represents already defined dependency
@@ -12,7 +12,7 @@ export default class ExistingDefinition extends BaseDefinition {
         this.existingDefinitionName = existingDefinitionName;
     }
 
-    resolve = <T>(container: DIContainer, parentDeps: string[] = []): T => {
-        return container.get(this.existingDefinitionName, parentDeps);
+    resolve = <T>(container: IDIContainer, parentDeps: string[] = []): T => {
+        return (container as DIContainer).get(this.existingDefinitionName, parentDeps);
     };
 }

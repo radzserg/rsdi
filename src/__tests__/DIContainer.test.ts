@@ -1,5 +1,5 @@
 import { Foo } from "./fakeClasses";
-import DIContainer from "../DIContainer";
+import DIContainer, { IDIContainer } from "../DIContainer";
 import ObjectDefinition from "../definitions/ObjectDefinition";
 import ValueDefinition from "../definitions/ValueDefinition";
 import { factory, get, object } from "../index";
@@ -100,7 +100,7 @@ describe("DIContainer", () => {
         container.addDefinition("dsn", new ValueDefinition("DSN-secret"));
         container.addDefinition(
             "dbConnection",
-            factory((container: DIContainer) => {
+            factory((container: IDIContainer) => {
                 return new Promise(resolve =>
                     setTimeout(() => {
                         resolve(container.get("dsn"));

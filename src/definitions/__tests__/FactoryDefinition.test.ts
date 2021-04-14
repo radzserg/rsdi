@@ -1,5 +1,5 @@
 import FactoryDefinition from "../FactoryDefinition";
-import DIContainer from "../../index";
+import DIContainer, { IDIContainer } from "../../index";
 import ValueDefinition from "../ValueDefinition";
 import { FactoryDefinitionError } from "../../errors";
 
@@ -20,7 +20,7 @@ describe("FactoryDefinition", () => {
     test("it resolves value using values from container", () => {
         const container = new DIContainer();
         container.addDefinition("key1", new ValueDefinition("value1"));
-        const definition = new FactoryDefinition((container: DIContainer) => {
+        const definition = new FactoryDefinition((container: IDIContainer) => {
             return container.get("key1");
         });
         expect(definition.resolve(container)).toEqual("value1");
@@ -30,7 +30,7 @@ describe("FactoryDefinition", () => {
         const container = new DIContainer();
         container.addDefinition("key1", new ValueDefinition("value1"));
         const definition = new FactoryDefinition(
-            async (container: DIContainer) => {
+            async (container: IDIContainer) => {
                 return await new Promise(resolve =>
                     setTimeout(() => {
                         resolve(container.get("key1"));

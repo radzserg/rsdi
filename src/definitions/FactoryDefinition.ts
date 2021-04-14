@@ -18,7 +18,7 @@ export default class FactoryDefinition extends BaseDefinition {
         this.factory = factory;
     }
 
-    resolve = <T>(container: DIContainer): T => {
+    resolve = <T>(container: IDIContainer, _parentDeps?: string[]): T => {
         return this.factory(container);
     }
 }

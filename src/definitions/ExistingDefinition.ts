@@ -4,7 +4,7 @@ import DIContainer, { IDIContainer } from "../DIContainer";
 /**
  * Represents already defined dependency
  */
-export default class ExistingDefinition extends BaseDefinition {
+export default class ExistingDefinition<T> extends BaseDefinition<T> {
     private readonly existingDefinitionName: string;
 
     constructor(existingDefinitionName: string) {

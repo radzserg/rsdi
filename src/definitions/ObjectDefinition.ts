@@ -1,8 +1,9 @@
 import BaseDefinition from "../definitions/BaseDefinition";
 import { IDIContainer } from "../DIContainer";
 import { InvalidConstructorError, MethodIsMissingError } from "../errors";
+import { IDefinition } from "./IDefinition";
 
-export interface Type<T> extends Function {
+export interface Type<T> {
     new (...args: any[]): T;
 }
 
@@ -14,12 +15,12 @@ interface IExtraMethods {
 /**
  * Definition to create object by provided class name
  */
-export default class ObjectDefinition extends BaseDefinition {
+export default class ObjectDefinition<T extends Object> extends BaseDefinition<T> {
     private readonly constructorFunction: Type<any>;
-    private deps: Array<BaseDefinition | any> = [];
+    private deps: Array<IDefinition<T> | any> = [];
     private methods: IExtraMethods[] = [];
 
-    constructor(constructorFunction: Type<any>) {
+    constructor(constructorFunction: Type<T>) {
         super();
         if (typeof constructorFunction !== "function") {
             throw new InvalidConstructorError();
@@ -27,12 +28,12 @@ export default class ObjectDefinition extends BaseDefinition {
         this.constructorFunction = constructorFunction;
     }
 
-    construct(...deps: BaseDefinition | any): ObjectDefinition {
+    construct(...deps: IDefinition<T> | any): ObjectDefinition<T> {
         this.deps = deps;
         return this;
     }
 
-    method(methodName: string, ...args: any): ObjectDefinition {
+    method(methodName: string, ...args: any): ObjectDefinition<T> {
         this.methods.push({
             methodName,
             args,
@@ -40,7 +41,7 @@ export default class ObjectDefinition extends BaseDefinition {
         return this;
     }
 
-    resolve = <T>(diContainer: IDIContainer, parentDeps: string[] = []): T => {
+    resolve = <Y extends T>(diContainer: IDIContainer, parentDeps: string[] = []): Y => {
         const deps = this.deps.map((dep: BaseDefinition | any) => {
             if (dep instanceof BaseDefinition) {
                 return dep.resolve(diContainer, parentDeps);

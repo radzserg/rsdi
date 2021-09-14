@@ -1,5 +1,5 @@
 import { IDIContainer } from "../DIContainer";
 
-export interface IDefinition<T extends any = unknown> {
-    resolve: <Y extends T>(container: IDIContainer, parentDeps?: string[]) => Y;
+export type IDefinition<T> = {
+    resolve: (container: IDIContainer, parentDeps?: string[]) => T;
 }

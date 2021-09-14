@@ -3,8 +3,8 @@ import { IDIContainer } from "../DIContainer";
 import { InvalidConstructorError, MethodIsMissingError } from "../errors";
 import { IDefinition } from "./IDefinition";
 
-export interface Type<T> {
-    new (...args: any[]): T;
+export interface Type<C extends Object> {
+    new (...args: any[]): C;
 }
 
 interface IExtraMethods {
@@ -12,15 +12,20 @@ interface IExtraMethods {
     args: any;
 }
 
+type UnwrapDefinition<U> = U extends Object ? IDefinition<U> : never;
+type ConstructorArgsWithDefinitions<T extends any[]> = { [K in keyof T]: T[K] | UnwrapDefinition<T[K]> }
+
 /**
  * Definition to create object by provided class name
  */
-export default class ObjectDefinition<T extends Object> extends BaseDefinition<T> {
-    private readonly constructorFunction: Type<any>;
-    private deps: Array<IDefinition<T> | any> = [];
+export default class ObjectDefinition<T extends { new (...args: any[]): any }, R = InstanceType<T>>
+    extends BaseDefinition<R> implements IDefinition<R>
+{
+    private readonly constructorFunction: T;
+    private deps: Array<IDefinition<any> | any> = [];
     private methods: IExtraMethods[] = [];
 
-    constructor(constructorFunction: Type<T>) {
+    constructor(constructorFunction: T) {
         super();
         if (typeof constructorFunction !== "function") {
             throw new InvalidConstructorError();
@@ -28,7 +33,7 @@ export default class ObjectDefinition<T extends Object> extends BaseDefinition<T
         this.constructorFunction = constructorFunction;
     }
 
-    construct(...deps: IDefinition<T> | any): ObjectDefinition<T> {
+    construct(...deps: T extends { new(...args: infer P): any } ? ConstructorArgsWithDefinitions<P> : never[]): ObjectDefinition<T> {
         this.deps = deps;
         return this;
     }
@@ -41,7 +46,7 @@ export default class ObjectDefinition<T extends Object> extends BaseDefinition<T
         return this;
     }
 
-    resolve = <Y extends T>(diContainer: IDIContainer, parentDeps: string[] = []): Y => {
+    resolve = <Y extends T>(diContainer: IDIContainer, parentDeps: string[] = []): Y extends { new(...args: any[]): infer R } ? R : any => {
         const deps = this.deps.map((dep: BaseDefinition | any) => {
             if (dep instanceof BaseDefinition) {
                 return dep.resolve(diContainer, parentDeps);

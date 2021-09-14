@@ -3,8 +3,8 @@ import ValueDefinition from "../definitions/ValueDefinition";
 import ExistingDefinition from "./ExistingDefinition";
 import FactoryDefinition, { Factory } from "./FactoryDefinition";
 
-export function diObject<T extends Object = {}>(classConstructor: Type<T>) {
-    return new ObjectDefinition<T>(classConstructor);
+export function diObject<T = Type<any>>(classConstructor: Type<T>) {
+    return new ObjectDefinition(classConstructor);
 }
 
 export function diValue(value: string) {

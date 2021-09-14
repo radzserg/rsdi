@@ -9,14 +9,14 @@ describe("ObjectDefinition", () => {
         const fakeName = "My name is Foo";
         const bar = new ObjectDefinition(Bar);
         const definition = new ObjectDefinition(Foo).construct(fakeName, bar);
-        const instance = definition.resolve<Foo>(container);
+        const instance = definition.resolve<typeof Foo>(container);
         expect(instance).toBeInstanceOf(Foo);
         expect(instance.name).toEqual(fakeName);
     });
 
     test("it can initiate child constructors", () => {
         const fakeName = "My name is FooChild";
-        const bar = new ObjectDefinition(Bar);
+        const bar = new ObjectDefinition(Foo);
         const definition = new ObjectDefinition(FooChild).construct(
             fakeName,
             bar

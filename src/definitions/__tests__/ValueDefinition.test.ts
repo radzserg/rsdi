@@ -9,7 +9,7 @@ describe("ValueDefinition", () => {
 
 describe("it respects TS types", function() {
     test("infer types", () => {
-        const definition = new ValueDefinition<string>("production");
+        const definition = new ValueDefinition("production");
         let s: string = definition.resolve();
         expect(s).toEqual("production");
     });

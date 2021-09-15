@@ -12,12 +12,9 @@ interface IExtraMethods<I> {
     args: any;
 }
 
-type UnwrapDefinition<U> = U extends Object ? IDefinition<U> : never;
-type ConstructorArgsWithDefinitions<T extends any[]> = { [K in keyof T]: T[K] | UnwrapDefinition<T[K]> }
-
-
-type Method<T, K extends keyof T> = T[K];
-type MethodArgs<T extends Type<any>, K extends keyof InstanceType<T>> = Parameters<Method<InstanceType<T>, K>>;
+type WithDefinitions<T extends any[]> = { [K in keyof T]: T[K] | IDefinition<T[K]> }
+type ParametersWithDefinition<T extends (...args: any) => any> = T extends (...args: infer P) => any ? WithDefinitions<P> : never;
+type MethodArgs<T extends Type<any>, K extends keyof InstanceType<T>> = ParametersWithDefinition<InstanceType<T>[K]>;
 
 
 /**
@@ -38,7 +35,7 @@ export default class ObjectDefinition<T extends Type<any>>
         this.constructorFunction = constructorFunction;
     }
 
-    construct(...deps: T extends { new(...args: infer P): any } ? ConstructorArgsWithDefinitions<P> : never[]): ObjectDefinition<T> {
+    construct(...deps: T extends { new(...args: infer P): any } ? WithDefinitions<P> : never[]): ObjectDefinition<T> {
         this.deps = deps;
         return this;
     }

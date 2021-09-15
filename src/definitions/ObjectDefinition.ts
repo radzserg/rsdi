@@ -33,12 +33,12 @@ export default class ObjectDefinition<T extends { new (...args: any[]): any }, R
         this.constructorFunction = constructorFunction;
     }
 
-    construct(...deps: T extends { new(...args: infer P): any } ? ConstructorArgsWithDefinitions<P> : never[]): ObjectDefinition<T> {
+    construct(...deps: T extends { new(...args: infer P): any } ? ConstructorArgsWithDefinitions<P> : never[]): ObjectDefinition<T, R> {
         this.deps = deps;
         return this;
     }
 
-    method(methodName: string, ...args: any): ObjectDefinition<T> {
+    method(methodName: string, ...args: any): ObjectDefinition<T, R> {
         this.methods.push({
             methodName,
             args,
@@ -46,7 +46,7 @@ export default class ObjectDefinition<T extends { new (...args: any[]): any }, R
         return this;
     }
 
-    resolve = <Y extends T>(diContainer: IDIContainer, parentDeps: string[] = []): Y extends { new(...args: any[]): infer R } ? R : any => {
+    resolve = (diContainer: IDIContainer, parentDeps: string[] = []): R  => {
         const deps = this.deps.map((dep: BaseDefinition | any) => {
             if (dep instanceof BaseDefinition) {
                 return dep.resolve(diContainer, parentDeps);

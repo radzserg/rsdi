@@ -9,19 +9,19 @@ describe("ObjectDefinition", () => {
         const fakeName = "My name is Foo";
         const bar = new ObjectDefinition(Bar);
         const definition = new ObjectDefinition(Foo).construct(fakeName, bar);
-        const instance = definition.resolve<typeof Foo>(container);
+        const instance = definition.resolve(container);
         expect(instance).toBeInstanceOf(Foo);
         expect(instance.name).toEqual(fakeName);
     });
 
     test("it can initiate child constructors", () => {
         const fakeName = "My name is FooChild";
-        const bar = new ObjectDefinition(Foo);
+        const bar = new ObjectDefinition(Bar);
         const definition = new ObjectDefinition(FooChild).construct(
             fakeName,
             bar
         );
-        const instance = definition.resolve<Foo>(container);
+        const instance = definition.resolve(container);
         expect(instance).toBeInstanceOf(FooChild);
         expect(instance.name).toEqual(fakeName);
     });
@@ -33,7 +33,7 @@ describe("ObjectDefinition", () => {
             fakeName,
             BarDefinition
         );
-        const instance = definition.resolve<Foo>(container);
+        const instance = definition.resolve(container);
         expect(instance).toBeInstanceOf(Foo);
         expect(instance.name).toEqual(fakeName);
         expect(instance.service.buzz()).toEqual("buzz");
@@ -43,7 +43,7 @@ describe("ObjectDefinition", () => {
         const definition = new ObjectDefinition(Foo)
             .method("addItem", "item1")
             .method("addItem", "item2");
-        const instance = definition.resolve<Foo>(container);
+        const instance = definition.resolve(container);
         expect(instance).toBeInstanceOf(Foo);
         expect(instance.items).toEqual(["item1", "item2"]);
     });
@@ -54,7 +54,7 @@ describe("ObjectDefinition", () => {
             "item1"
         );
         expect(() => {
-            definition.resolve<Foo>(container);
+            definition.resolve(container);
         }).toThrow(new MethodIsMissingError("Foo", "undefinedMethod"));
     });
 
@@ -73,13 +73,13 @@ describe("ObjectDefinition", () => {
             "addItem",
             get("key1")
         );
-        const instance = definition.resolve<Foo>(container);
+        const instance = definition.resolve(container);
         expect(instance.items).toEqual(["value1"]);
     });
 
     test("it resolves a class without explicit controller", () => {
         const definition = new ObjectDefinition(Buzz);
-        const instance = definition.resolve<Buzz>(container);
+        const instance = definition.resolve(container);
         expect(instance).toBeInstanceOf(Buzz);
     });
 });

@@ -18,8 +18,8 @@ type ConstructorArgsWithDefinitions<T extends any[]> = { [K in keyof T]: T[K] | 
 /**
  * Definition to create object by provided class name
  */
-export default class ObjectDefinition<T extends { new (...args: any[]): any }, R = InstanceType<T>>
-    extends BaseDefinition<R> implements IDefinition<R>
+export default class ObjectDefinition<T extends Type<any>>
+    extends BaseDefinition<InstanceType<T>> implements IDefinition<InstanceType<T>>
 {
     private readonly constructorFunction: T;
     private deps: Array<IDefinition<any> | any> = [];
@@ -33,12 +33,12 @@ export default class ObjectDefinition<T extends { new (...args: any[]): any }, R
         this.constructorFunction = constructorFunction;
     }
 
-    construct(...deps: T extends { new(...args: infer P): any } ? ConstructorArgsWithDefinitions<P> : never[]): ObjectDefinition<T, R> {
+    construct(...deps: T extends { new(...args: infer P): any } ? ConstructorArgsWithDefinitions<P> : never[]): ObjectDefinition<T> {
         this.deps = deps;
         return this;
     }
 
-    method(methodName: string, ...args: any): ObjectDefinition<T, R> {
+    method(methodName: string, ...args: any): ObjectDefinition<T> {
         this.methods.push({
             methodName,
             args,
@@ -46,7 +46,7 @@ export default class ObjectDefinition<T extends { new (...args: any[]): any }, R
         return this;
     }
 
-    resolve = (diContainer: IDIContainer, parentDeps: string[] = []): R  => {
+    resolve = (diContainer: IDIContainer, parentDeps: string[] = []): InstanceType<T>  => {
         const deps = this.deps.map((dep: BaseDefinition | any) => {
             if (dep instanceof BaseDefinition) {
                 return dep.resolve(diContainer, parentDeps);

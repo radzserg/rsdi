@@ -92,7 +92,7 @@ container.addDefinitions({
 });
 const env = container.get<string>("ENV"); // PRODUCTION    
 const authStorage = container.get<AuthStorage>("AuthStorage"); // instance of AuthStorage     
-const authStorage = container.get<History>("BrowserHistory"); // instance of AuthStorage     
+const browserHistory = container.get<History>("BrowserHistory"); // instance of BrowserHistory     
 ```
 
 When you specify raw values (i.e. don't use `object`, `factory` definitions) `rsdi` will resolve it as it is. 
@@ -162,7 +162,7 @@ The following approach will work in most scenarios.
     public constructor(private readonly dbConnection: any) {}
    
     async findUser() {       
-        return await this.dbConnection.find(...)
+        return await this.dbConnection.find(/*...params...*/);
     }
 }
 
@@ -170,7 +170,7 @@ The following approach will work in most scenarios.
 import { createConnections } from "my-orm-library";
 import DIContainer, {  factory, IDIContainer } from "rsdi";
 
-async function configureDI() {}
+async function configureDI() {
     const dbConnection = await createConnections();
     
     const container = new DIContainer();

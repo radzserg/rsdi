@@ -7,13 +7,18 @@ export interface Type<C extends Object> {
     new (...args: any[]): C;
 }
 
-interface IExtraMethods {
-    methodName: string;
+interface IExtraMethods<I> {
+    methodName: keyof I;
     args: any;
 }
 
 type UnwrapDefinition<U> = U extends Object ? IDefinition<U> : never;
 type ConstructorArgsWithDefinitions<T extends any[]> = { [K in keyof T]: T[K] | UnwrapDefinition<T[K]> }
+
+
+type Method<T, K extends keyof T> = T[K];
+type MethodArgs<T extends Type<any>, K extends keyof InstanceType<T>> = Parameters<Method<InstanceType<T>, K>>;
+
 
 /**
  * Definition to create object by provided class name
@@ -23,7 +28,7 @@ export default class ObjectDefinition<T extends Type<any>>
 {
     private readonly constructorFunction: T;
     private deps: Array<IDefinition<any> | any> = [];
-    private methods: IExtraMethods[] = [];
+    private methods: IExtraMethods<InstanceType<T>>[] = [];
 
     constructor(constructorFunction: T) {
         super();
@@ -38,7 +43,7 @@ export default class ObjectDefinition<T extends Type<any>>
         return this;
     }
 
-    method(methodName: string, ...args: any): ObjectDefinition<T> {
+    method<MethodName extends keyof InstanceType<T>>(methodName: MethodName, ...args: MethodArgs<T, MethodName>): ObjectDefinition<T> {
         this.methods.push({
             methodName,
             args,
@@ -55,12 +60,12 @@ export default class ObjectDefinition<T extends Type<any>>
         });
 
         const object = new this.constructorFunction(...deps);
-        this.methods.forEach((method: IExtraMethods) => {
+        this.methods.forEach((method: IExtraMethods<InstanceType<T>>) => {
             const { methodName, args } = method;
             if (object[methodName] === undefined) {
                 throw new MethodIsMissingError(
                     object.constructor.name,
-                    methodName
+                    methodName as string
                 );
             }
             const resolvedArgs = args.map((arg: any) => {

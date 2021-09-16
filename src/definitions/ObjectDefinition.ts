@@ -3,7 +3,7 @@ import { IDIContainer } from "../DIContainer";
 import { InvalidConstructorError, MethodIsMissingError } from "../errors";
 import { IDefinition } from "../IDefinition";
 
-export interface Type<C extends Object> {
+export interface ClassOf<C extends Object> {
     new (...args: any[]): C;
 }
 
@@ -21,7 +21,7 @@ type ParametersWithDefinition<T extends (...args: any) => any> = T extends (
     ? WithDefinitions<P>
     : never;
 type MethodArgs<
-    T extends Type<any>,
+    T extends ClassOf<any>,
     K extends keyof InstanceType<T>
 > = ParametersWithDefinition<InstanceType<T>[K]>;
 
@@ -29,7 +29,7 @@ type MethodArgs<
  * ObjectDefinition creates objects from the provided class.
  *
  */
-export default class ObjectDefinition<T extends Type<any>>
+export default class ObjectDefinition<T extends ClassOf<any>>
     extends BaseDefinition<InstanceType<T>>
     implements IDefinition<InstanceType<T>> {
     private readonly constructorFunction: T;

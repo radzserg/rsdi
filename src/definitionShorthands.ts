@@ -1,4 +1,4 @@
-import ObjectDefinition, { Type } from "./definitions/ObjectDefinition";
+import ObjectDefinition, { ClassOf } from "./definitions/ObjectDefinition";
 import ValueDefinition from "./definitions/ValueDefinition";
 import ExistingDefinition from "./definitions/ExistingDefinition";
 import FactoryDefinition, { Factory } from "./definitions/FactoryDefinition";
@@ -10,7 +10,7 @@ import { DefinitionName, definitionNameToString } from "./DefinitionName";
  * ObjectDefinition creates objects from the provided class.
  * @param classConstructor
  */
-export function diObject<T = Type<any>>(classConstructor: Type<T>) {
+export function diObject<T = ClassOf<any>>(classConstructor: ClassOf<T>) {
     return new ObjectDefinition(classConstructor);
 }
 
@@ -32,7 +32,7 @@ export function diUse<T = void, R extends DefinitionName = string>(
     return new ExistingDefinition<
         T extends void
             ? R extends { name: any }
-                ? R extends Type<any>
+                ? R extends ClassOf<any>
                     ? InstanceType<R>
                     : R
                 : any

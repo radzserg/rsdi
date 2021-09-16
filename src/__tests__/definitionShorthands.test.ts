@@ -3,7 +3,7 @@ import { Bar, Foo } from "./fakeClasses";
 import ObjectDefinition from "../definitions/ObjectDefinition";
 import ValueDefinition from "../definitions/ValueDefinition";
 import DIContainer, { IDIContainer } from "../DIContainer";
-import { diFactory, diUse, diObject, diValue } from "../definitionBuilders";
+import { diFactory, diUse, diObject, diValue } from "../definitionShorthands";
 import { IDefinition } from "../IDefinition";
 
 describe("definitionBuilders", () => {

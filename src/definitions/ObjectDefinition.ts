@@ -26,7 +26,8 @@ type MethodArgs<
 > = ParametersWithDefinition<InstanceType<T>[K]>;
 
 /**
- * Definition to create object by provided class name
+ * ObjectDefinition creates objects from the provided class.
+ *
  */
 export default class ObjectDefinition<T extends Type<any>>
     extends BaseDefinition<InstanceType<T>>
@@ -43,6 +44,10 @@ export default class ObjectDefinition<T extends Type<any>>
         this.constructorFunction = constructorFunction;
     }
 
+    /**
+     * Defines constructor parameters for a given class.
+     * @param deps
+     */
     construct(
         ...deps: T extends { new (...args: infer P): any }
             ? WithDefinitions<P>
@@ -52,6 +57,13 @@ export default class ObjectDefinition<T extends Type<any>>
         return this;
     }
 
+    /**
+     * After DIContainer constructs object of a given class, DIContainer calls additional
+     * `method`-s of a given class.
+     *
+     * @param methodName - string, name of a given class
+     * @param args - match method signature of a given class method
+     */
     method<MethodName extends keyof InstanceType<T>>(
         methodName: MethodName,
         ...args: MethodArgs<T, MethodName>

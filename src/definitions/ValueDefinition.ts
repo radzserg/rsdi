@@ -1,7 +1,8 @@
 import BaseDefinition from "./BaseDefinition";
 
 /**
- * Raw value definition
+ * ValueDefinition keeps raw value of any type.
+ *
  */
 export default class ValueDefinition<T extends any> extends BaseDefinition<T> {
     private readonly value: T;

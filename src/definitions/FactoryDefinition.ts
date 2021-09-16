@@ -5,7 +5,7 @@ import { FactoryDefinitionError } from "../errors";
 export type Factory = (container: IDIContainer) => any;
 
 /**
- * Factory definition - custom function to resolve dependency
+ * FactoryDefinition - allows to use custom function to build dependency
  */
 export default class FactoryDefinition<
     T extends Factory

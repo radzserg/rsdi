@@ -41,15 +41,15 @@ const authStorage = container.get<AuthStorage>("AuthStorage"); // object of Auth
 const history = container.get<History>("BrowserHistory"); // History singleton will be returned
 ```
 
-**All definitions are resolved once and their result persists over the life of the container.**
+**All resolvers are resolved only once and their result persists over the life of the container.**
 
 -   [Features](#features)
 -   [Motivation](#motivation)
 -   [Usage](#usage)
     -   [Raw values](#raw-values)
-    -   [Object definition](#object-definition)
-    -   [Factory definition](#factory-definition)
-    -   [Async factory definition](#async-factory-definition)
+    -   [Object resolver](#object-resolver)
+    -   [Factory resolver](#factory-resolver)
+    -   [Async factory resolver](#async-factory-resolver)
 
 ## Features
 
@@ -94,9 +94,9 @@ const authStorage = container.get<AuthStorage>("AuthStorage"); // instance of Au
 const browserHistory = container.get<History>("BrowserHistory"); // instance of BrowserHistory
 ```
 
-When you specify raw values (i.e. don't use `object`, `factory` definitions) `rsdi` will resolve it as it is.
+When you specify raw values (i.e. don't use `object`, `factory` resolvers) `rsdi` will resolve it as it is.
 
-### Object definition
+### Object resolver
 
 ```typescript
 class ControllerContainer {
@@ -125,9 +125,9 @@ constructor, you can use `construct` method. You can refer to the already define
 pass raw values.
 If you need to call object method after initialization you can use `method` it will be called after constructor.
 
-### Factory definition
+### Factory resolver
 
-You can use factory definition when you need more flexibility during initialisation. `container: IDIContainer` will be
+You can use factory resolver when you need more flexibility during initialisation. `container: IDIContainer` will be
 pass as an argument to the factory method. So you can resolve other dependencies inside the factory function.
 
 ```typescript
@@ -149,7 +149,7 @@ function configureHistory(container: IDIContainer): History {
 const history = container.get<History>("BrowserHistory");
 ```
 
-### Async factory definition
+### Async factory resolver
 
 RSDI intentionally does not provide the ability to resolve asynchronous dependencies. The container works with
 resources. All resources will be used sooner or later. The lazy initialization feature won't be of much benefit

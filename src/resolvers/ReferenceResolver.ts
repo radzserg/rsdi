@@ -1,10 +1,10 @@
-import BaseDefinition from "../definitions/BaseDefinition";
+import AbstractResolver from "./AbstractResolver";
 import DIContainer, { IDIContainer } from "../DIContainer";
 
 /**
  * Refers to existing definition. i.e. definition with provided name must exists in DIContainer
  */
-export default class ExistingDefinition<T = any> extends BaseDefinition<T> {
+export default class ReferenceResolver<T = any> extends AbstractResolver<T> {
     private readonly existingDefinitionName: string;
 
     constructor(existingDefinitionName: string) {

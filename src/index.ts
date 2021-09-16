@@ -4,7 +4,7 @@ import {
     diValue as value,
     diUse as use,
     diFactory as factory,
-} from "./definitionShorthands";
+} from "./resolversShorthands";
 
 export default DIContainer;
 

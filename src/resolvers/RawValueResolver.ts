@@ -1,10 +1,10 @@
-import BaseDefinition from "./BaseDefinition";
+import AbstractResolver from "./AbstractResolver";
 
 /**
  * ValueDefinition keeps raw value of any type.
  *
  */
-export default class ValueDefinition<T extends any> extends BaseDefinition<T> {
+export default class RawValueResolver<T extends any> extends AbstractResolver<T> {
     private readonly value: T;
 
     constructor(value: T) {

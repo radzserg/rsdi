@@ -1,6 +1,6 @@
-import { IDefinition } from "./IDefinition";
-import BaseDefinition from "./definitions/BaseDefinition";
-import ValueDefinition from "./definitions/ValueDefinition";
+import { DependencyResolver } from "./DependencyResolver";
+import AbstractResolver from "./resolvers/AbstractResolver";
+import RawValueResolver from "./resolvers/RawValueResolver";
 import { CircularDependencyError, DependencyIsMissingError } from "./errors";
 import {
     DefinitionName,
@@ -14,15 +14,15 @@ export interface IDIContainer {
     get: <T>(serviceName: string) => T;
 }
 
-interface INamedDefinitions {
-    [x: string]: IDefinition | any;
+interface INamedResolvers {
+    [x: string]: DependencyResolver | any;
 }
 
 /**
  * Dependency injection container
  */
 export default class DIContainer implements IDIContainer {
-    private definitions: INamedDefinitions = {};
+    private resolvers: INamedResolvers = {};
     private resolved: {
         [name: string]: any;
     } = {};
@@ -34,7 +34,7 @@ export default class DIContainer implements IDIContainer {
      */
     get<T>(definitionName: DefinitionName, parentDeps: string[] = []): T {
         const name = definitionNameToString(definitionName);
-        if (!(name in this.definitions)) {
+        if (!(name in this.resolvers)) {
             throw new DependencyIsMissingError(name);
         }
         if (parentDeps.includes(name)) {
@@ -44,7 +44,7 @@ export default class DIContainer implements IDIContainer {
             return this.resolved[name];
         }
 
-        const definition: IDefinition = this.definitions[name];
+        const definition: DependencyResolver = this.resolvers[name];
         this.resolved[name] = definition.resolve(this, [...parentDeps, name]);
         return this.resolved[name];
     }
@@ -52,22 +52,22 @@ export default class DIContainer implements IDIContainer {
     /**
      * Adds single dependency definition to the container
      * @param name - string name for the dependency
-     * @param definition - raw value or instance of IDefinition
+     * @param resolver - raw value or instance of IDefinition
      */
-    addDefinition(name: DefinitionName, definition: IDefinition | any) {
-        if (!(definition instanceof BaseDefinition)) {
-            definition = new ValueDefinition(definition);
+    addDefinition(name: DefinitionName, resolver: DependencyResolver | any) {
+        if (!(resolver instanceof AbstractResolver)) {
+            resolver = new RawValueResolver(resolver);
         }
-        this.definitions[definitionNameToString(name)] = definition;
+        this.resolvers[definitionNameToString(name)] = resolver;
     }
 
     /**
-     * Adds multiple dependency definitions to the container
-     * @param definitions - named dependency object
+     * Adds multiple dependency resolvers to the container
+     * @param resolvers - named dependency object
      */
-    addDefinitions(definitions: INamedDefinitions) {
-        Object.keys(definitions).map((name: DefinitionName) => {
-            this.addDefinition(name, definitions[definitionNameToString(name)]);
+    addDefinitions(resolvers: INamedResolvers) {
+        Object.keys(resolvers).map((name: DefinitionName) => {
+            this.addDefinition(name, resolvers[definitionNameToString(name)]);
         });
     }
 }

@@ -1,7 +1,7 @@
-import BaseDefinition from "../definitions/BaseDefinition";
+import AbstractResolver from "./AbstractResolver";
 import { IDIContainer } from "../DIContainer";
 import { InvalidConstructorError, MethodIsMissingError } from "../errors";
-import { IDefinition } from "../IDefinition";
+import { DependencyResolver } from "../DependencyResolver";
 
 export interface ClassOf<C extends Object> {
     new (...args: any[]): C;
@@ -12,28 +12,28 @@ interface IExtraMethods<I> {
     args: any;
 }
 
-type WithDefinitions<T extends any[]> = {
-    [K in keyof T]: T[K] | IDefinition<T[K]>;
+type WrapWithResolver<T extends any[]> = {
+    [K in keyof T]: T[K] | DependencyResolver<T[K]>;
 };
-type ParametersWithDefinition<T extends (...args: any) => any> = T extends (
+type ParametersWithResolver<T extends (...args: any) => any> = T extends (
     ...args: infer P
 ) => any
-    ? WithDefinitions<P>
+    ? WrapWithResolver<P>
     : never;
 type MethodArgs<
     T extends ClassOf<any>,
     K extends keyof InstanceType<T>
-> = ParametersWithDefinition<InstanceType<T>[K]>;
+> = ParametersWithResolver<InstanceType<T>[K]>;
 
 /**
  * ObjectDefinition creates objects from the provided class.
  *
  */
-export default class ObjectDefinition<T extends ClassOf<any>>
-    extends BaseDefinition<InstanceType<T>>
-    implements IDefinition<InstanceType<T>> {
+export default class ObjectResolver<T extends ClassOf<any>>
+    extends AbstractResolver<InstanceType<T>>
+    implements DependencyResolver<InstanceType<T>> {
     private readonly constructorFunction: T;
-    private deps: Array<IDefinition<any> | any> = [];
+    private deps: Array<DependencyResolver<any> | any> = [];
     private methods: IExtraMethods<InstanceType<T>>[] = [];
 
     constructor(constructorFunction: T) {
@@ -50,9 +50,9 @@ export default class ObjectDefinition<T extends ClassOf<any>>
      */
     construct(
         ...deps: T extends { new (...args: infer P): any }
-            ? WithDefinitions<P>
+            ? WrapWithResolver<P>
             : never[]
-    ): ObjectDefinition<T> {
+    ): ObjectResolver<T> {
         this.deps = deps;
         return this;
     }
@@ -67,7 +67,7 @@ export default class ObjectDefinition<T extends ClassOf<any>>
     method<MethodName extends keyof InstanceType<T>>(
         methodName: MethodName,
         ...args: MethodArgs<T, MethodName>
-    ): ObjectDefinition<T> {
+    ): ObjectResolver<T> {
         this.methods.push({
             methodName,
             args,
@@ -79,8 +79,8 @@ export default class ObjectDefinition<T extends ClassOf<any>>
         diContainer: IDIContainer,
         parentDeps: string[] = []
     ): InstanceType<T> => {
-        const deps = this.deps.map((dep: BaseDefinition | any) => {
-            if (dep instanceof BaseDefinition) {
+        const deps = this.deps.map((dep: AbstractResolver | any) => {
+            if (dep instanceof AbstractResolver) {
                 return dep.resolve(diContainer, parentDeps);
             }
             return dep;
@@ -96,7 +96,7 @@ export default class ObjectDefinition<T extends ClassOf<any>>
                 );
             }
             const resolvedArgs = args.map((arg: any) => {
-                if (arg instanceof BaseDefinition) {
+                if (arg instanceof AbstractResolver) {
                     return arg.resolve(diContainer);
                 }
                 return arg;

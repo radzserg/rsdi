@@ -1,10 +1,10 @@
 import { Bar, Foo } from "./fakeClasses";
 
-import ObjectDefinition from "../definitions/ObjectDefinition";
-import ValueDefinition from "../definitions/ValueDefinition";
+import ObjectResolver from "../resolvers/ObjectResolver";
+import RawValueResolver from "../resolvers/RawValueResolver";
 import DIContainer, { IDIContainer } from "../DIContainer";
-import { diFactory, diUse, diObject, diValue } from "../definitionShorthands";
-import { IDefinition } from "../IDefinition";
+import { diFactory, diUse, diObject, diValue } from "../resolversShorthands";
+import { DependencyResolver } from "../DependencyResolver";
 
 describe("definitionBuilders", () => {
     let container: DIContainer;
@@ -12,7 +12,7 @@ describe("definitionBuilders", () => {
         container = new DIContainer();
     });
     test("it resolves existing definition", () => {
-        container.addDefinition("key1", new ValueDefinition("value1"));
+        container.addDefinition("key1", new RawValueResolver("value1"));
         const definition = diUse("key1");
 
         expect(definition.resolve(container)).toEqual("value1");
@@ -24,17 +24,17 @@ describe("definitionBuilders", () => {
     });
 
     test("it creates object of correct class", () => {
-        const bar = new ObjectDefinition(Bar);
+        const bar = new ObjectResolver(Bar);
         const definition = diObject(Foo).construct("a", bar);
 
-        expect(definition).toBeInstanceOf(ObjectDefinition);
+        expect(definition).toBeInstanceOf(ObjectResolver);
         expect(definition.resolve(container)).toBeInstanceOf(Foo);
     });
 
     test("it names dependency using class name", () => {
         const definition = diObject(Foo);
 
-        expect(definition).toBeInstanceOf(ObjectDefinition);
+        expect(definition).toBeInstanceOf(ObjectResolver);
     });
 
     test("it creates singleton factory definition", () => {
@@ -53,13 +53,13 @@ describe("definitionBuilders respects typescript types", () => {
     });
 
     test("diGet 'resolve' returns scalar", () => {
-        container.addDefinition("key1", new ValueDefinition(22));
-        const definition: IDefinition<string> = diUse<string>("key1");
+        container.addDefinition("key1", new RawValueResolver(22));
+        const definition: DependencyResolver<string> = diUse<string>("key1");
         expect(definition.resolve(container)).toEqual(22);
     });
     test("diGet 'resolve' returns class object", () => {
-        container.addDefinition("key1", new ValueDefinition(new Bar()));
-        const definition: IDefinition<Bar> = diUse<Bar>("key1");
+        container.addDefinition("key1", new RawValueResolver(new Bar()));
+        const definition: DependencyResolver<Bar> = diUse<Bar>("key1");
         expect(definition.resolve(container)).toBeInstanceOf(Bar);
     });
 

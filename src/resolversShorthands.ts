@@ -1,7 +1,7 @@
-import ObjectDefinition, { ClassOf } from "./definitions/ObjectDefinition";
-import ValueDefinition from "./definitions/ValueDefinition";
-import ExistingDefinition from "./definitions/ExistingDefinition";
-import FactoryDefinition, { Factory } from "./definitions/FactoryDefinition";
+import ObjectResolver, { ClassOf } from "./resolvers/ObjectResolver";
+import RawValueResolver from "./resolvers/RawValueResolver";
+import ReferenceResolver from "./resolvers/ReferenceResolver";
+import FactoryResolver, { Factory } from "./resolvers/FactoryResolver";
 import { DefinitionName, definitionNameToString } from "./DefinitionName";
 
 // shorthands for Definition classes
@@ -11,7 +11,7 @@ import { DefinitionName, definitionNameToString } from "./DefinitionName";
  * @param classConstructor
  */
 export function diObject<T = ClassOf<any>>(classConstructor: ClassOf<T>) {
-    return new ObjectDefinition(classConstructor);
+    return new ObjectResolver(classConstructor);
 }
 
 /**
@@ -19,7 +19,7 @@ export function diObject<T = ClassOf<any>>(classConstructor: ClassOf<T>) {
  * @param value
  */
 export function diValue<T extends any = unknown>(value: T) {
-    return new ValueDefinition<T>(value);
+    return new RawValueResolver<T>(value);
 }
 
 /**
@@ -29,7 +29,7 @@ export function diValue<T extends any = unknown>(value: T) {
 export function diUse<T = void, R extends DefinitionName = string>(
     definitionName: R
 ) {
-    return new ExistingDefinition<
+    return new ReferenceResolver<
         T extends void
             ? R extends { name: any }
                 ? R extends ClassOf<any>
@@ -41,9 +41,9 @@ export function diUse<T = void, R extends DefinitionName = string>(
 }
 
 /**
- * FactoryDefinition - allows to use custom function to build dependency
+ * FactoryResolver - allows to use custom function to build dependency
  * @param factory
  */
 export function diFactory<T extends Factory>(factory: T) {
-    return new FactoryDefinition(factory);
+    return new FactoryResolver(factory);
 }

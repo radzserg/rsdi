@@ -1,18 +1,18 @@
 import { Bar, Foo } from "./fakeClasses";
 import DIContainer, { IDIContainer } from "../DIContainer";
-import ObjectDefinition from "../definitions/ObjectDefinition";
-import ValueDefinition from "../definitions/ValueDefinition";
+import ObjectResolver from "../resolvers/ObjectResolver";
+import RawValueResolver from "../resolvers/RawValueResolver";
 import { factory, use, object } from "../index";
 import { DependencyIsMissingError } from "../errors";
 
 describe("DIContainer", () => {
-    test("it adds and resolves definitions", () => {
+    test("it adds and resolves resolvers", () => {
         const container = new DIContainer();
-        const definitions = {
-            foo: new ObjectDefinition(Foo),
-            key1: new ValueDefinition("value1"),
+        const resolvers = {
+            foo: new ObjectResolver(Foo),
+            key1: new RawValueResolver("value1"),
         };
-        container.addDefinitions(definitions);
+        container.addDefinitions(resolvers);
         const foo = container.get("foo");
         expect(foo).toBeInstanceOf(Foo);
         expect(container.get("key1")).toEqual("value1");
@@ -27,10 +27,10 @@ describe("DIContainer", () => {
 
     test("it always returns singleton", () => {
         const container = new DIContainer();
-        const definitions = {
-            foo: new ObjectDefinition(Foo).construct("name1", new Bar()),
+        const resolvers = {
+            foo: new ObjectResolver(Foo).construct("name1", new Bar()),
         };
-        container.addDefinitions(definitions);
+        container.addDefinitions(resolvers);
 
         const foo = container.get<Foo>("foo");
         expect(foo.name).toEqual("name1");
@@ -41,26 +41,26 @@ describe("DIContainer", () => {
 
     test("it adds definition to existing list", () => {
         const container = new DIContainer();
-        const definitions = {
-            key1: new ValueDefinition("value1"),
+        const resolvers = {
+            key1: new RawValueResolver("value1"),
         };
-        container.addDefinitions(definitions);
+        container.addDefinitions(resolvers);
 
-        container.addDefinition("key2", new ValueDefinition("value2"));
+        container.addDefinition("key2", new RawValueResolver("value2"));
         expect(container.get("key1")).toEqual("value1");
         expect(container.get("key2")).toEqual("value2");
     });
 
-    test("it adds definitions to existing list", () => {
+    test("it adds resolvers to existing list", () => {
         const container = new DIContainer();
-        const definitions = {
-            key1: new ValueDefinition("value1"),
+        const resolvers = {
+            key1: new RawValueResolver("value1"),
         };
-        container.addDefinitions(definitions);
+        container.addDefinitions(resolvers);
 
         container.addDefinitions({
-            key2: new ValueDefinition("value2"),
-            key3: new ValueDefinition("value3"),
+            key2: new RawValueResolver("value2"),
+            key3: new RawValueResolver("value3"),
         });
         expect(container.get("key1")).toEqual("value1");
         expect(container.get("key2")).toEqual("value2");
@@ -69,10 +69,10 @@ describe("DIContainer", () => {
 
     test("if value not an instance of BaseDefinition treat it as ValueDefinition", () => {
         const container = new DIContainer();
-        const definitions = {
+        const resolvers = {
             key1: "value1",
         };
-        container.addDefinitions(definitions);
+        container.addDefinitions(resolvers);
         expect(container.get("key1")).toEqual("value1");
         container.addDefinition("key2", "value2");
         expect(container.get("key2")).toEqual("value2");
@@ -97,7 +97,7 @@ describe("DIContainer", () => {
         }
 
         const container = new DIContainer();
-        container.addDefinition("dsn", new ValueDefinition("DSN-secret"));
+        container.addDefinition("dsn", new RawValueResolver("DSN-secret"));
         container.addDefinition(
             "dbConnection",
             factory((container: IDIContainer) => {
@@ -128,8 +128,8 @@ describe("DIContainer", () => {
 
         const container = new DIContainer();
         container.addDefinitions({
-            foo: new ObjectDefinition(Foo).construct(use("bar")),
-            bar: new ObjectDefinition(Bar).construct(use("foo")),
+            foo: new ObjectResolver(Foo).construct(use("bar")),
+            bar: new ObjectResolver(Bar).construct(use("foo")),
         });
         expect(() => {
             container.get("foo");
@@ -158,13 +158,13 @@ describe("DIContainer", () => {
         const container = new DIContainer();
         container.addDefinitions({
             connection: new DbConnection(),
-            usersRepo: new ObjectDefinition(UsersRepo).construct(
+            usersRepo: new ObjectResolver(UsersRepo).construct(
                 use("connection")
             ),
-            companiesRepo: new ObjectDefinition(CompaniesRepo).construct(
+            companiesRepo: new ObjectResolver(CompaniesRepo).construct(
                 use("connection")
             ),
-            fooController: new ObjectDefinition(FooController).construct(
+            fooController: new ObjectResolver(FooController).construct(
                 use("usersRepo"),
                 use("companiesRepo")
             ),
@@ -188,9 +188,9 @@ describe("DIContainer", () => {
 
         const container = new DIContainer();
         container.addDefinitions({
-            foo: new ObjectDefinition(Foo).construct(use("bar")),
-            bar: new ObjectDefinition(Bar).construct(use("buzz")),
-            buzz: new ObjectDefinition(Buzz).construct(use("foo")),
+            foo: new ObjectResolver(Foo).construct(use("bar")),
+            bar: new ObjectResolver(Bar).construct(use("buzz")),
+            buzz: new ObjectResolver(Buzz).construct(use("foo")),
         });
         expect(() => {
             container.get("foo");

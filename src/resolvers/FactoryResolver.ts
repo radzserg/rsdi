@@ -1,15 +1,15 @@
-import BaseDefinition from "../definitions/BaseDefinition";
+import AbstractResolver from "./AbstractResolver";
 import { IDIContainer } from "../DIContainer";
 import { FactoryDefinitionError } from "../errors";
 
 export type Factory = (container: IDIContainer) => any;
 
 /**
- * FactoryDefinition - allows to use custom function to build dependency
+ * FactoryResolver - allows to use custom function to build dependency
  */
-export default class FactoryDefinition<
+export default class FactoryResolver<
     T extends Factory
-> extends BaseDefinition<ReturnType<T>> {
+> extends AbstractResolver<ReturnType<T>> {
     private readonly factory: Factory;
 
     constructor(factory: T) {

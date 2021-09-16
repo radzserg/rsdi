@@ -1,8 +1,8 @@
-import { Bar, Foo } from "../../__tests__/fakeClasses";
+import { Bar, Foo } from "./fakeClasses";
 
-import ObjectDefinition from "../ObjectDefinition";
-import ValueDefinition from "../ValueDefinition";
-import DIContainer, { IDIContainer } from "../../DIContainer";
+import ObjectDefinition from "../definitions/ObjectDefinition";
+import ValueDefinition from "../definitions/ValueDefinition";
+import DIContainer, { IDIContainer } from "../DIContainer";
 import { diFactory, diGet, diObject, diValue } from "../definitionBuilders";
 import { IDefinition } from "../IDefinition";
 

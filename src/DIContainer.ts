@@ -1,11 +1,11 @@
-import { IDefinition } from "./definitions/IDefinition";
+import { IDefinition } from "./IDefinition";
 import BaseDefinition from "./definitions/BaseDefinition";
 import ValueDefinition from "./definitions/ValueDefinition";
 import { CircularDependencyError, DependencyIsMissingError } from "./errors";
 import {
     DefinitionName,
     definitionNameToString,
-} from "./definitions/DefinitionName";
+} from "./DefinitionName";
 
 /**
  * Dependency injection container interface to expose

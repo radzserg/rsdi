@@ -1,7 +1,7 @@
-import ObjectDefinition, { Type } from "../definitions/ObjectDefinition";
-import ValueDefinition from "../definitions/ValueDefinition";
-import ExistingDefinition from "./ExistingDefinition";
-import FactoryDefinition, { Factory } from "./FactoryDefinition";
+import ObjectDefinition, { Type } from "./definitions/ObjectDefinition";
+import ValueDefinition from "./definitions/ValueDefinition";
+import ExistingDefinition from "./definitions/ExistingDefinition";
+import FactoryDefinition, { Factory } from "./definitions/FactoryDefinition";
 import { DefinitionName, definitionNameToString } from "./DefinitionName";
 
 // shorthands for Definition classes

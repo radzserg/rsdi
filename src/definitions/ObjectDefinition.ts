@@ -1,7 +1,7 @@
 import BaseDefinition from "../definitions/BaseDefinition";
 import { IDIContainer } from "../DIContainer";
 import { InvalidConstructorError, MethodIsMissingError } from "../errors";
-import { IDefinition } from "./IDefinition";
+import { IDefinition } from "../IDefinition";
 
 export interface Type<C extends Object> {
     new (...args: any[]): C;

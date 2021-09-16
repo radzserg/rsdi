@@ -1,5 +1,5 @@
 import { IDIContainer } from "../DIContainer";
-import { IDefinition } from "./IDefinition";
+import { IDefinition } from "../IDefinition";
 
 /**
  * Keep BaseDefinition so we can use `if (dep instanceof BaseDefinition) ` checks

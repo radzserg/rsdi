@@ -4,7 +4,7 @@ import {
     diValue as value,
     diGet as get,
     diFactory as factory,
-} from "./definitions/definitionBuilders";
+} from "./definitionBuilders";
 
 export default DIContainer;
 

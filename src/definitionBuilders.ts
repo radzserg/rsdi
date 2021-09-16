@@ -26,7 +26,7 @@ export function diValue<T extends any = unknown>(value: T) {
  * Refers to existing definition. i.e. definition with provided name must exists in DIContainer
  * @param definitionName
  */
-export function diGet<T = void, R extends DefinitionName = string>(
+export function diUse<T = void, R extends DefinitionName = string>(
     definitionName: R
 ) {
     return new ExistingDefinition<

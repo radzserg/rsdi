@@ -2,7 +2,7 @@ import { Bar, Foo } from "./fakeClasses";
 import DIContainer, { IDIContainer } from "../DIContainer";
 import ObjectDefinition from "../definitions/ObjectDefinition";
 import ValueDefinition from "../definitions/ValueDefinition";
-import { factory, get, object } from "../index";
+import { factory, use, object } from "../index";
 import { DependencyIsMissingError } from "../errors";
 
 describe("DIContainer", () => {
@@ -110,12 +110,11 @@ describe("DIContainer", () => {
         );
         container.addDefinition(
             "TestUserRepository",
-            object(TestUserRepository).construct(get("dbConnection"))
+            object(TestUserRepository).construct(use("dbConnection"))
         );
 
-        const userRepository = container.get<TestUserRepository>(
-            "TestUserRepository"
-        );
+        const userRepository =
+            container.get<TestUserRepository>("TestUserRepository");
         expect(await userRepository.findUser()).toBe("DSN-secret + findUser");
     });
 
@@ -129,8 +128,8 @@ describe("DIContainer", () => {
 
         const container = new DIContainer();
         container.addDefinitions({
-            foo: new ObjectDefinition(Foo).construct(get("bar")),
-            bar: new ObjectDefinition(Bar).construct(get("foo")),
+            foo: new ObjectDefinition(Foo).construct(use("bar")),
+            bar: new ObjectDefinition(Bar).construct(use("foo")),
         });
         expect(() => {
             container.get("foo");
@@ -160,14 +159,14 @@ describe("DIContainer", () => {
         container.addDefinitions({
             connection: new DbConnection(),
             usersRepo: new ObjectDefinition(UsersRepo).construct(
-                get("connection")
+                use("connection")
             ),
             companiesRepo: new ObjectDefinition(CompaniesRepo).construct(
-                get("connection")
+                use("connection")
             ),
             fooController: new ObjectDefinition(FooController).construct(
-                get("usersRepo"),
-                get("companiesRepo")
+                use("usersRepo"),
+                use("companiesRepo")
             ),
         });
 
@@ -189,9 +188,9 @@ describe("DIContainer", () => {
 
         const container = new DIContainer();
         container.addDefinitions({
-            foo: new ObjectDefinition(Foo).construct(get("bar")),
-            bar: new ObjectDefinition(Bar).construct(get("buzz")),
-            buzz: new ObjectDefinition(Buzz).construct(get("foo")),
+            foo: new ObjectDefinition(Foo).construct(use("bar")),
+            bar: new ObjectDefinition(Bar).construct(use("buzz")),
+            buzz: new ObjectDefinition(Buzz).construct(use("foo")),
         });
         expect(() => {
             container.get("foo");

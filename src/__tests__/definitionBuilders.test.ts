@@ -3,7 +3,7 @@ import { Bar, Foo } from "./fakeClasses";
 import ObjectDefinition from "../definitions/ObjectDefinition";
 import ValueDefinition from "../definitions/ValueDefinition";
 import DIContainer, { IDIContainer } from "../DIContainer";
-import { diFactory, diGet, diObject, diValue } from "../definitionBuilders";
+import { diFactory, diUse, diObject, diValue } from "../definitionBuilders";
 import { IDefinition } from "../IDefinition";
 
 describe("definitionBuilders", () => {
@@ -13,7 +13,7 @@ describe("definitionBuilders", () => {
     });
     test("it resolves existing definition", () => {
         container.addDefinition("key1", new ValueDefinition("value1"));
-        const definition = diGet("key1");
+        const definition = diUse("key1");
 
         expect(definition.resolve(container)).toEqual("value1");
     });
@@ -54,12 +54,12 @@ describe("definitionBuilders respects typescript types", () => {
 
     test("diGet 'resolve' returns scalar", () => {
         container.addDefinition("key1", new ValueDefinition(22));
-        const definition: IDefinition<string> = diGet<string>("key1");
+        const definition: IDefinition<string> = diUse<string>("key1");
         expect(definition.resolve(container)).toEqual(22);
     });
     test("diGet 'resolve' returns class object", () => {
         container.addDefinition("key1", new ValueDefinition(new Bar()));
-        const definition: IDefinition<Bar> = diGet<Bar>("key1");
+        const definition: IDefinition<Bar> = diUse<Bar>("key1");
         expect(definition.resolve(container)).toBeInstanceOf(Bar);
     });
 

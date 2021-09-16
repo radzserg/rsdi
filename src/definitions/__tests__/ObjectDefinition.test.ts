@@ -1,6 +1,6 @@
 import ObjectDefinition from "../ObjectDefinition";
 import { Bar, Buzz, Foo, FooChild } from "../../__tests__/fakeClasses";
-import DIContainer, { get } from "../../index";
+import DIContainer, { use } from "../../index";
 import { InvalidConstructorError, MethodIsMissingError } from "../../errors";
 
 describe("ObjectDefinition", () => {
@@ -72,7 +72,7 @@ describe("ObjectDefinition", () => {
         container.addDefinition("key1", "value1");
         const definition = new ObjectDefinition(Foo).method(
             "addItem",
-            get("key1")
+            use("key1")
         );
         const instance = definition.resolve(container);
         expect(instance.items).toEqual(["value1"]);

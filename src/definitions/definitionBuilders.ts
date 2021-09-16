@@ -2,6 +2,7 @@ import ObjectDefinition, { Type } from "../definitions/ObjectDefinition";
 import ValueDefinition from "../definitions/ValueDefinition";
 import ExistingDefinition from "./ExistingDefinition";
 import FactoryDefinition, { Factory } from "./FactoryDefinition";
+import { DefinitionName, definitionNameToString } from "./DefinitionName";
 
 // shorthands for Definition classes
 
@@ -23,10 +24,20 @@ export function diValue<T extends any = unknown>(value: T) {
 
 /**
  * Refers to existing definition. i.e. definition with provided name must exists in DIContainer
- * @param name
+ * @param definitionName
  */
-export function diGet<T>(name: string) {
-    return new ExistingDefinition<T>(name);
+export function diGet<T = void, R extends DefinitionName = string>(
+    definitionName: R
+) {
+    return new ExistingDefinition<
+        T extends void
+            ? R extends { name: any }
+                ? R extends Type<any>
+                    ? InstanceType<R>
+                    : R
+                : any
+            : T
+    >(definitionNameToString(definitionName));
 }
 
 /**

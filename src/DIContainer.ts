@@ -2,6 +2,10 @@ import { IDefinition } from "./definitions/IDefinition";
 import BaseDefinition from "./definitions/BaseDefinition";
 import ValueDefinition from "./definitions/ValueDefinition";
 import { CircularDependencyError, DependencyIsMissingError } from "./errors";
+import {
+    DefinitionName,
+    definitionNameToString,
+} from "./definitions/DefinitionName";
 
 /**
  * Dependency injection container interface to expose
@@ -14,8 +18,6 @@ interface INamedDefinitions {
     [x: string]: IDefinition | any;
 }
 
-type DefinitionName = string;
-
 /**
  * Dependency injection container
  */
@@ -27,10 +29,11 @@ export default class DIContainer implements IDIContainer {
 
     /**
      * Resolves dependency by name
-     * @param name - string name of the dependency
+     * @param definitionName - DefinitionName name of the dependency
      * @param parentDeps - array of parent dependencies (used to detect circular dependencies)
      */
-    get<T>(name: string, parentDeps: string[] = []): T {
+    get<T>(definitionName: DefinitionName, parentDeps: string[] = []): T {
+        const name = definitionNameToString(definitionName);
         if (!(name in this.definitions)) {
             throw new DependencyIsMissingError(name);
         }
@@ -42,10 +45,7 @@ export default class DIContainer implements IDIContainer {
         }
 
         const definition: IDefinition = this.definitions[name];
-        this.resolved[name] = definition.resolve(this, [
-            ...parentDeps,
-            name,
-        ]);
+        this.resolved[name] = definition.resolve(this, [...parentDeps, name]);
         return this.resolved[name];
     }
 
@@ -58,7 +58,7 @@ export default class DIContainer implements IDIContainer {
         if (!(definition instanceof BaseDefinition)) {
             definition = new ValueDefinition(definition);
         }
-        this.definitions[name] = definition;
+        this.definitions[definitionNameToString(name)] = definition;
     }
 
     /**
@@ -66,8 +66,8 @@ export default class DIContainer implements IDIContainer {
      * @param definitions - named dependency object
      */
     addDefinitions(definitions: INamedDefinitions) {
-        Object.keys(definitions).map((name: string) => {
-            this.addDefinition(name, definitions[name]);
+        Object.keys(definitions).map((name: DefinitionName) => {
+            this.addDefinition(name, definitions[definitionNameToString(name)]);
         });
     }
 }

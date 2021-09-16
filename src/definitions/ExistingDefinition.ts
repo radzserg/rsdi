@@ -4,7 +4,7 @@ import DIContainer, { IDIContainer } from "../DIContainer";
 /**
  * Refers to existing definition. i.e. definition with provided name must exists in DIContainer
  */
-export default class ExistingDefinition<T> extends BaseDefinition<T> {
+export default class ExistingDefinition<T = any> extends BaseDefinition<T> {
     private readonly existingDefinitionName: string;
 
     constructor(existingDefinitionName: string) {
@@ -12,7 +12,7 @@ export default class ExistingDefinition<T> extends BaseDefinition<T> {
         this.existingDefinitionName = existingDefinitionName;
     }
 
-    resolve = <T>(container: IDIContainer, parentDeps: string[] = []): T => {
+    resolve = <Y extends T>(container: IDIContainer, parentDeps: string[] = []): Y => {
         return (container as DIContainer).get(
             this.existingDefinitionName,
             parentDeps

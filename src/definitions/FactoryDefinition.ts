@@ -1,5 +1,5 @@
 import BaseDefinition from "../definitions/BaseDefinition";
-import DIContainer, { IDIContainer } from "../DIContainer";
+import { IDIContainer } from "../DIContainer";
 import { FactoryDefinitionError } from "../errors";
 
 export type Factory = (container: IDIContainer) => any;
@@ -7,10 +7,12 @@ export type Factory = (container: IDIContainer) => any;
 /**
  * Factory definition - custom function to resolve dependency
  */
-export default class FactoryDefinition extends BaseDefinition {
+export default class FactoryDefinition<
+    T extends Factory
+> extends BaseDefinition<ReturnType<T>> {
     private readonly factory: Factory;
 
-    constructor(factory: Factory) {
+    constructor(factory: T) {
         super();
         if (typeof factory !== "function") {
             throw new FactoryDefinitionError();
@@ -18,7 +20,10 @@ export default class FactoryDefinition extends BaseDefinition {
         this.factory = factory;
     }
 
-    resolve = <T>(container: IDIContainer, _parentDeps?: string[]): T => {
+    resolve = (
+        container: IDIContainer,
+        _parentDeps?: string[]
+    ): ReturnType<T> => {
         return this.factory(container);
-    }
+    };
 }

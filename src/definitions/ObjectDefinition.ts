@@ -12,17 +12,25 @@ interface IExtraMethods<I> {
     args: any;
 }
 
-type WithDefinitions<T extends any[]> = { [K in keyof T]: T[K] | IDefinition<T[K]> }
-type ParametersWithDefinition<T extends (...args: any) => any> = T extends (...args: infer P) => any ? WithDefinitions<P> : never;
-type MethodArgs<T extends Type<any>, K extends keyof InstanceType<T>> = ParametersWithDefinition<InstanceType<T>[K]>;
-
+type WithDefinitions<T extends any[]> = {
+    [K in keyof T]: T[K] | IDefinition<T[K]>;
+};
+type ParametersWithDefinition<T extends (...args: any) => any> = T extends (
+    ...args: infer P
+) => any
+    ? WithDefinitions<P>
+    : never;
+type MethodArgs<
+    T extends Type<any>,
+    K extends keyof InstanceType<T>
+> = ParametersWithDefinition<InstanceType<T>[K]>;
 
 /**
  * Definition to create object by provided class name
  */
 export default class ObjectDefinition<T extends Type<any>>
-    extends BaseDefinition<InstanceType<T>> implements IDefinition<InstanceType<T>>
-{
+    extends BaseDefinition<InstanceType<T>>
+    implements IDefinition<InstanceType<T>> {
     private readonly constructorFunction: T;
     private deps: Array<IDefinition<any> | any> = [];
     private methods: IExtraMethods<InstanceType<T>>[] = [];
@@ -35,12 +43,19 @@ export default class ObjectDefinition<T extends Type<any>>
         this.constructorFunction = constructorFunction;
     }
 
-    construct(...deps: T extends { new(...args: infer P): any } ? WithDefinitions<P> : never[]): ObjectDefinition<T> {
+    construct(
+        ...deps: T extends { new (...args: infer P): any }
+            ? WithDefinitions<P>
+            : never[]
+    ): ObjectDefinition<T> {
         this.deps = deps;
         return this;
     }
 
-    method<MethodName extends keyof InstanceType<T>>(methodName: MethodName, ...args: MethodArgs<T, MethodName>): ObjectDefinition<T> {
+    method<MethodName extends keyof InstanceType<T>>(
+        methodName: MethodName,
+        ...args: MethodArgs<T, MethodName>
+    ): ObjectDefinition<T> {
         this.methods.push({
             methodName,
             args,
@@ -48,7 +63,10 @@ export default class ObjectDefinition<T extends Type<any>>
         return this;
     }
 
-    resolve = (diContainer: IDIContainer, parentDeps: string[] = []): InstanceType<T>  => {
+    resolve = (
+        diContainer: IDIContainer,
+        parentDeps: string[] = []
+    ): InstanceType<T> => {
         const deps = this.deps.map((dep: BaseDefinition | any) => {
             if (dep instanceof BaseDefinition) {
                 return dep.resolve(diContainer, parentDeps);

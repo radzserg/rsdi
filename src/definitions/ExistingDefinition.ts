@@ -13,6 +13,9 @@ export default class ExistingDefinition<T> extends BaseDefinition<T> {
     }
 
     resolve = <T>(container: IDIContainer, parentDeps: string[] = []): T => {
-        return (container as DIContainer).get(this.existingDefinitionName, parentDeps);
+        return (container as DIContainer).get(
+            this.existingDefinitionName,
+            parentDeps
+        );
     };
 }

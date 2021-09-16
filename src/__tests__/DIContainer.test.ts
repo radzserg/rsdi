@@ -88,7 +88,7 @@ describe("DIContainer", () => {
             async findUser() {
                 await this.init();
                 const dbConnection = this.dbConnection;
-                return await new Promise(resolve =>
+                return await new Promise((resolve) =>
                     setTimeout(() => {
                         resolve(`${dbConnection} + findUser`);
                     })
@@ -101,7 +101,7 @@ describe("DIContainer", () => {
         container.addDefinition(
             "dbConnection",
             factory((container: IDIContainer) => {
-                return new Promise(resolve =>
+                return new Promise((resolve) =>
                     setTimeout(() => {
                         resolve(container.get("dsn"));
                     })

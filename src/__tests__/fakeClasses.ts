@@ -19,8 +19,7 @@ export class Bar {
     }
 }
 
-export class Buzz {
-}
+export class Buzz {}
 
 export abstract class AbstractFoo {
     public name: string;
@@ -37,6 +36,4 @@ export abstract class AbstractFoo {
     }
 }
 
-export class FooChild extends AbstractFoo {
-
-}
+export class FooChild extends AbstractFoo {}

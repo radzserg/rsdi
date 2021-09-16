@@ -7,7 +7,7 @@ describe("ValueDefinition", () => {
     });
 });
 
-describe("it respects TS types", function() {
+describe("it respects TS types", function () {
     test("infer string type", () => {
         const definition = new ValueDefinition("production");
         let s: string = definition.resolve();

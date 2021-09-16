@@ -31,7 +31,7 @@ describe("FactoryDefinition", () => {
         container.addDefinition("key1", new ValueDefinition("value1"));
         const definition = new FactoryDefinition(
             async (container: IDIContainer) => {
-                return await new Promise(resolve =>
+                return await new Promise((resolve) =>
                     setTimeout(() => {
                         resolve(container.get("key1"));
                     })

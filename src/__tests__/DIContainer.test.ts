@@ -1,4 +1,4 @@
-import { Foo } from "./fakeClasses";
+import { Bar, Foo } from "./fakeClasses";
 import DIContainer, { IDIContainer } from "../DIContainer";
 import ObjectDefinition from "../definitions/ObjectDefinition";
 import ValueDefinition from "../definitions/ValueDefinition";
@@ -28,7 +28,7 @@ describe("DIContainer", () => {
     test("it always returns singleton", () => {
         const container = new DIContainer();
         const definitions = {
-            foo: new ObjectDefinition(Foo).construct("name1", undefined),
+            foo: new ObjectDefinition(Foo).construct("name1", new Bar()),
         };
         container.addDefinitions(definitions);
 
@@ -88,7 +88,7 @@ describe("DIContainer", () => {
             async findUser() {
                 await this.init();
                 const dbConnection = this.dbConnection;
-                return await new Promise(resolve =>
+                return await new Promise((resolve) =>
                     setTimeout(() => {
                         resolve(`${dbConnection} + findUser`);
                     })
@@ -101,7 +101,7 @@ describe("DIContainer", () => {
         container.addDefinition(
             "dbConnection",
             factory((container: IDIContainer) => {
-                return new Promise(resolve =>
+                return new Promise((resolve) =>
                     setTimeout(() => {
                         resolve(container.get("dsn"));
                     })

@@ -10,4 +10,13 @@ describe("ExistingDefinition", () => {
 
         expect(definition.resolve(container)).toEqual("value1");
     });
+
+    test("it throw an error if definition does not exist", () => {
+        const container = new DIContainer();
+        const definition = new ExistingDefinition("key1");
+
+        expect(() => {
+            definition.resolve(container);
+        }).toThrow("Dependency with name key1 is not defined");
+    });
 });

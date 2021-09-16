@@ -50,6 +50,7 @@ describe("ObjectDefinition", () => {
 
     test("it throws an error if method does not exist", () => {
         const definition = new ObjectDefinition(Foo).method(
+            // @ts-ignore rsdi identifies incorrect method
             "undefinedMethod",
             "item1"
         );

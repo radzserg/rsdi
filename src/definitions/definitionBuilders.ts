@@ -15,6 +15,6 @@ export function diGet<T>(name: string) {
     return new ExistingDefinition<T>(name);
 }
 
-export function diFactory(factory: Factory) {
+export function diFactory< T extends Factory>(factory: T) {
     return new FactoryDefinition(factory);
 }

@@ -1,4 +1,4 @@
-import { Foo } from "./fakeClasses";
+import { Bar, Foo } from "./fakeClasses";
 import DIContainer, { IDIContainer } from "../DIContainer";
 import ObjectDefinition from "../definitions/ObjectDefinition";
 import ValueDefinition from "../definitions/ValueDefinition";
@@ -28,7 +28,7 @@ describe("DIContainer", () => {
     test("it always returns singleton", () => {
         const container = new DIContainer();
         const definitions = {
-            foo: new ObjectDefinition(Foo).construct("name1", undefined),
+            foo: new ObjectDefinition(Foo).construct("name1", new Bar()),
         };
         container.addDefinitions(definitions);
 

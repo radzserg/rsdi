@@ -2,7 +2,7 @@ import { Bar, Foo } from "../../__tests__/fakeClasses";
 
 import ObjectDefinition from "../ObjectDefinition";
 import ValueDefinition from "../ValueDefinition";
-import DIContainer, { IDIContainer } from "../../DIContainer";
+import DIContainer from "../../DIContainer";
 import { diFactory, diGet, diObject } from "../definitionBuilders";
 
 describe("definitionBuilders", () => {
@@ -28,7 +28,6 @@ describe("definitionBuilders", () => {
     });
 
     test("it resolves existing definition", () => {
-        const container = new DIContainer();
         container.addDefinition("key1", new ValueDefinition("value1"));
         const definition = diGet("key1");
 
@@ -36,7 +35,6 @@ describe("definitionBuilders", () => {
     });
 
     test("it creates singleton factory definition", () => {
-        const container = new DIContainer();
         const definition = diFactory(() => {
             return { a: 123 };
         });
@@ -44,3 +42,7 @@ describe("definitionBuilders", () => {
         expect(definition.resolve(container)).toEqual({ a: 123 });
     });
 });
+
+describe("definitionBuilders respects typescript types", () => {
+
+})

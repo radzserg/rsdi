@@ -89,4 +89,10 @@ describe("definitionBuilders respects typescript types", () => {
         const resolved: { bar: Bar } = definition.resolve(container);
         expect(resolved.bar).toBeInstanceOf(Bar);
     });
+
+    test("diObject factory 'resolve' returns object of a given class", () => {
+        const definition = diObject(Foo);
+        const foo: Foo = definition.resolve(container);
+        expect(foo).toBeInstanceOf(Foo);
+    });
 });

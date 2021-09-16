@@ -5,7 +5,7 @@ import ReferenceResolver from "../ReferenceResolver";
 describe("ReferenceResolver", () => {
     test("it resolves existing value from container", () => {
         const container = new DIContainer();
-        container.addDefinition("key1", new RawValueResolver("value1"));
+        container.add({ key1: new RawValueResolver("value1") });
         const definition = new ReferenceResolver("key1");
 
         expect(definition.resolve(container)).toEqual("value1");

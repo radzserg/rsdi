@@ -69,7 +69,7 @@ describe("ObjectResolver", () => {
     );
 
     test("it resolves deps while calling method", () => {
-        container.addDefinition("key1", "value1");
+        container.add({ key1: "value1" });
         const definition = new ObjectResolver(Foo).method(
             "addItem",
             use("key1")

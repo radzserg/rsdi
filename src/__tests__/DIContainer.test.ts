@@ -5,17 +5,76 @@ import RawValueResolver from "../resolvers/RawValueResolver";
 import { factory, use, object } from "../index";
 import { DependencyIsMissingError } from "../errors";
 
-describe("DIContainer", () => {
+describe("DIContainer adds resolvers", () => {
     test("it adds and resolves resolvers", () => {
         const container = new DIContainer();
         const resolvers = {
             foo: new ObjectResolver(Foo),
             key1: new RawValueResolver("value1"),
         };
-        container.addDefinitions(resolvers);
+        container.add(resolvers);
         const foo = container.get("foo");
         expect(foo).toBeInstanceOf(Foo);
         expect(container.get("key1")).toEqual("value1");
+    });
+
+    test("it adds resolver to existing list", () => {
+        const container = new DIContainer();
+        const resolvers = {
+            key1: new RawValueResolver("value1"),
+        };
+        container.add(resolvers);
+
+        container.add({ key2: new RawValueResolver("value2") });
+        expect(container.get("key1")).toEqual("value1");
+        expect(container.get("key2")).toEqual("value2");
+    });
+
+    test("it adds resolvers to existing list", () => {
+        const container = new DIContainer();
+        const resolvers = {
+            key1: new RawValueResolver("value1"),
+        };
+        container.add(resolvers);
+
+        container.add({
+            key2: new RawValueResolver("value2"),
+            key3: new RawValueResolver("value3"),
+        });
+        expect(container.get("key1")).toEqual("value1");
+        expect(container.get("key2")).toEqual("value2");
+        expect(container.get("key3")).toEqual("value3");
+    });
+
+    test("if value not an instance of BaseDefinition treat it as ValueDefinition", () => {
+        const container = new DIContainer();
+        const resolvers = {
+            key1: "value1",
+        };
+        container.add(resolvers);
+        expect(container.get("key1")).toEqual("value1");
+        container.add({ key2: "value2" });
+        expect(container.get("key2")).toEqual("value2");
+    });
+
+    test("it can add resolvers using universal add method", () => {
+        const container = new DIContainer();
+        // container.add(new RawValueResolver("value1"), "key1");
+        // container.add(new RawValueResolver("abc"));
+        //
+        // container.add({
+        //     a: new RawValueResolver("asda"),
+        // });
+    });
+});
+
+describe("DIContainer resolution", () => {
+    test("it allows to override resolvers by key", () => {
+        const container = new DIContainer();
+        container.add({ key1: "key1" });
+        container.add({ key1: "key2" });
+        const value = container.get("key1");
+        expect(value).toEqual("key2");
     });
 
     test("it throws an error if definition is missing during resolution", () => {
@@ -30,7 +89,7 @@ describe("DIContainer", () => {
         const resolvers = {
             foo: new ObjectResolver(Foo).construct("name1", new Bar()),
         };
-        container.addDefinitions(resolvers);
+        container.add(resolvers);
 
         const foo = container.get<Foo>("foo");
         expect(foo.name).toEqual("name1");
@@ -38,86 +97,9 @@ describe("DIContainer", () => {
         const foo2 = container.get<Foo>("foo");
         expect(foo2.name).toEqual("name2");
     });
+});
 
-    test("it adds definition to existing list", () => {
-        const container = new DIContainer();
-        const resolvers = {
-            key1: new RawValueResolver("value1"),
-        };
-        container.addDefinitions(resolvers);
-
-        container.addDefinition("key2", new RawValueResolver("value2"));
-        expect(container.get("key1")).toEqual("value1");
-        expect(container.get("key2")).toEqual("value2");
-    });
-
-    test("it adds resolvers to existing list", () => {
-        const container = new DIContainer();
-        const resolvers = {
-            key1: new RawValueResolver("value1"),
-        };
-        container.addDefinitions(resolvers);
-
-        container.addDefinitions({
-            key2: new RawValueResolver("value2"),
-            key3: new RawValueResolver("value3"),
-        });
-        expect(container.get("key1")).toEqual("value1");
-        expect(container.get("key2")).toEqual("value2");
-        expect(container.get("key3")).toEqual("value3");
-    });
-
-    test("if value not an instance of BaseDefinition treat it as ValueDefinition", () => {
-        const container = new DIContainer();
-        const resolvers = {
-            key1: "value1",
-        };
-        container.addDefinitions(resolvers);
-        expect(container.get("key1")).toEqual("value1");
-        container.addDefinition("key2", "value2");
-        expect(container.get("key2")).toEqual("value2");
-    });
-
-    test("it resolves factory returning pending Promise", async () => {
-        class TestUserRepository {
-            private dbConnection: any;
-            public constructor(private readonly dbConnectionPromise: any) {}
-            async init() {
-                this.dbConnection = await this.dbConnectionPromise;
-            }
-            async findUser() {
-                await this.init();
-                const dbConnection = this.dbConnection;
-                return await new Promise((resolve) =>
-                    setTimeout(() => {
-                        resolve(`${dbConnection} + findUser`);
-                    })
-                );
-            }
-        }
-
-        const container = new DIContainer();
-        container.addDefinition("dsn", new RawValueResolver("DSN-secret"));
-        container.addDefinition(
-            "dbConnection",
-            factory((container: IDIContainer) => {
-                return new Promise((resolve) =>
-                    setTimeout(() => {
-                        resolve(container.get("dsn"));
-                    })
-                );
-            })
-        );
-        container.addDefinition(
-            "TestUserRepository",
-            object(TestUserRepository).construct(use("dbConnection"))
-        );
-
-        const userRepository =
-            container.get<TestUserRepository>("TestUserRepository");
-        expect(await userRepository.findUser()).toBe("DSN-secret + findUser");
-    });
-
+describe("DIContainer circular dependencies detection", () => {
     test("it can detect simple circular dependencies", () => {
         class Foo {
             constructor(public bar: Bar) {}
@@ -127,7 +109,7 @@ describe("DIContainer", () => {
         }
 
         const container = new DIContainer();
-        container.addDefinitions({
+        container.add({
             foo: new ObjectResolver(Foo).construct(use("bar")),
             bar: new ObjectResolver(Bar).construct(use("foo")),
         });
@@ -156,7 +138,7 @@ describe("DIContainer", () => {
         }
 
         const container = new DIContainer();
-        container.addDefinitions({
+        container.add({
             connection: new DbConnection(),
             usersRepo: new ObjectResolver(UsersRepo).construct(
                 use("connection")
@@ -187,7 +169,7 @@ describe("DIContainer", () => {
         }
 
         const container = new DIContainer();
-        container.addDefinitions({
+        container.add({
             foo: new ObjectResolver(Foo).construct(use("bar")),
             bar: new ObjectResolver(Bar).construct(use("buzz")),
             buzz: new ObjectResolver(Buzz).construct(use("foo")),
@@ -197,5 +179,48 @@ describe("DIContainer", () => {
         }).toThrowError(
             'Circular Dependency is detected. Dependency: "foo", path: foo -> bar -> buzz.'
         );
+    });
+});
+
+describe("DIContainer async behaviour", () => {
+    /**
+     * It's an interesting case need to get back to it
+     */
+    test("it resolves factory returning pending Promise", async () => {
+        class TestUserRepository {
+            private dbConnection: any;
+            public constructor(private readonly dbConnectionPromise: any) {}
+            async init() {
+                this.dbConnection = await this.dbConnectionPromise;
+            }
+            async findUser() {
+                await this.init();
+                const dbConnection = this.dbConnection;
+                return await new Promise((resolve) =>
+                    setTimeout(() => {
+                        resolve(`${dbConnection} + findUser`);
+                    })
+                );
+            }
+        }
+
+        const container = new DIContainer();
+        container.add({
+            dsn: new RawValueResolver("DSN-secret"),
+            dbConnection: factory((container: IDIContainer) => {
+                return new Promise((resolve) =>
+                    setTimeout(() => {
+                        resolve(container.get("dsn"));
+                    })
+                );
+            }),
+            TestUserRepository: object(TestUserRepository).construct(
+                use("dbConnection")
+            ),
+        });
+
+        const userRepository =
+            container.get<TestUserRepository>("TestUserRepository");
+        expect(await userRepository.findUser()).toBe("DSN-secret + findUser");
     });
 });

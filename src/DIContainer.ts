@@ -2,10 +2,7 @@ import { DependencyResolver } from "./DependencyResolver";
 import AbstractResolver from "./resolvers/AbstractResolver";
 import RawValueResolver from "./resolvers/RawValueResolver";
 import { CircularDependencyError, DependencyIsMissingError } from "./errors";
-import {
-    DefinitionName,
-    definitionNameToString,
-} from "./DefinitionName";
+import { DefinitionName, definitionNameToString } from "./DefinitionName";
 
 /**
  * Dependency injection container interface to expose
@@ -50,24 +47,27 @@ export default class DIContainer implements IDIContainer {
     }
 
     /**
+     * Adds multiple dependency resolvers to the container
+     * @param resolvers - named dependency object
+     */
+    add(resolvers: INamedResolvers) {
+        Object.keys(resolvers).map((name: string) => {
+            this.addResolver(name, resolvers[name]);
+        });
+    }
+
+    /**
      * Adds single dependency definition to the container
      * @param name - string name for the dependency
      * @param resolver - raw value or instance of IDefinition
      */
-    addDefinition(name: DefinitionName, resolver: DependencyResolver | any) {
+    private addResolver(
+        name: DefinitionName,
+        resolver: DependencyResolver | any
+    ) {
         if (!(resolver instanceof AbstractResolver)) {
             resolver = new RawValueResolver(resolver);
         }
         this.resolvers[definitionNameToString(name)] = resolver;
-    }
-
-    /**
-     * Adds multiple dependency resolvers to the container
-     * @param resolvers - named dependency object
-     */
-    addDefinitions(resolvers: INamedResolvers) {
-        Object.keys(resolvers).map((name: DefinitionName) => {
-            this.addDefinition(name, resolvers[definitionNameToString(name)]);
-        });
     }
 }

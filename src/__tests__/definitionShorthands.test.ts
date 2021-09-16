@@ -12,7 +12,7 @@ describe("definitionBuilders", () => {
         container = new DIContainer();
     });
     test("it resolves existing definition", () => {
-        container.addDefinition("key1", new RawValueResolver("value1"));
+        container.add({ key1: new RawValueResolver("value1") });
         const definition = diUse("key1");
 
         expect(definition.resolve(container)).toEqual("value1");
@@ -53,12 +53,12 @@ describe("definitionBuilders respects typescript types", () => {
     });
 
     test("diGet 'resolve' returns scalar", () => {
-        container.addDefinition("key1", new RawValueResolver(22));
+        container.add({ key1: new RawValueResolver(22) });
         const definition: DependencyResolver<string> = diUse<string>("key1");
         expect(definition.resolve(container)).toEqual(22);
     });
     test("diGet 'resolve' returns class object", () => {
-        container.addDefinition("key1", new RawValueResolver(new Bar()));
+        container.add({ key1: new RawValueResolver(new Bar()) });
         const definition: DependencyResolver<Bar> = diUse<Bar>("key1");
         expect(definition.resolve(container)).toBeInstanceOf(Bar);
     });

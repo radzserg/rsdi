@@ -19,7 +19,7 @@ describe("FactoryResolver", () => {
 
     test("it resolves value using values from container", () => {
         const container = new DIContainer();
-        container.addDefinition("key1", new RawValueResolver("value1"));
+        container.add({ key1: new RawValueResolver("value1") });
         const definition = new FactoryResolver((container: IDIContainer) => {
             return container.get("key1");
         });
@@ -28,7 +28,7 @@ describe("FactoryResolver", () => {
 
     test("it resolves value using async factory", async () => {
         const container = new DIContainer();
-        container.addDefinition("key1", new RawValueResolver("value1"));
+        container.add({ key1: new RawValueResolver("value1") });
         const definition = new FactoryResolver(
             async (container: IDIContainer) => {
                 return await new Promise((resolve) =>

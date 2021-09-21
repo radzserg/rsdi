@@ -4,7 +4,7 @@ import ReferenceResolver from "../ReferenceResolver";
 
 describe("ReferenceResolver", () => {
     test("it resolves existing value from container", () => {
-        const container = new DIContainer();
+        const container: DIContainer = new DIContainer();
         container.add({ key1: new RawValueResolver("value1") });
         const definition = new ReferenceResolver("key1");
 

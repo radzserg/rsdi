@@ -4,7 +4,7 @@ import DIContainer, { use } from "../../index";
 import { InvalidConstructorError, MethodIsMissingError } from "../../errors";
 
 describe("ObjectResolver", () => {
-    const container = new DIContainer();
+    const container: DIContainer = new DIContainer();
     test("it creates object of correct class and initiate constructor with deps", () => {
         const fakeName = "My name is Foo";
         const bar = new ObjectResolver(Bar);

@@ -1,8 +1,9 @@
-import ObjectResolver, { ClassOf } from "./resolvers/ObjectResolver";
+import ObjectResolver from "./resolvers/ObjectResolver";
 import RawValueResolver from "./resolvers/RawValueResolver";
 import ReferenceResolver from "./resolvers/ReferenceResolver";
 import FactoryResolver, { Factory } from "./resolvers/FactoryResolver";
 import { DefinitionName, definitionNameToString } from "./DefinitionName";
+import { ClassOf } from "./DIContainer";
 
 // shorthands for Definition classes
 

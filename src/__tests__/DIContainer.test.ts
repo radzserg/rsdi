@@ -57,14 +57,13 @@ describe("DIContainer adds resolvers", () => {
         expect(container.get("key2")).toEqual("value2");
     });
 
-    test("it can add resolvers using universal add method", () => {
-        const container = new DIContainer();
-        // container.add(new RawValueResolver("value1"), "key1");
-        // container.add(new RawValueResolver("abc"));
-        //
-        // container.add({
-        //     a: new RawValueResolver("asda"),
-        // });
+    test("if resolves type as class instance if class is provided", () => {
+        const container: DIContainer = new DIContainer();
+        container.add({
+            Foo: new ObjectResolver(Foo).construct("name1", new Bar()),
+        });
+        let foo: Foo = container.get(Foo);
+        expect(foo).toBeInstanceOf(Foo);
     });
 });
 

@@ -8,9 +8,17 @@ import { definitionNameToString } from "./DefinitionName";
  * Dependency injection container interface to expose
  */
 export interface IDIContainer<R extends INamedResolvers = {}> {
-    get: <N extends string>(
+    get: <N extends ResolverName>(
         dependencyName: N
-    ) => R[N] extends DependencyResolver ? Resolve<R[N]> : R[N];
+    ) => N extends string
+        ? R[N] extends DependencyResolver
+            ? Resolve<R[N]>
+            : R[N]
+        : N;
+}
+
+export interface ClassOf<C extends Object> {
+    new (...args: any[]): C;
 }
 
 interface INamedResolvers {
@@ -23,6 +31,8 @@ type Resolve<N extends DependencyResolver> = N extends {
     ? R
     : never;
 
+type ResolverName = string | { name: string };
+
 /**
  * Dependency injection container
  */
@@ -33,17 +43,21 @@ export default class DIContainer<R extends INamedResolvers = {}>
         [name: string]: any;
     } = {};
 
-    // private constructor() {}
-
     /**
      * Resolves dependency by name
-     * @param dependencyName - DefinitionName name of the dependency
+     * @param dependencyName - DefinitionName name of the dependency. String or class name.
      * @param parentDeps - array of parent dependencies (used to detect circular dependencies)
      */
-    public get<N extends string>(
+    public get<N extends ResolverName>(
         dependencyName: N,
         parentDeps: string[] = []
-    ): R[N] extends DependencyResolver ? Resolve<R[N]> : R[N] {
+    ): N extends string
+        ? R[N] extends DependencyResolver
+            ? Resolve<R[N]>
+            : R[N]
+        : N extends ClassOf<any>
+        ? InstanceType<N>
+        : never {
         const name = definitionNameToString(dependencyName);
         if (!(name in this.resolvers)) {
             throw new DependencyIsMissingError(name);
@@ -71,7 +85,6 @@ export default class DIContainer<R extends INamedResolvers = {}>
         Object.keys(resolvers).map((name: string) => {
             this.addResolver(name, resolvers[name]);
         });
-        // this as DIContainer<R & N>;
     }
 
     /**

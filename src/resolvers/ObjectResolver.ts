@@ -1,11 +1,7 @@
 import AbstractResolver from "./AbstractResolver";
-import { IDIContainer } from "../DIContainer";
+import { ClassOf, IDIContainer } from "../DIContainer";
 import { InvalidConstructorError, MethodIsMissingError } from "../errors";
 import { DependencyResolver } from "../DependencyResolver";
-
-export interface ClassOf<C extends Object> {
-    new (...args: any[]): C;
-}
 
 interface IExtraMethods<I> {
     methodName: keyof I;

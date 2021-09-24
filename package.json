@@ -18,6 +18,14 @@
   "homepage": "https://github.com/radzserg/rsdi",
   "author": "Sergey Radzishevskii <radzserg@gmail.com>",
   "license": "ISC",
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "src/**/*.ts": "prettier --write --ignore-unknown"
+  },
   "dependencies": {
     "@types/jest": "^26.0.23",
     "jest": "^27.0.6",

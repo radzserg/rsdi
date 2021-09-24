@@ -6,3 +6,6 @@ node_modules/
 
 # IDE
 .idea/
+
+# ignore husky hooks
+.husky/

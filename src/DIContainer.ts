@@ -4,21 +4,17 @@ import RawValueResolver from "./resolvers/RawValueResolver";
 import { CircularDependencyError, DependencyIsMissingError } from "./errors";
 import { definitionNameToString } from "./DefinitionName";
 
+export interface ClassOf<C extends Object> {
+    new (...args: any[]): C;
+}
+
 /**
  * Dependency injection container interface to expose
  */
-export interface IDIContainer<R extends INamedResolvers = {}> {
-    get: <N extends ResolverName>(
-        dependencyName: N
-    ) => N extends string
-        ? R[N] extends DependencyResolver
-            ? Resolve<R[N]>
-            : R[N]
-        : N;
-}
-
-export interface ClassOf<C extends Object> {
-    new (...args: any[]): C;
+export interface IDIContainer<ContainerResolvers extends INamedResolvers = {}> {
+    get: <Name extends ResolverName>(
+        dependencyName: Name
+    ) => ResolvedType<Name, ContainerResolvers>;
 }
 
 interface INamedResolvers {
@@ -31,13 +27,30 @@ type Resolve<N extends DependencyResolver> = N extends {
     ? R
     : never;
 
-type ResolverName = string | { name: string };
+export type ResolverName = string | { name: string };
+
+/**
+ * @todo provide explanation
+ */
+type ResolvedType<
+    Name extends ResolverName,
+    NamedResolvers extends INamedResolvers = {}
+> = Name extends string
+    ? NamedResolvers[Name] extends DependencyResolver
+        ? Resolve<NamedResolvers[Name]>
+        : NamedResolvers[Name]
+    : Name extends ClassOf<any>
+    ? InstanceType<Name>
+    : Name extends (...args: any) => infer FT
+    ? FT
+    : never;
 
 /**
  * Dependency injection container
  */
-export default class DIContainer<R extends INamedResolvers = {}>
-    implements IDIContainer<R> {
+export default class DIContainer<
+    ContainerResolvers extends INamedResolvers = {}
+> implements IDIContainer<ContainerResolvers> {
     private resolvers: INamedResolvers = {};
     private resolved: {
         [name: string]: any;
@@ -48,16 +61,10 @@ export default class DIContainer<R extends INamedResolvers = {}>
      * @param dependencyName - DefinitionName name of the dependency. String or class name.
      * @param parentDeps - array of parent dependencies (used to detect circular dependencies)
      */
-    public get<N extends ResolverName>(
-        dependencyName: N,
+    public get<Name extends ResolverName>(
+        dependencyName: Name,
         parentDeps: string[] = []
-    ): N extends string
-        ? R[N] extends DependencyResolver
-            ? Resolve<R[N]>
-            : R[N]
-        : N extends ClassOf<any>
-        ? InstanceType<N>
-        : never {
+    ): ResolvedType<Name, ContainerResolvers> {
         const name = definitionNameToString(dependencyName);
         if (!(name in this.resolvers)) {
             throw new DependencyIsMissingError(name);
@@ -79,9 +86,9 @@ export default class DIContainer<R extends INamedResolvers = {}>
      * @param resolvers - named dependency object
      */
     public add<N extends INamedResolvers>(
-        this: DIContainer<R>,
+        this: DIContainer<ContainerResolvers>,
         resolvers: N
-    ): asserts this is DIContainer<R & N> {
+    ): asserts this is DIContainer<ContainerResolvers & N> {
         Object.keys(resolvers).map((name: string) => {
             this.addResolver(name, resolvers[name]);
         });
@@ -96,6 +103,6 @@ export default class DIContainer<R extends INamedResolvers = {}>
         if (!(resolver instanceof AbstractResolver)) {
             resolver = new RawValueResolver(resolver);
         }
-        this.resolvers[definitionNameToString(name)] = resolver;
+        this.resolvers[name] = resolver;
     }
 }

@@ -2,8 +2,8 @@ import ObjectResolver from "./resolvers/ObjectResolver";
 import RawValueResolver from "./resolvers/RawValueResolver";
 import ReferenceResolver from "./resolvers/ReferenceResolver";
 import FactoryResolver, { Factory } from "./resolvers/FactoryResolver";
-import { DefinitionName, definitionNameToString } from "./DefinitionName";
-import { ClassOf } from "./DIContainer";
+import { definitionNameToString } from "./DefinitionName";
+import { ClassOf, ResolverName } from "./DIContainer";
 
 // shorthands for Definition classes
 
@@ -27,7 +27,7 @@ export function diValue<T extends any = unknown>(value: T) {
  * Refers to existing definition. i.e. definition with provided name must exists in DIContainer
  * @param definitionName
  */
-export function diUse<T = void, R extends DefinitionName = string>(
+export function diUse<T, R extends ResolverName = string>(
     definitionName: R
 ) {
     return new ReferenceResolver<

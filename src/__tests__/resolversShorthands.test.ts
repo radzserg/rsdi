@@ -2,8 +2,8 @@ import { Bar, Foo } from "./fakeClasses";
 
 import ObjectResolver from "../resolvers/ObjectResolver";
 import RawValueResolver from "../resolvers/RawValueResolver";
-import DIContainer, { IDIContainer } from "../DIContainer";
-import { diFactory, diUse, diObject, diValue } from "../resolversShorthands";
+import DIContainer from "../DIContainer";
+import { diFactory, diObject, diUse, diValue } from "../resolversShorthands";
 import { DependencyResolver } from "../DependencyResolver";
 
 describe("definitionBuilders", () => {

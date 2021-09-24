@@ -56,15 +56,6 @@ describe("DIContainer adds resolvers", () => {
         container.add({ key2: "value2" });
         expect(container.get("key2")).toEqual("value2");
     });
-
-    test("if resolves type as class instance if class is provided", () => {
-        const container: DIContainer = new DIContainer();
-        container.add({
-            Foo: new ObjectResolver(Foo).construct("name1", new Bar()),
-        });
-        let foo: Foo = container.get(Foo);
-        expect(foo).toBeInstanceOf(Foo);
-    });
 });
 
 describe("DIContainer resolution", () => {
@@ -96,6 +87,45 @@ describe("DIContainer resolution", () => {
         const foo2 = container.get("foo");
         expect(foo2.name).toEqual("name2");
     });
+});
+
+describe("DIContainer typescript type resolution", () => {
+    test("if resolves type as class instance if class is provided", () => {
+        const container: DIContainer = new DIContainer();
+        container.add({
+            Foo: new ObjectResolver(Foo).construct("name1", new Bar()),
+        });
+        let foo: Foo = container.get(Foo);
+        expect(foo).toBeInstanceOf(Foo);
+    });
+
+    test("if resolves type as factory return type if function is provided", () => {
+        const container: DIContainer = new DIContainer();
+        function myFactory() {
+            return { a: 123 };
+        }
+        container.add({
+            myFactory: factory((container: IDIContainer) => {
+                return myFactory();
+            }),
+        });
+        let { a } = container.get(myFactory);
+        expect(a).toEqual(123);
+    });
+
+    // test("if resolves type as given custom type if function is provided and custom type is provided", () => {
+    //     const container: DIContainer = new DIContainer();
+    //     function myFactory() {
+    //         return { a: 123 };
+    //     }
+    //     container.add({
+    //         myFactory: factory((container: IDIContainer) => {
+    //             return myFactory();
+    //         }),
+    //     });
+    //     let resolvedFactory: Foo = container.get(myFactory);
+    //     //expect(a).toEqual(123);
+    // });
 });
 
 describe("DIContainer circular dependencies detection", () => {

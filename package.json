@@ -1,7 +1,7 @@
 {
   "name": "rsdi",
   "version": "1.0.12",
-  "description": "dependency injection container",
+  "description": "Simple dependency injection container for JavaScript/TypeScript",
   "scripts": {
     "test": "jest",
     "format": "prettier 'src/**/*.ts' --write",
@@ -10,10 +10,13 @@
     "deploy": "npm run build && npm run copy:package && npm publish dist"
   },
   "keywords": [
+    "dependency injection",
     "dependency",
     "injection",
-    "dic",
-    "injector"
+    "ioc",
+    "container",
+    "javascript",
+    "typescript"
   ],
   "homepage": "https://github.com/radzserg/rsdi",
   "author": "Sergey Radzishevskii <radzserg@gmail.com>",
@@ -27,12 +30,12 @@
     "src/**/*.ts": "prettier --write --ignore-unknown"
   },
   "dependencies": {
+  },
+  "devDependencies": {
     "@types/jest": "^26.0.23",
     "jest": "^27.0.6",
     "ts-jest": "^27.0.3",
-    "typescript": "^4.3.5"
-  },
-  "devDependencies": {
+    "typescript": "^4.3.5",
     "husky": "^7.0.2",
     "lint-staged": "^11.1.2",
     "prettier": "^2.4.1"

@@ -27,7 +27,7 @@ export function diValue<T extends any = unknown>(value: T) {
  * Refers to existing definition. i.e. definition with provided name must exists in DIContainer
  * @param definitionName
  */
-export function diUse<T, R extends ResolverName = string>(
+export function diUse<T, R extends ResolverName = ResolverName>(
     definitionName: R
 ) {
     return new ReferenceResolver<

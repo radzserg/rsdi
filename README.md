@@ -1,4 +1,6 @@
-# Dependency Injection Container
+# RSDI - Dependency Injection Container
+
+Simple and powerful dependency injection container for JavaScript/TypeScript.
 
 # Getting Started
 

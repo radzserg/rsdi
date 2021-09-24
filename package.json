@@ -1,13 +1,12 @@
 {
   "name": "rsdi",
-  "version": "1.0.12",
+  "version": "2.0.0-alpha.3",
   "description": "Simple dependency injection container for JavaScript/TypeScript",
   "scripts": {
     "test": "jest",
     "format": "prettier 'src/**/*.ts' --write",
-    "build": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json",
-    "copy:package": "cp README.md package.json dist/",
-    "deploy": "npm run build && npm run copy:package && npm publish dist"
+    "build": "tsc",
+    "build-prod": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json && cp README.md package.json dist/"
   },
   "keywords": [
     "dependency injection",

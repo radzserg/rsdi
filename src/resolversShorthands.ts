@@ -4,6 +4,7 @@ import ReferenceResolver from "./resolvers/ReferenceResolver";
 import FactoryResolver, { Factory } from "./resolvers/FactoryResolver";
 import { definitionNameToString } from "./DefinitionName";
 import { ClassOf, ResolverName } from "./DIContainer";
+import { DependencyResolver } from "./DependencyResolver";
 
 // shorthands for Definition classes
 
@@ -24,21 +25,31 @@ export function diValue<T extends any = unknown>(value: T) {
 }
 
 /**
+ * Defines the type of resolved dependency
+ *  - if Custom type is given - it will be returned
+ *  - if name of Class is provided - instance type will be returned
+ *  - if function is provided - function return type will be returned
+ */
+type ResolvedType<Custom, Name extends ResolverName> = Custom extends void
+    ? Name extends string
+        ? any
+        : Name extends ClassOf<any>
+        ? InstanceType<Name>
+        : Name extends (...args: any) => infer FT
+        ? FT
+        : never
+    : Custom;
+
+/**
  * Refers to existing definition. i.e. definition with provided name must exists in DIContainer
  * @param definitionName
  */
-export function diUse<T, R extends ResolverName = ResolverName>(
-    definitionName: R
+export function diUse<Custom = void, Name extends ResolverName = ResolverName>(
+    definitionName: Name
 ) {
-    return new ReferenceResolver<
-        T extends void
-            ? R extends { name: any }
-                ? R extends ClassOf<any>
-                    ? InstanceType<R>
-                    : R
-                : any
-            : T
-    >(definitionNameToString(definitionName));
+    return new ReferenceResolver<ResolvedType<Custom, Name>>(
+        definitionNameToString(definitionName)
+    );
 }
 
 /**

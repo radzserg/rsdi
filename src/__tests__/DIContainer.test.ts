@@ -4,6 +4,7 @@ import ObjectResolver from "../resolvers/ObjectResolver";
 import RawValueResolver from "../resolvers/RawValueResolver";
 import { factory, use, object } from "../index";
 import { DependencyIsMissingError } from "../errors";
+import { diUse } from "../resolversShorthands";
 
 describe("DIContainer adds resolvers", () => {
     test("it adds and resolves resolvers", () => {
@@ -125,6 +126,16 @@ describe("DIContainer typescript type resolution", () => {
         });
         let resolvedFactory: Foo = container.get<Foo>(myFactory);
         expect(resolvedFactory).toEqual({ a: 123 });
+    });
+
+    test("if resolves type for diUse to match constructor parameters", () => {
+        const container: DIContainer = new DIContainer();
+        container.add({
+            Bar: new Bar(),
+            Foo: new ObjectResolver(Foo).construct("some string", diUse(Bar)),
+        });
+        let resolvedFactory = container.get(Foo);
+        expect(resolvedFactory).toBeInstanceOf(Foo);
     });
 });
 

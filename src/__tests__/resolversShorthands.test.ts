@@ -5,6 +5,7 @@ import RawValueResolver from "../resolvers/RawValueResolver";
 import DIContainer from "../DIContainer";
 import { diFactory, diObject, diUse, diValue } from "../resolversShorthands";
 import { DependencyResolver } from "../DependencyResolver";
+import FactoryResolver from "../resolvers/FactoryResolver";
 
 describe("definitionBuilders", () => {
     let container: DIContainer;
@@ -52,15 +53,30 @@ describe("definitionBuilders respects typescript types", () => {
         container = new DIContainer();
     });
 
-    test("diGet 'resolve' returns scalar", () => {
+    test("diGet resolves type as scalar", () => {
         container.add({ key1: new RawValueResolver(22) });
         const definition: DependencyResolver<string> = diUse<string>("key1");
         expect(definition.resolve(container)).toEqual(22);
     });
-    test("diGet 'resolve' returns class object", () => {
+    test("diGet resolves type as class object", () => {
         container.add({ key1: new RawValueResolver(new Bar()) });
         const definition: DependencyResolver<Bar> = diUse<Bar>("key1");
         expect(definition.resolve(container)).toBeInstanceOf(Bar);
+    });
+    test("diGet resolves type as class object based on Name", () => {
+        container.add({ Bar: new Bar() });
+        const definition: DependencyResolver<Bar> = diUse(Bar);
+        expect(definition.resolve(container)).toBeInstanceOf(Bar);
+    });
+    test("diGet resolves type as function return type based on function name", () => {
+        function customFunction() {
+            return { b: 123 };
+        }
+        container.add({ customFunction: new FactoryResolver(customFunction) });
+        const definition: DependencyResolver<{ b: number }> = diUse(
+            customFunction
+        );
+        expect(definition.resolve(container)).toEqual({ b: 123 });
     });
 
     test("diValue 'resolve' returns scalar", () => {

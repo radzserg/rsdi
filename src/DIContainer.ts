@@ -56,7 +56,8 @@ type ResolvedType<
  */
 export default class DIContainer<
     ContainerResolvers extends INamedResolvers = {}
-> implements IDIContainer<ContainerResolvers> {
+> implements IDIContainer<ContainerResolvers>
+{
     private resolvers: INamedResolvers = {};
     private resolved: {
         [name: string]: any;

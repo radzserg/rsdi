@@ -73,9 +73,8 @@ describe("definitionBuilders respects typescript types", () => {
             return { b: 123 };
         }
         container.add({ customFunction: new FactoryResolver(customFunction) });
-        const definition: DependencyResolver<{ b: number }> = diUse(
-            customFunction
-        );
+        const definition: DependencyResolver<{ b: number }> =
+            diUse(customFunction);
         expect(definition.resolve(container)).toEqual({ b: 123 });
     });
 

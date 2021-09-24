@@ -12,7 +12,10 @@ export default class ReferenceResolver<T = any> extends AbstractResolver<T> {
         this.existingDefinitionName = existingDefinitionName;
     }
 
-    resolve = <Y extends T>(container: IDIContainer, parentDeps: string[] = []): Y => {
+    resolve = <Y extends T>(
+        container: IDIContainer,
+        parentDeps: string[] = []
+    ): Y => {
         return (container as DIContainer<any>).get(
             this.existingDefinitionName,
             parentDeps

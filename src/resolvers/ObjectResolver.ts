@@ -27,7 +27,8 @@ type MethodArgs<
  */
 export default class ObjectResolver<T extends ClassOf<any>>
     extends AbstractResolver<InstanceType<T>>
-    implements DependencyResolver<InstanceType<T>> {
+    implements DependencyResolver<InstanceType<T>>
+{
     private readonly constructorFunction: T;
     private deps: Array<DependencyResolver<any> | any> = [];
     private methods: IExtraMethods<InstanceType<T>>[] = [];

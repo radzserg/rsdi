@@ -12,9 +12,9 @@ export interface ClassOf<C extends Object> {
  * Dependency injection container interface to expose
  */
 export interface IDIContainer<ContainerResolvers extends INamedResolvers = {}> {
-    get: <Name extends ResolverName>(
+    get: <Custom = void, Name extends ResolverName = ResolverName>(
         dependencyName: Name
-    ) => ResolvedType<Name, ContainerResolvers>;
+    ) => ResolvedType<Custom, Name, ContainerResolvers>;
 }
 
 interface INamedResolvers {
@@ -30,20 +30,26 @@ type Resolve<N extends DependencyResolver> = N extends {
 export type ResolverName = string | { name: string };
 
 /**
- * @todo provide explanation
+ * Defines the type of resolved dependency
+ *  - if Custom type is given - it will be returned
+ *  - if name of Class is provided - instance type will be returned
+ *  - if function is provided - function return type will be returned
  */
 type ResolvedType<
+    Custom,
     Name extends ResolverName,
-    NamedResolvers extends INamedResolvers = {}
-> = Name extends string
-    ? NamedResolvers[Name] extends DependencyResolver
-        ? Resolve<NamedResolvers[Name]>
-        : NamedResolvers[Name]
-    : Name extends ClassOf<any>
-    ? InstanceType<Name>
-    : Name extends (...args: any) => infer FT
-    ? FT
-    : never;
+    NamedResolvers extends INamedResolvers
+> = Custom extends void
+    ? Name extends string
+        ? NamedResolvers[Name] extends DependencyResolver
+            ? Resolve<NamedResolvers[Name]>
+            : NamedResolvers[Name]
+        : Name extends ClassOf<any>
+        ? InstanceType<Name>
+        : Name extends (...args: any) => infer FT
+        ? FT
+        : never
+    : Custom;
 
 /**
  * Dependency injection container
@@ -61,10 +67,10 @@ export default class DIContainer<
      * @param dependencyName - DefinitionName name of the dependency. String or class name.
      * @param parentDeps - array of parent dependencies (used to detect circular dependencies)
      */
-    public get<Name extends ResolverName>(
+    public get<Custom = void, Name extends ResolverName = ResolverName>(
         dependencyName: Name,
         parentDeps: string[] = []
-    ): ResolvedType<Name, ContainerResolvers> {
+    ): ResolvedType<Custom, Name, ContainerResolvers> {
         const name = definitionNameToString(dependencyName);
         if (!(name in this.resolvers)) {
             throw new DependencyIsMissingError(name);

@@ -113,19 +113,19 @@ describe("DIContainer typescript type resolution", () => {
         expect(a).toEqual(123);
     });
 
-    // test("if resolves type as given custom type if function is provided and custom type is provided", () => {
-    //     const container: DIContainer = new DIContainer();
-    //     function myFactory() {
-    //         return { a: 123 };
-    //     }
-    //     container.add({
-    //         myFactory: factory((container: IDIContainer) => {
-    //             return myFactory();
-    //         }),
-    //     });
-    //     let resolvedFactory: Foo = container.get(myFactory);
-    //     //expect(a).toEqual(123);
-    // });
+    test("if resolves type as given custom type", () => {
+        const container: DIContainer = new DIContainer();
+        function myFactory() {
+            return { a: 123 };
+        }
+        container.add({
+            myFactory: factory((container: IDIContainer) => {
+                return myFactory();
+            }),
+        });
+        let resolvedFactory: Foo = container.get<Foo>(myFactory);
+        expect(resolvedFactory).toEqual({ a: 123 });
+    });
 });
 
 describe("DIContainer circular dependencies detection", () => {

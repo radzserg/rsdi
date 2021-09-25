@@ -4,8 +4,9 @@ Simple and powerful dependency injection container for JavaScript/TypeScript.
 
 # Getting Started
 
+Given that you have classes and factories in your application
+
 ```typescript
-// your classes and factories
 class CookieStorage {}
 class AuthStorage {
     constructor(storage: CookieStorage) {}
@@ -20,25 +21,41 @@ function loggerFactory(container: IDIContainer): Logger {
     }
     return new Logger();
 }
+function UsersRepoFactory(knex: Knex): UsersRepo {
+    return {
+        async findById(id: number) {
+            await knex("users").where({ id });
+        },
+    };
+}
+```
 
+Your DI container initialisation will include
 
-// configure DI container
+```typescript
 import DIContainer, { object, use, factory, IDIContainer } from "rsdi";
 
 export default function configureDI() {
     const container: DIContainer = new DIContainer();
     container.add({
         ENV: "test", // define raw value
+        Storage: object(CookieStorage), // constructor without arguments
         AuthStorage: object(AuthStorage).construct(
             use(Storage) // refer to another dependency
         ),
-        Storage: object(CookieStorage), // constructor without arguments
-        Logger: factory(loggerFactory), // factory 
+        knex: knex(),
+        Logger: factory(loggerFactory),
+        UsersRepo: factory((container: IDIContainer) => {
+            return UsersRepoFactory(container.get("knex"));
+        }),
     });
     return container;
 }
+```
 
-// in your entry point code
+An entry point of your application will include
+
+```typescript
 const container = configureDI();
 const env: string = container.get("ENV"); // test
 const authStorage: AuthStorage = container.get(AuthStorage); // object of AuthStorage
@@ -53,6 +70,7 @@ const logger: Logger = container.get(loggerFactory); // object of DummyLogger
     -   [Raw values](#raw-values)
     -   [Object resolver](#object-resolver)
     -   [Factory resolver](#factory-resolver)
+    -   [Typescript type resolution](#typescript-type-resolution)
     -   [Async factory resolver](#async-factory-resolver)
 
 ## Features
@@ -72,7 +90,7 @@ those types and do autowiring. Autowiring is a nice feature but the trade-off is
 class Foo {}
 ```
 
-Why component Foo should know that it's injectable? 
+Why component Foo should know that it's injectable?
 
 Your business logic depends on a specific framework that is not part of your domain model and can change.
 
@@ -100,42 +118,37 @@ const authStorage: AuthStorage = container.get(AuthStorage); // instance of Auth
 
 ### Object resolver
 
-`object(ClassName)` - constructs an instance of the given class. The simplest scenario it calls the class constructor `new ClassName()`. 
-When you need to pass arguments to the constructor, you can use `construct` method. You can refer to the already defined 
+`object(ClassName)` - constructs an instance of the given class. The simplest scenario it calls the class constructor `new ClassName()`.
+When you need to pass arguments to the constructor, you can use `construct` method. You can refer to the already defined
 dependencies via the `use` helper, or you can pass raw values.
 
 If you need to call object method after initialization you can use `method` it will be called after constructor.
 
 ```typescript
-
+// test class
 class ControllerContainer {
     constructor(authStorage: AuthStorage, logger: Logger) {}
 
     add(controller: Controller) {
-        this.controllers.push(controller)
+        this.controllers.push(controller);
     }
 }
 
-import DIContainer, { object, use } from "rsdi";
-
+// container
 const container: DIContainer = new DIContainer();
 container.add({
     Storage: object(CookieStorage), // constructor without arguments
     AuthStorage: object(AuthStorage).construct(
-        use(Storage)              // refers to existing dependency
+        use(Storage) // refers to existing dependency
     ),
     UsersController: object(UserController),
     PostsController: object(PostsController),
     ControllerContainer: object(MainCliCommand)
         .construct(use(AuthStorage), new Logger()) // use existing dependency, or pass raw values
-        .method("add", use(UsersController))        // call class method after initialization    
+        .method("add", use(UsersController)) // call class method after initialization
         .method("add", use(PostsController)),
 });
-
 ```
-
-
-##  @todo update docs 
 
 ### Factory resolver
 
@@ -143,10 +156,8 @@ You can use factory resolver when you need more flexibility during initialisatio
 pass as an argument to the factory method. So you can resolve other dependencies inside the factory function.
 
 ```typescript
-import DIContainer, { factory, IDIContainer } from "rsdi";
-
-const container = new DIContainer();
-container.addDefinitions({
+const container: DIContainer = new DIContainer();
+container.add({
     BrowserHistory: factory(configureHistory),
 });
 
@@ -159,6 +170,66 @@ function configureHistory(container: IDIContainer): History {
     return history;
 }
 const history = container.get<History>("BrowserHistory");
+```
+
+### Typescript type resolution
+
+`container.get` resolves type based on a configured container values
+
+```typescript
+container.add({ key1: "value1", key2: 123, Foo: new Foo() });
+const s: string = container.get("key1"); // resolved as a given type
+const i: number = container.get("key2");
+const f: Foo = container.get("Foo");
+```
+
+`container.get` and `use` helper resolve type based on a given type name. Convention over configuration.
+
+```typescript
+const container: DIContainer = new DIContainer();
+container.add({
+    Bar: new Bar(),
+    Foo: new Bar(), // fake foo example
+});
+let bar: Bar = container.get(Bar); // types defined based on a given type Bar
+let foo: Foo = container.get(Foo); // you can trick TS compiler rsdi relies on COC rule
+```
+
+`use` example
+
+```typescript
+class Foo {
+    constructor(private readonly bar: Bar) {}
+}
+
+const container: DIContainer = new DIContainer();
+container.add({
+    Bar: new Bar(),
+    Foo: object(Foo).construct(use(Bar)), // constuct method checks type and use return Bar type
+});
+```
+
+`container.get` and `use` helper resolve type based on a given factory return type.
+
+```typescript
+function myFactory() {
+    return { a: 123 };
+}
+container.add({
+    myFactory: factory((container: IDIContainer) => {
+        return myFactory();
+    }),
+});
+let { a } = container.get(myFactory);
+```
+
+`use` example
+
+```typescript
+function customFunction() {
+    return { b: 123 };
+}
+const definition: DependencyResolver<{ b: number }> = use(customFunction);
 ```
 
 ### Async factory resolver

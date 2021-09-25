@@ -91,6 +91,21 @@ describe("DIContainer resolution", () => {
 });
 
 describe("DIContainer typescript type resolution", () => {
+    test("if resolves type as given raw values", () => {
+        const container: DIContainer = new DIContainer();
+        container.add({
+            key1: "string",
+            key2: 123,
+            bar: new Bar(),
+        });
+        let s: string = container.get("key1");
+        let n: number = container.get("key2");
+        let bar: Bar = container.get("bar");
+        expect(s).toStrictEqual("string");
+        expect(n).toStrictEqual(123);
+        expect(bar).toBeInstanceOf(Bar);
+    });
+
     test("if resolves type as class instance if class is provided", () => {
         const container: DIContainer = new DIContainer();
         container.add({

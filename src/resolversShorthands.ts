@@ -4,7 +4,6 @@ import ReferenceResolver from "./resolvers/ReferenceResolver";
 import FactoryResolver, { Factory } from "./resolvers/FactoryResolver";
 import { definitionNameToString } from "./DefinitionName";
 import { ClassOf, ResolverName } from "./DIContainer";
-import { DependencyResolver } from "./DependencyResolver";
 
 // shorthands for Definition classes
 
@@ -12,7 +11,7 @@ import { DependencyResolver } from "./DependencyResolver";
  * ObjectDefinition creates objects from the provided class.
  * @param classConstructor
  */
-export function diObject<T = ClassOf<any>>(classConstructor: ClassOf<T>) {
+export function diObject<T extends ClassOf<any>>(classConstructor: T) {
     return new ObjectResolver(classConstructor);
 }
 

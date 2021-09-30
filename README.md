@@ -36,7 +36,7 @@ Your DI container initialisation will include
 import DIContainer, { object, use, factory, IDIContainer } from "rsdi";
 
 export default function configureDI() {
-    const container: DIContainer = new DIContainer();
+    const container = new DIContainer();
     container.add({
         ENV: "test", // define raw value
         Storage: object(CookieStorage), // constructor without arguments
@@ -53,7 +53,7 @@ export default function configureDI() {
 }
 ```
 
-An entry point of your application will include
+The entry point of your application will include
 
 ```typescript
 const container = configureDI();
@@ -70,7 +70,9 @@ const logger: Logger = container.get(loggerFactory); // object of DummyLogger
     -   [Raw values](#raw-values)
     -   [Object resolver](#object-resolver)
     -   [Factory resolver](#factory-resolver)
+-   [Advanced Usage](#advanced-usage)
     -   [Typescript type resolution](#typescript-type-resolution)
+    -   [Dependency declaration](#dependency-declaration)
     -   [Async factory resolver](#async-factory-resolver)
 
 ## Features
@@ -105,7 +107,7 @@ Dependencies are set as raw values. No lazy initialisation happens. Container ke
 ```typescript
 import DIContainer from "rsdi";
 
-const container: DIContainer = new DIContainer();
+const container = new DIContainer();
 container.add({
     ENV: "PRODUCTION",
     HTTP_PORT: 3000,
@@ -135,7 +137,7 @@ class ControllerContainer {
 }
 
 // container
-const container: DIContainer = new DIContainer();
+const container = new DIContainer();
 container.add({
     Storage: object(CookieStorage), // constructor without arguments
     AuthStorage: object(AuthStorage).construct(
@@ -156,7 +158,7 @@ You can use factory resolver when you need more flexibility during initialisatio
 pass as an argument to the factory method. So you can resolve other dependencies inside the factory function.
 
 ```typescript
-const container: DIContainer = new DIContainer();
+const container = new DIContainer();
 container.add({
     BrowserHistory: factory(configureHistory),
 });
@@ -172,18 +174,16 @@ function configureHistory(container: IDIContainer): History {
 const history = container.get<History>("BrowserHistory");
 ```
 
+## Advanced Usage
+
 ### Typescript type resolution
 
-`container.get` resolves type based on a configured container values
+`container.get` and `use` helper resolve type based on following convention:
 
-```typescript
-container.add({ key1: "value1", key2: 123, Foo: new Foo() });
-const s: string = container.get("key1"); // resolved as a given type
-const i: number = container.get("key2");
-const f: Foo = container.get("Foo");
-```
-
-`container.get` and `use` helper resolve type based on a given type name. Convention over configuration.
+-   if given name is class - instance of a class
+-   if given name is function - return type of function
+-   if custom generic type is provided - custom type
+-   otherwise - any
 
 ```typescript
 const container: DIContainer = new DIContainer();
@@ -192,10 +192,12 @@ container.add({
     Foo: new Bar(), // fake foo example
 });
 let bar: Bar = container.get(Bar); // types defined based on a given type Bar
-let foo: Foo = container.get(Foo); // you can trick TS compiler rsdi relies on COC rule
+let foo: Foo = container.get(Foo); // you can trick TS compiler (it's your responsibility)
+let foo2: Foo = container.get<Foo>("Foo"); // custom generic type is provided
+let foo3: Foo = container.get("Foo"); // any type
 ```
 
-`use` example
+Example: `use` defines type for a class constructor. 
 
 ```typescript
 class Foo {
@@ -209,7 +211,7 @@ container.add({
 });
 ```
 
-`container.get` and `use` helper resolve type based on a given factory return type.
+Example:  `container.get` resolve type based on a given factory return type.
 
 ```typescript
 function myFactory() {
@@ -223,14 +225,32 @@ container.add({
 let { a } = container.get(myFactory);
 ```
 
-`use` example
+### Dependency declaration
+
+RSDI resolves dependencies on a given type. It can be string or function. In the simplest case, you can use strings.
 
 ```typescript
-function customFunction() {
-    return { b: 123 };
-}
-const definition: DependencyResolver<{ b: number }> = use(customFunction);
+container.add({
+    Foo: new Foo(),
+});
+const foo = container.get<Foo>("Foo");
 ```
+In order to avoid magic strings you can operate with types. 
+```typescript
+const foo = container.get(Foo);
+```
+RSDI uses `Foo.name` behind the scene that equals to "Foo". Remember that this approach will not work for uglified code.
+You can also rename the function Foo => Buzz, and forget to rename the declaration. From that perspective you can 
+declare dependencies this way. 
+```typescript
+container.add({
+    [Foo.name]: new Foo(),
+    [MyFactory.name]: MyFactory()
+});
+const foo = container.get(Foo);
+const buzz = container.get(MyFactory);
+```
+
 
 ### Async factory resolver
 

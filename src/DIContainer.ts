@@ -11,53 +11,40 @@ export interface ClassOf<C extends Object> {
 /**
  * Dependency injection container interface to expose
  */
-export interface IDIContainer<ContainerResolvers extends INamedResolvers = {}> {
-    get: <Custom = void, Name extends ResolverName = ResolverName>(
+export interface IDIContainer {
+    get: <Custom, Name extends ResolverName = ResolverName>(
         dependencyName: Name
-    ) => ResolvedType<Custom, Name, ContainerResolvers>;
+    ) => ResolvedType<Custom, Name>;
 }
 
 interface INamedResolvers {
     [k: string]: DependencyResolver | any;
 }
 
-type Resolve<N extends DependencyResolver> = N extends {
-    resolve(...args: any[]): infer R;
-}
-    ? R
-    : never;
-
 export type ResolverName = string | { name: string };
 
 /**
  * Defines the type of resolved dependency
- *  - if Custom type is given - it will be returned
  *  - if name of Class is provided - instance type will be returned
  *  - if function is provided - function return type will be returned
+ *  - if Custom type is provided - it will be returned
+ *  - else any
  */
 type ResolvedType<
-    Custom,
-    Name extends ResolverName,
-    NamedResolvers extends INamedResolvers
-> = Custom extends void
-    ? Name extends string
-        ? NamedResolvers[Name] extends DependencyResolver
-            ? Resolve<NamedResolvers[Name]>
-            : NamedResolvers[Name]
-        : Name extends ClassOf<any>
-        ? InstanceType<Name>
-        : Name extends (...args: any) => infer FT
-        ? FT
-        : never
+    Custom = void,
+    Name extends ResolverName = ResolverName
+> = Name extends ClassOf<any>
+    ? InstanceType<Name>
+    : Name extends (...args: any) => infer FT
+    ? FT
+    : Custom extends void
+    ? any
     : Custom;
 
 /**
  * Dependency injection container
  */
-export default class DIContainer<
-    ContainerResolvers extends INamedResolvers = {}
-> implements IDIContainer<ContainerResolvers>
-{
+export default class DIContainer implements IDIContainer {
     private resolvers: INamedResolvers = {};
     private resolved: {
         [name: string]: any;
@@ -68,10 +55,10 @@ export default class DIContainer<
      * @param dependencyName - DefinitionName name of the dependency. String or class name.
      * @param parentDeps - array of parent dependencies (used to detect circular dependencies)
      */
-    public get<Custom = void, Name extends ResolverName = ResolverName>(
+    public get<Custom = void, Name extends ResolverName = string>(
         dependencyName: Name,
         parentDeps: string[] = []
-    ): ResolvedType<Custom, Name, ContainerResolvers> {
+    ): ResolvedType<Custom, Name> {
         const name = definitionNameToString(dependencyName);
         if (!(name in this.resolvers)) {
             throw new DependencyIsMissingError(name);
@@ -92,10 +79,7 @@ export default class DIContainer<
      * Adds multiple dependency resolvers to the container
      * @param resolvers - named dependency object
      */
-    public add<N extends INamedResolvers>(
-        this: DIContainer<ContainerResolvers>,
-        resolvers: N
-    ): asserts this is DIContainer<ContainerResolvers & N> {
+    public add(resolvers: INamedResolvers) {
         Object.keys(resolvers).map((name: string) => {
             this.addResolver(name, resolvers[name]);
         });

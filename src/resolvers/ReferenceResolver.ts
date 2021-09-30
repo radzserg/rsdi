@@ -16,7 +16,7 @@ export default class ReferenceResolver<T = any> extends AbstractResolver<T> {
         container: IDIContainer,
         parentDeps: string[] = []
     ): Y => {
-        return (container as DIContainer<any>).get(
+        return (container as DIContainer).get(
             this.existingDefinitionName,
             parentDeps
         );

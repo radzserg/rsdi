@@ -131,16 +131,11 @@ describe("DIContainer typescript type resolution", () => {
 
     test("if resolves type as given custom type", () => {
         const container: DIContainer = new DIContainer();
-        function myFactory() {
-            return { a: 123 };
-        }
         container.add({
-            myFactory: factory((container: IDIContainer) => {
-                return myFactory();
-            }),
+            bar: new Bar(),
         });
-        let resolvedFactory: Foo = container.get<Foo>(myFactory);
-        expect(resolvedFactory).toEqual({ a: 123 });
+        let resolvedFactory = (container as IDIContainer).get<Bar>("bar");
+        expect(resolvedFactory).toEqual(new Bar());
     });
 
     test("if resolves type for diUse to match constructor parameters", () => {
@@ -151,6 +146,23 @@ describe("DIContainer typescript type resolution", () => {
         });
         let resolvedFactory = container.get(Foo);
         expect(resolvedFactory).toBeInstanceOf(Foo);
+    });
+
+    test("if correctly resolves container.get inside factory", () => {
+        const container: DIContainer = new DIContainer();
+        function myFactory(bar: Bar) {
+            return { a: bar.buzz() };
+        }
+        container.add({
+            Bar: new Bar(),
+            Foo: new Foo("s", new Bar()),
+            myFactory: factory((container: IDIContainer) => {
+                return myFactory(container.get(Bar));
+            }),
+        });
+
+        const { a } = container.get(myFactory);
+        expect(a).toEqual("buzz");
     });
 });
 

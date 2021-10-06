@@ -1,0 +1,43 @@
+query ProjectsAnonymous($workspaceId: Int, $nameSearch: String, $pinned: Boolean, $limit: Int!, $offset: Int!, $workspaceIntegrationId: Int) {
+  projects(limit: $limit, offset: $offset, order_by: {slug: asc}, where: {pinned: {_eq: $pinned}, name: {_ilike: $nameSearch}, workspaceId: {_eq: $workspaceId}, workspaceIntegrationId: {_eq: $workspaceIntegrationId}}) {
+    id
+    userPermissions {
+      permission
+      __typename
+    }
+    branches {
+      id
+      slug
+      isDefault
+      nodeCount
+      articleCount
+      httpOperationCount
+      httpServiceCount
+      modelCount
+      commitHash
+      __typename
+    }
+    __typename
+  }
+}
+
+fragment Project_Item on sl_projects {
+  id
+  name
+  description
+  visibility
+  createdAt
+  updatedAt
+  remoteUrlHttp
+  remoteUrlSsh
+  slug
+  iconName
+  iconColor
+  isDesignLibrary
+  externalId
+  externalOrgSlug
+  externalSlug
+  workspaceIntegrationId
+  type
+  groupId
+}

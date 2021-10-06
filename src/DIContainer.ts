@@ -1,37 +1,79 @@
-import { IDefinition } from "./definitions/IDefinition";
-import BaseDefinition from "./definitions/BaseDefinition";
-import ValueDefinition from "./definitions/ValueDefinition";
+import { DependencyResolver } from "./DependencyResolver";
+import AbstractResolver from "./resolvers/AbstractResolver";
+import RawValueResolver from "./resolvers/RawValueResolver";
 import { CircularDependencyError, DependencyIsMissingError } from "./errors";
+import { definitionNameToString } from "./DefinitionName";
+
+export interface ClassOf<C extends Object> {
+    new (...args: any[]): C;
+}
 
 /**
  * Dependency injection container interface to expose
  */
-export interface IDIContainer {
-    get: <T>(serviceName: string) => T;
+export interface IDIContainer<ContainerResolvers extends INamedResolvers = {}> {
+    get: <Custom = void, Name extends ResolverName = ResolverName>(
+        dependencyName: Name
+    ) => ResolvedType<Custom, Name, ContainerResolvers>;
 }
 
-interface INamedDefinitions {
-    [x: string]: IDefinition | any;
+interface INamedResolvers {
+    [k: string]: DependencyResolver | any;
 }
 
-type DefinitionName = string;
+type Resolve<N extends DependencyResolver> = N extends {
+    resolve(...args: any[]): infer R;
+}
+    ? R
+    : never;
+
+export type ResolverName = string | { name: string };
+
+/**
+ * Defines the type of resolved dependency
+ *  - if Custom type is given - it will be returned
+ *  - if name of Class is provided - instance type will be returned
+ *  - if function is provided - function return type will be returned
+ */
+type ResolvedType<
+    Custom,
+    Name extends ResolverName,
+    NamedResolvers extends INamedResolvers
+> = Custom extends void
+    ? Name extends string
+        ? NamedResolvers[Name] extends DependencyResolver
+            ? Resolve<NamedResolvers[Name]>
+            : NamedResolvers[Name]
+        : Name extends ClassOf<any>
+        ? InstanceType<Name>
+        : Name extends (...args: any) => infer FT
+        ? FT
+        : never
+    : Custom;
 
 /**
  * Dependency injection container
  */
-export default class DIContainer implements IDIContainer {
-    private definitions: INamedDefinitions = {};
+export default class DIContainer<
+    ContainerResolvers extends INamedResolvers = {}
+> implements IDIContainer<ContainerResolvers>
+{
+    private resolvers: INamedResolvers = {};
     private resolved: {
         [name: string]: any;
     } = {};
 
     /**
      * Resolves dependency by name
-     * @param name - string name of the dependency
+     * @param dependencyName - DefinitionName name of the dependency. String or class name.
      * @param parentDeps - array of parent dependencies (used to detect circular dependencies)
      */
-    get<T>(name: string, parentDeps: string[] = []): T {
-        if (!(name in this.definitions)) {
+    public get<Custom = void, Name extends ResolverName = ResolverName>(
+        dependencyName: Name,
+        parentDeps: string[] = []
+    ): ResolvedType<Custom, Name, ContainerResolvers> {
+        const name = definitionNameToString(dependencyName);
+        if (!(name in this.resolvers)) {
             throw new DependencyIsMissingError(name);
         }
         if (parentDeps.includes(name)) {
@@ -41,33 +83,33 @@ export default class DIContainer implements IDIContainer {
             return this.resolved[name];
         }
 
-        const definition: IDefinition = this.definitions[name];
-        this.resolved[name] = definition.resolve<T>(this, [
-            ...parentDeps,
-            name,
-        ]);
+        const definition: DependencyResolver = this.resolvers[name];
+        this.resolved[name] = definition.resolve(this, [...parentDeps, name]);
         return this.resolved[name];
+    }
+
+    /**
+     * Adds multiple dependency resolvers to the container
+     * @param resolvers - named dependency object
+     */
+    public add<N extends INamedResolvers>(
+        this: DIContainer<ContainerResolvers>,
+        resolvers: N
+    ): asserts this is DIContainer<ContainerResolvers & N> {
+        Object.keys(resolvers).map((name: string) => {
+            this.addResolver(name, resolvers[name]);
+        });
     }
 
     /**
      * Adds single dependency definition to the container
      * @param name - string name for the dependency
-     * @param definition - raw value or instance of IDefinition
+     * @param resolver - raw value or instance of IDefinition
      */
-    addDefinition(name: DefinitionName, definition: IDefinition | any) {
-        if (!(definition instanceof BaseDefinition)) {
-            definition = new ValueDefinition(definition);
+    private addResolver(name: string, resolver: DependencyResolver | any) {
+        if (!(resolver instanceof AbstractResolver)) {
+            resolver = new RawValueResolver(resolver);
         }
-        this.definitions[name] = definition;
-    }
-
-    /**
-     * Adds multiple dependency definitions to the container
-     * @param definitions - named dependency object
-     */
-    addDefinitions(definitions: INamedDefinitions) {
-        Object.keys(definitions).map((name: string) => {
-            this.addDefinition(name, definitions[name]);
-        });
+        this.resolvers[name] = resolver;
     }
 }

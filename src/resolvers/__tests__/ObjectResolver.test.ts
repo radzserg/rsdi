@@ -1,60 +1,61 @@
-import ObjectDefinition from "../ObjectDefinition";
+import ObjectResolver from "../ObjectResolver";
 import { Bar, Buzz, Foo, FooChild } from "../../__tests__/fakeClasses";
-import DIContainer, { get } from "../../index";
+import DIContainer, { use } from "../../index";
 import { InvalidConstructorError, MethodIsMissingError } from "../../errors";
 
-describe("ObjectDefinition", () => {
-    const container = new DIContainer();
+describe("ObjectResolver", () => {
+    const container: DIContainer = new DIContainer();
     test("it creates object of correct class and initiate constructor with deps", () => {
         const fakeName = "My name is Foo";
-        const bar = new ObjectDefinition(Bar);
-        const definition = new ObjectDefinition(Foo).construct(fakeName, bar);
-        const instance = definition.resolve<Foo>(container);
+        const bar = new ObjectResolver(Bar);
+        const definition = new ObjectResolver(Foo).construct(fakeName, bar);
+        const instance = definition.resolve(container);
         expect(instance).toBeInstanceOf(Foo);
         expect(instance.name).toEqual(fakeName);
     });
 
     test("it can initiate child constructors", () => {
         const fakeName = "My name is FooChild";
-        const bar = new ObjectDefinition(Bar);
-        const definition = new ObjectDefinition(FooChild).construct(
+        const bar = new ObjectResolver(Bar);
+        const definition = new ObjectResolver(FooChild).construct(
             fakeName,
             bar
         );
-        const instance = definition.resolve<Foo>(container);
+        const instance = definition.resolve(container);
         expect(instance).toBeInstanceOf(FooChild);
         expect(instance.name).toEqual(fakeName);
     });
 
     test("it resolves Definition params passed in constructor", () => {
         const fakeName = "My name is Foo";
-        const BarDefinition = new ObjectDefinition(Bar);
-        const definition = new ObjectDefinition(Foo).construct(
+        const BarDefinition = new ObjectResolver(Bar);
+        const definition = new ObjectResolver(Foo).construct(
             fakeName,
             BarDefinition
         );
-        const instance = definition.resolve<Foo>(container);
+        const instance = definition.resolve(container);
         expect(instance).toBeInstanceOf(Foo);
         expect(instance.name).toEqual(fakeName);
         expect(instance.service.buzz()).toEqual("buzz");
     });
 
     test("it calls methods after object have been initiated", () => {
-        const definition = new ObjectDefinition(Foo)
+        const definition = new ObjectResolver(Foo)
             .method("addItem", "item1")
             .method("addItem", "item2");
-        const instance = definition.resolve<Foo>(container);
+        const instance = definition.resolve(container);
         expect(instance).toBeInstanceOf(Foo);
         expect(instance.items).toEqual(["item1", "item2"]);
     });
 
     test("it throws an error if method does not exist", () => {
-        const definition = new ObjectDefinition(Foo).method(
+        const definition = new ObjectResolver(Foo).method(
+            // @ts-ignore rsdi identifies incorrect method
             "undefinedMethod",
             "item1"
         );
         expect(() => {
-            definition.resolve<Foo>(container);
+            definition.resolve(container);
         }).toThrow(new MethodIsMissingError("Foo", "undefinedMethod"));
     });
 
@@ -62,24 +63,24 @@ describe("ObjectDefinition", () => {
         "it throws an error if invalid constructor have been provided",
         () => {
             expect((constructorFunction: any) => {
-                new ObjectDefinition(constructorFunction);
+                new ObjectResolver(constructorFunction);
             }).toThrow(new InvalidConstructorError());
         }
     );
 
     test("it resolves deps while calling method", () => {
-        container.addDefinition("key1", "value1");
-        const definition = new ObjectDefinition(Foo).method(
+        container.add({ key1: "value1" });
+        const definition = new ObjectResolver(Foo).method(
             "addItem",
-            get("key1")
+            use("key1")
         );
-        const instance = definition.resolve<Foo>(container);
+        const instance = definition.resolve(container);
         expect(instance.items).toEqual(["value1"]);
     });
 
     test("it resolves a class without explicit controller", () => {
-        const definition = new ObjectDefinition(Buzz);
-        const instance = definition.resolve<Buzz>(container);
+        const definition = new ObjectResolver(Buzz);
+        const instance = definition.resolve(container);
         expect(instance).toBeInstanceOf(Buzz);
     });
 });

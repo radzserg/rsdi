@@ -1,138 +1,164 @@
-# Dependency Injection Container
+# RSDI - Dependency Injection Container
+
+Simple and powerful dependency injection container for JavaScript/TypeScript.
 
 # Getting Started
 
+Given that you have classes and factories in your application
+
 ```typescript
-// your classes 
 class CookieStorage {}
 class AuthStorage {
-  constructor(storage: CookieStorage) {}
+    constructor(storage: CookieStorage) {}
 }
+class Logger {}
+class DummyLogger extends Logger {}
 
-// configure DI container
-import DIContainer, { object, get, factory, IDIContainer } from "rsdi";
+function loggerFactory(container: IDIContainer): Logger {
+    const env = container.get("ENV");
+    if (env === "test") {
+        return new DummyLogger();
+    }
+    return new Logger();
+}
+function UsersRepoFactory(knex: Knex): UsersRepo {
+    return {
+        async findById(id: number) {
+            await knex("users").where({ id });
+        },
+    };
+}
+```
+
+Your DI container initialisation will include
+
+```typescript
+import DIContainer, { object, use, factory, IDIContainer } from "rsdi";
 
 export default function configureDI() {
-    const container = new DIContainer();
-    container.addDefinitions({
-        "ENV": "PRODUCTION",               // define raw value
-        "AuthStorage": object(AuthStorage).construct(
-            get("Storage")                         // refer to another dependency       
+    const container: DIContainer = new DIContainer();
+    container.add({
+        ENV: "test", // define raw value
+        Storage: object(CookieStorage), // constructor without arguments
+        AuthStorage: object(AuthStorage).construct(
+            use(Storage) // refer to another dependency
         ),
-        "Storage": object(CookieStorage),         // constructor without arguments       
-        "BrowserHistory": factory(configureHistory), // factory (will be called only once)  
+        knex: knex(),
+        Logger: factory(loggerFactory),
+        UsersRepo: factory((container: IDIContainer) => {
+            return UsersRepoFactory(container.get("knex"));
+        }),
     });
     return container;
 }
-    
-function configureHistory(container: IDIContainer): History {
-    const history = createBrowserHistory();
-    const env = container.get("ENV");
-    if (env === "production") {
-        // do what you need
-    }
-    return history;
-}
+```
 
-// in your entry point code
+An entry point of your application will include
+
+```typescript
 const container = configureDI();
-const env = container.get<string>("ENV"); // PRODUCTION
-const authStorage = container.get<AuthStorage>("AuthStorage");  // object of AuthStorage
-const history = container.get<History>("BrowserHistory");  // History singleton will be returned
+const env: string = container.get("ENV"); // test
+const authStorage: AuthStorage = container.get(AuthStorage); // object of AuthStorage
+const logger: Logger = container.get(loggerFactory); // object of DummyLogger
+```
 
-``` 
+**All resolvers are resolved only once and their result persists over the life of the container.**
 
-**All definitions are resolved once and their result persists over the life of the container.**
-
-
-- [Features](#features)
-- [Motivation](#motivation)
-- [Usage](#usage)
-    - [Raw values](#raw-values)
-    - [Object definition](#object-definition)  
-    - [Factory definition](#factory-definition)
-    - [Async factory definition](#async-factory-definition)
+-   [Features](#features)
+-   [Motivation](#motivation)
+-   [Usage](#usage)
+    -   [Raw values](#raw-values)
+    -   [Object resolver](#object-resolver)
+    -   [Factory resolver](#factory-resolver)
+    -   [Typescript type resolution](#typescript-type-resolution)
+    -   [Async factory resolver](#async-factory-resolver)
 
 ## Features
 
-- Simple but powerful 
-- Does not requires decorators
-- Works great with both javascript and typescript 
+-   Simple but powerful
+-   Does not requires decorators
+-   Great types resolution
+-   Works great with both javascript and typescript
 
-## Motivation 
+## Motivation
 
-Popular solutions like `inversify` or `tsyringe` use `reflect-metadata` that allows to fetch argument types and based on 
-those types and do autowiring. Autowiring is a nice feature but the trade-off is decorators. 
-Disadvantages of other solutions
-1. Those solutions work with typescript only. Since they rely on argument types that we don't have in Javascript.
-2. I have to update my tsconfig because one package requires it. 
-3. Let my components know about injections. 
+Popular dependency injection libraries use `reflect-metadata` that allows to fetch argument types and based on
+those types and do autowiring. Autowiring is a nice feature but the trade-off is decorators.
 
 ```typescript
 @injectable()
-class Foo {  
-}
+class Foo {}
 ```
+
 Why component Foo should know that it's injectable?
 
-More details thoughts in the [blog article](https://radzserg.medium.com/https-medium-com-radzserg-dependency-injection-in-react-part-2-995e93b3327c) 
+Your business logic depends on a specific framework that is not part of your domain model and can change.
+
+More thoughts in a [dedicated article](https://radzserg.medium.com/https-medium-com-radzserg-dependency-injection-in-react-part-2-995e93b3327c)
 
 ## Usage
 
 ### Raw values
 
+Dependencies are set as raw values. No lazy initialisation happens. Container keeps and return raw values.
+
 ```typescript
 import DIContainer from "rsdi";
 
-const container = new DIContainer();
-container.addDefinitions({   
-    "ENV": "PRODUCTION",  
-    "AuthStorage": new AuthStorage(),
-    "BrowserHistory": createBrowserHistory(),
+const container: DIContainer = new DIContainer();
+container.add({
+    ENV: "PRODUCTION",
+    HTTP_PORT: 3000,
+    storage: new CookieStorage(),
 });
-const env = container.get<string>("ENV"); // PRODUCTION    
-const authStorage = container.get<AuthStorage>("AuthStorage"); // instance of AuthStorage     
-const authStorage = container.get<History>("BrowserHistory"); // instance of AuthStorage     
+const env: string = container.get("ENV");
+const port: number = container.get("HTTP_PORT");
+const authStorage: AuthStorage = container.get(AuthStorage); // instance of AuthStorage
 ```
 
-When you specify raw values (i.e. don't use `object`, `factory` definitions) `rsdi` will resolve it as it is. 
+### Object resolver
 
-### Object definition
+`object(ClassName)` - constructs an instance of the given class. The simplest scenario it calls the class constructor `new ClassName()`.
+When you need to pass arguments to the constructor, you can use `construct` method. You can refer to the already defined
+dependencies via the `use` helper, or you can pass raw values.
+
+If you need to call object method after initialization you can use `method` it will be called after constructor.
 
 ```typescript
-  
-import DIContainer, { object, get } from "rsdi";
-  
-const container = new DIContainer();
-container.addDefinitions({
-   "Storage": object(CookieStorage),         // constructor without arguments
-   "AuthStorage": object(AuthStorage).construct(
-      get("Storage")                         // refers to existing dependency       
-   ),  
-   "UsersController": object(UserController),
-   "PostsController": object(PostsController),
-   "ControllerContainer": object(ControllerContainer)
-     .method('addController', get("UsersController"))
-     .method('addController', get("PostsController"))
+// test class
+class ControllerContainer {
+    constructor(authStorage: AuthStorage, logger: Logger) {}
+
+    add(controller: Controller) {
+        this.controllers.push(controller);
+    }
+}
+
+// container
+const container: DIContainer = new DIContainer();
+container.add({
+    Storage: object(CookieStorage), // constructor without arguments
+    AuthStorage: object(AuthStorage).construct(
+        use(Storage) // refers to existing dependency
+    ),
+    UsersController: object(UserController),
+    PostsController: object(PostsController),
+    ControllerContainer: object(MainCliCommand)
+        .construct(use(AuthStorage), new Logger()) // use existing dependency, or pass raw values
+        .method("add", use(UsersController)) // call class method after initialization
+        .method("add", use(PostsController)),
 });
 ```
 
-`object(ClassName)` - the simplest scenario that will call `new ClassName()`. When you need to pass arguments to the 
-constructor, you can use `construct` method. You can refer to the already defined dependencies via the `get` helper. 
-If you need to call object method after initialization you can use `method` it will be called after constructor. 
+### Factory resolver
 
-### Factory definition
-
-You can use factory definition when you need more flexibility during initialisation. `container: IDIContainer` will be
+You can use factory resolver when you need more flexibility during initialisation. `container: IDIContainer` will be
 pass as an argument to the factory method. So you can resolve other dependencies inside the factory function.
 
 ```typescript
-
-import DIContainer, {  factory, IDIContainer } from "rsdi";
-
-const container = new DIContainer();
-container.addDefinitions({       
-  "BrowserHistory": factory(configureHistory),   
+const container: DIContainer = new DIContainer();
+container.add({
+    BrowserHistory: factory(configureHistory),
 });
 
 function configureHistory(container: IDIContainer): History {
@@ -143,42 +169,100 @@ function configureHistory(container: IDIContainer): History {
     }
     return history;
 }
-const history = container.get<History>("BrowserHistory"); 
+const history = container.get<History>("BrowserHistory");
 ```
 
-### Async factory definition
+### Typescript type resolution
 
-RSDI intentionally does not provide the ability to resolve asynchronous dependencies. The container works with 
-resources. All resources will be needed sooner or later. The lazy initialization feature won't be of much benefit 
-in this case. At the same time, mixing synchronous and asynchronous resolution will cause confusion primarily for 
-the consumers themselves.
+`container.get` resolves type based on a configured container values
+
+```typescript
+container.add({ key1: "value1", key2: 123, Foo: new Foo() });
+const s: string = container.get("key1"); // resolved as a given type
+const i: number = container.get("key2");
+const f: Foo = container.get("Foo");
+```
+
+`container.get` and `use` helper resolve type based on a given type name. Convention over configuration.
+
+```typescript
+const container: DIContainer = new DIContainer();
+container.add({
+    Bar: new Bar(),
+    Foo: new Bar(), // fake foo example
+});
+let bar: Bar = container.get(Bar); // types defined based on a given type Bar
+let foo: Foo = container.get(Foo); // you can trick TS compiler rsdi relies on COC rule
+```
+
+`use` example
+
+```typescript
+class Foo {
+    constructor(private readonly bar: Bar) {}
+}
+
+const container: DIContainer = new DIContainer();
+container.add({
+    Bar: new Bar(),
+    Foo: object(Foo).construct(use(Bar)), // constuct method checks type and use return Bar type
+});
+```
+
+`container.get` and `use` helper resolve type based on a given factory return type.
+
+```typescript
+function myFactory() {
+    return { a: 123 };
+}
+container.add({
+    myFactory: factory((container: IDIContainer) => {
+        return myFactory();
+    }),
+});
+let { a } = container.get(myFactory);
+```
+
+`use` example
+
+```typescript
+function customFunction() {
+    return { b: 123 };
+}
+const definition: DependencyResolver<{ b: number }> = use(customFunction);
+```
+
+### Async factory resolver
+
+RSDI intentionally does not provide the ability to resolve asynchronous dependencies. The container works with
+resources. All resources will be used sooner or later. The lazy initialization feature won't be of much benefit
+in this case. At the same time, mixing synchronous and asynchronous resolution will cause confusion primarily for
+the consumers.
 
 The following approach will work in most scenarios.
 
 ```typescript
-
 // UserRepository.ts
- class UserRepository {
-    public constructor(private readonly dbConnection: any) {}
-   
-    async findUser() {       
-        return await this.dbConnection.find(...)
+class UserRepository {
+    public constructor(private readonly dbConnection: any) {} // some ORM that requires opened connection
+
+    async findUser() {
+        return await this.dbConnection.find(/*...params...*/);
     }
 }
 
 // configureDI.ts
 import { createConnections } from "my-orm-library";
-import DIContainer, {  factory, IDIContainer } from "rsdi";
+import DIContainer, { factory, use, IDIContainer } from "rsdi";
 
-async function configureDI() {}
+async function configureDI() {
+    // initialize async factories before DI container initialisation
     const dbConnection = await createConnections();
-    
+
     const container = new DIContainer();
-    container.addDefinitions({       
-      "DbConnection": dbConnection,
-      "UserRepository": object(UserRepository).construct(
-        get("DbConnection")
-      ) 
+    container.addDefinitions({
+        DbConnection: dbConnection,
+        UserRepository: object(UserRepository).construct(use("DbConnection")),
     });
     return container;
 }

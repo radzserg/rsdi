@@ -2,10 +2,10 @@ import DIContainer, { IDIContainer } from "./DIContainer";
 import {
     diObject as object,
     diValue as value,
-    diGet as get,
+    diUse as use,
     diFactory as factory,
-} from "./definitions/definitionBuilders";
+} from "./resolversShorthands";
 
 export default DIContainer;
 
-export { object, value, get, factory, IDIContainer };
+export { object, value, use, factory, IDIContainer };

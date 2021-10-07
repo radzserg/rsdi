@@ -1,37 +1,36 @@
 {
-  "name": "rsdi",
-  "version": "2.1.0",
-  "description": "Simple dependency injection container for JavaScript/TypeScript",
-  "scripts": {
-    "test": "jest",
-    "format": "prettier 'src/**/*.ts' --write",
-    "build": "tsc",
-    "build-prod": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json && cp README.md package.json dist/",
-    "prepare": "husky install",
-    "pre-commit": "lint-staged"
-  },
-  "keywords": [
-    "dependency injection",
-    "dependency",
-    "injection",
-    "ioc",
-    "container",
-    "javascript",
-    "typescript"
-  ],
-  "homepage": "https://github.com/radzserg/rsdi",
-  "author": "Sergey Radzishevskii <radzserg@gmail.com>",
-  "license": "ISC",
-  "lint-staged": {
-    "src/**/*.ts": "prettier --write --ignore-unknown"
-  },
-  "devDependencies": {
-    "@types/jest": "^26.0.23",
-    "husky": "^7.0.2",
-    "jest": "^27.0.6",
-    "lint-staged": "^11.2.0",
-    "prettier": "^2.4.1",
-    "ts-jest": "^27.0.3",
-    "typescript": "^4.3.5"
-  }
+    "name": "rsdi",
+    "version": "2.1.0",
+    "description": "Simple dependency injection container for JavaScript/TypeScript",
+    "scripts": {
+        "test": "jest",
+        "format": "prettier 'src/**/*.ts' --write",
+        "build": "tsc",
+        "build-prod": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json && cp README.md package.json dist/",
+        "pre-commit": "lint-staged"
+    },
+    "keywords": [
+        "dependency injection",
+        "dependency",
+        "injection",
+        "ioc",
+        "container",
+        "javascript",
+        "typescript"
+    ],
+    "homepage": "https://github.com/radzserg/rsdi",
+    "author": "Sergey Radzishevskii <radzserg@gmail.com>",
+    "license": "ISC",
+    "lint-staged": {
+        "src/**/*.ts": "prettier --write --ignore-unknown"
+    },
+    "devDependencies": {
+        "@types/jest": "^26.0.23",
+        "husky": "^7.0.2",
+        "jest": "^27.0.6",
+        "lint-staged": "^11.2.0",
+        "prettier": "^2.4.1",
+        "ts-jest": "^27.0.3",
+        "typescript": "^4.3.5"
+    }
 }

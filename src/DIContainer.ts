@@ -1,4 +1,9 @@
-import { DependencyResolver, IDIContainer, ResolvedType, ResolverName } from "./types";
+import {
+    DependencyResolver,
+    IDIContainer,
+    ResolvedType,
+    ResolverName,
+} from "./types";
 import AbstractResolver from "./resolvers/AbstractResolver";
 import RawValueResolver from "./resolvers/RawValueResolver";
 import { CircularDependencyError, DependencyIsMissingError } from "./errors";
@@ -63,4 +68,17 @@ export default class DIContainer implements IDIContainer {
         }
         this.resolvers[name] = resolver;
     }
+}
+
+export function resolveParameters(
+    diContainer: IDIContainer,
+    parameters: Array<DependencyResolver<any> | any> = [],
+    parentDeps: string[] = []
+) {
+    return parameters.map((arg: any) => {
+        if (arg instanceof AbstractResolver) {
+            return arg.resolve(diContainer, parentDeps);
+        }
+        return arg;
+    });
 }

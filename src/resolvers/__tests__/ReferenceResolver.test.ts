@@ -2,7 +2,7 @@ import RawValueResolver from "../RawValueResolver";
 import DIContainer from "../../DIContainer";
 import ReferenceResolver from "../ReferenceResolver";
 
-describe("ReferenceResolver", () => {
+describe(ReferenceResolver.name, () => {
     test("it resolves existing value from container", () => {
         const container: DIContainer = new DIContainer();
         container.add({ key1: new RawValueResolver("value1") });

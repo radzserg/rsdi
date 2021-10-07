@@ -20,10 +20,7 @@ export default class FactoryResolver<
         this.factory = factory;
     }
 
-    resolve = (
-        container: IDIContainer,
-        _parentDeps?: string[]
-    ): ReturnType<T> => {
+    resolve = (container: IDIContainer): ReturnType<T> => {
         return this.factory(container);
     };
 }

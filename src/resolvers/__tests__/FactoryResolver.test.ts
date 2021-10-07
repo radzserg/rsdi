@@ -3,7 +3,7 @@ import DIContainer, { IDIContainer } from "../../index";
 import RawValueResolver from "../RawValueResolver";
 import { FactoryDefinitionError } from "../../errors";
 
-describe("FactoryResolver", () => {
+describe(FactoryResolver.name, () => {
     test("it throw an error when factory is not a function", () => {
         expect(() => {
             // @ts-ignore

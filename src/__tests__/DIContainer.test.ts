@@ -187,6 +187,8 @@ describe("DIContainer circular dependencies detection", () => {
         );
     });
 
+    test.skip("it can detect circular dependencies in methods", () => {});
+
     test("it can detect circular dependencies, complicated case", () => {
         class DbConnection {
             constructor() {}

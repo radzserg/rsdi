@@ -3,7 +3,7 @@ import { Bar, Buzz, Foo, FooChild } from "../../__tests__/fakeClasses";
 import DIContainer, { use } from "../../index";
 import { InvalidConstructorError, MethodIsMissingError } from "../../errors";
 
-describe("ObjectResolver", () => {
+describe(ObjectResolver.name, () => {
     const container: DIContainer = new DIContainer();
     test("it creates object of correct class and initiate constructor with deps", () => {
         const fakeName = "My name is Foo";

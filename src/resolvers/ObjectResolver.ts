@@ -1,6 +1,13 @@
 import AbstractResolver from "./AbstractResolver";
 import { InvalidConstructorError, MethodIsMissingError } from "../errors";
-import { ClassOf, DependencyResolver, IDIContainer, MethodArgs, WrapWithResolver } from "../types";
+import {
+    ClassOf,
+    DependencyResolver,
+    IDIContainer,
+    MethodArgs,
+    WrapWithResolver,
+} from "../types";
+import { resolveParameters } from "../DIContainer";
 
 interface IExtraMethods<I> {
     methodName: keyof I;
@@ -13,8 +20,7 @@ interface IExtraMethods<I> {
  */
 export default class ObjectResolver<T extends ClassOf<any>>
     extends AbstractResolver<InstanceType<T>>
-    implements DependencyResolver<InstanceType<T>>
-{
+    implements DependencyResolver<InstanceType<T>> {
     private readonly constructorFunction: T;
     private deps: Array<DependencyResolver<any> | any> = [];
     private methods: IExtraMethods<InstanceType<T>>[] = [];
@@ -62,14 +68,12 @@ export default class ObjectResolver<T extends ClassOf<any>>
         diContainer: IDIContainer,
         parentDeps: string[] = []
     ): InstanceType<T> => {
-        const deps = this.deps.map((dep: AbstractResolver | any) => {
-            if (dep instanceof AbstractResolver) {
-                return dep.resolve(diContainer, parentDeps);
-            }
-            return dep;
-        });
-
-        const object = new this.constructorFunction(...deps);
+        const constructorParameters = resolveParameters(
+            diContainer,
+            this.deps,
+            parentDeps
+        );
+        const object = new this.constructorFunction(...constructorParameters);
         this.methods.forEach((method: IExtraMethods<InstanceType<T>>) => {
             const { methodName, args } = method;
             if (object[methodName] === undefined) {
@@ -78,12 +82,11 @@ export default class ObjectResolver<T extends ClassOf<any>>
                     methodName as string
                 );
             }
-            const resolvedArgs = args.map((arg: any) => {
-                if (arg instanceof AbstractResolver) {
-                    return arg.resolve(diContainer);
-                }
-                return arg;
-            });
+            const resolvedArgs = resolveParameters(
+                diContainer,
+                args,
+                parentDeps
+            );
             object[methodName](...resolvedArgs);
         });
 

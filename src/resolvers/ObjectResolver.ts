@@ -7,7 +7,7 @@ import {
     MethodArgs,
     WrapWithResolver,
 } from "../types";
-import { resolveParameters } from "../DIContainer";
+import { resolveFunctionParameters } from "../DIContainer";
 
 interface IExtraMethods<I> {
     methodName: keyof I;
@@ -68,7 +68,7 @@ export default class ObjectResolver<T extends ClassOf<any>>
         diContainer: IDIContainer,
         parentDeps: string[] = []
     ): InstanceType<T> => {
-        const constructorParameters = resolveParameters(
+        const constructorParameters = resolveFunctionParameters(
             diContainer,
             this.deps,
             parentDeps
@@ -82,7 +82,7 @@ export default class ObjectResolver<T extends ClassOf<any>>
                     methodName as string
                 );
             }
-            const resolvedArgs = resolveParameters(
+            const resolvedArgs = resolveFunctionParameters(
                 diContainer,
                 args,
                 parentDeps

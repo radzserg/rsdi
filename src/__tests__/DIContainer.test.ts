@@ -187,7 +187,26 @@ describe("DIContainer circular dependencies detection", () => {
         );
     });
 
-    test.skip("it can detect circular dependencies in methods", () => {});
+    test("it can detect circular dependencies in methods", () => {
+        class Foo {
+            public addBar(bar: Bar) {}
+        }
+        class Bar {
+            constructor(public foo: Foo) {}
+        }
+
+        const container: DIContainer = new DIContainer();
+        container.add({
+            foo: new ObjectResolver(Foo).method("addBar", use("bar")),
+            bar: new ObjectResolver(Bar).construct(use("foo")),
+        });
+
+        expect(() => {
+            container.get("foo");
+        }).toThrow(
+          'Circular Dependency is detected. Dependency: "foo", path: foo -> bar'
+        );
+    });
 
     test("it can detect circular dependencies, complicated case", () => {
         class DbConnection {

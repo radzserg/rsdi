@@ -70,15 +70,18 @@ export default class DIContainer implements IDIContainer {
     }
 }
 
-export function resolveParameters(
+/**
+ * Resolves given function parameters
+ */
+export function resolveFunctionParameters(
     diContainer: IDIContainer,
     parameters: Array<DependencyResolver<any> | any> = [],
     parentDeps: string[] = []
 ) {
-    return parameters.map((arg: any) => {
-        if (arg instanceof AbstractResolver) {
-            return arg.resolve(diContainer, parentDeps);
+    return parameters.map((parameter: DependencyResolver<any> | any) => {
+        if (parameter instanceof AbstractResolver) {
+            return parameter.resolve(diContainer, parentDeps);
         }
-        return arg;
+        return parameter;
     });
 }

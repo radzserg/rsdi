@@ -1,8 +1,8 @@
 import { Bar, Foo } from "./fakeClasses";
-import DIContainer, { IDIContainer } from "../DIContainer";
+import DIContainer from "../DIContainer";
 import ObjectResolver from "../resolvers/ObjectResolver";
 import RawValueResolver from "../resolvers/RawValueResolver";
-import { factory, use, object } from "../index";
+import { factory, use, object, IDIContainer } from "../index";
 import { DependencyIsMissingError } from "../errors";
 import { diUse } from "../resolversShorthands";
 

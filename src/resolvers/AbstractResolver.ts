@@ -1,5 +1,4 @@
-import { IDIContainer } from "../DIContainer";
-import { DependencyResolver } from "../DependencyResolver";
+import { DependencyResolver, IDIContainer } from "../types";
 
 /**
  * Keep AbstractResolver so we can use `if (dep instanceof AbstractResolver) ` checks

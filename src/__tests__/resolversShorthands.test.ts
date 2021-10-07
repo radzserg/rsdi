@@ -4,7 +4,7 @@ import ObjectResolver from "../resolvers/ObjectResolver";
 import RawValueResolver from "../resolvers/RawValueResolver";
 import DIContainer from "../DIContainer";
 import { diFactory, diObject, diUse, diValue } from "../resolversShorthands";
-import { DependencyResolver } from "../DependencyResolver";
+import { DependencyResolver } from "../types";
 import FactoryResolver from "../resolvers/FactoryResolver";
 
 describe("definitionBuilders", () => {

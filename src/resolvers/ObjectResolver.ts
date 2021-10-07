@@ -1,25 +1,11 @@
 import AbstractResolver from "./AbstractResolver";
-import { ClassOf, IDIContainer } from "../DIContainer";
 import { InvalidConstructorError, MethodIsMissingError } from "../errors";
-import { DependencyResolver } from "../DependencyResolver";
+import { ClassOf, DependencyResolver, IDIContainer, MethodArgs, WrapWithResolver } from "../types";
 
 interface IExtraMethods<I> {
     methodName: keyof I;
     args: any;
 }
-
-type WrapWithResolver<T extends any[]> = {
-    [K in keyof T]: T[K] | DependencyResolver<T[K]>;
-};
-type ParametersWithResolver<T extends (...args: any) => any> = T extends (
-    ...args: infer P
-) => any
-    ? WrapWithResolver<P>
-    : never;
-type MethodArgs<
-    T extends ClassOf<any>,
-    K extends keyof InstanceType<T>
-> = ParametersWithResolver<InstanceType<T>[K]>;
 
 /**
  * ObjectDefinition creates objects from the provided class.

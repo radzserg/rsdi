@@ -1,4 +1,4 @@
-import { ResolverName } from "./DIContainer";
+import { ResolverName } from "./types";
 
 export function definitionNameToString(definitionName: ResolverName): string {
     if (typeof definitionName === "string") {

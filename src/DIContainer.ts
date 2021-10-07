@@ -1,45 +1,12 @@
-import { DependencyResolver } from "./DependencyResolver";
+import { DependencyResolver, IDIContainer, ResolvedType, ResolverName } from "./types";
 import AbstractResolver from "./resolvers/AbstractResolver";
 import RawValueResolver from "./resolvers/RawValueResolver";
 import { CircularDependencyError, DependencyIsMissingError } from "./errors";
 import { definitionNameToString } from "./DefinitionName";
 
-export interface ClassOf<C extends Object> {
-    new (...args: any[]): C;
-}
-
-/**
- * Dependency injection container interface to expose
- */
-export interface IDIContainer {
-    get: <Custom, Name extends ResolverName = ResolverName>(
-        dependencyName: Name
-    ) => ResolvedType<Custom, Name>;
-}
-
 interface INamedResolvers {
     [k: string]: DependencyResolver | any;
 }
-
-export type ResolverName = string | { name: string };
-
-/**
- * Defines the type of resolved dependency
- *  - if name of Class is provided - instance type will be returned
- *  - if function is provided - function return type will be returned
- *  - if Custom type is provided - it will be returned
- *  - else any
- */
-type ResolvedType<
-    Custom = void,
-    Name extends ResolverName = ResolverName
-> = Name extends ClassOf<any>
-    ? InstanceType<Name>
-    : Name extends (...args: any) => infer FT
-    ? FT
-    : Custom extends void
-    ? any
-    : Custom;
 
 /**
  * Dependency injection container

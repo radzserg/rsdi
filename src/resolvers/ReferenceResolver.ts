@@ -1,5 +1,6 @@
 import AbstractResolver from "./AbstractResolver";
-import DIContainer, { IDIContainer } from "../DIContainer";
+import DIContainer from "../DIContainer";
+import { IDIContainer } from "../types";
 
 /**
  * Refers to existing definition. i.e. definition with provided name must exists in DIContainer

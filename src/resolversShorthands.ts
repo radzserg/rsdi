@@ -3,7 +3,7 @@ import RawValueResolver from "./resolvers/RawValueResolver";
 import ReferenceResolver from "./resolvers/ReferenceResolver";
 import FactoryResolver, { Factory } from "./resolvers/FactoryResolver";
 import { definitionNameToString } from "./DefinitionName";
-import { ClassOf, ResolverName } from "./DIContainer";
+import { ClassOf, ResolverName } from "./types";
 
 // shorthands for Definition classes
 

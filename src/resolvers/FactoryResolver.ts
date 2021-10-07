@@ -1,6 +1,6 @@
 import AbstractResolver from "./AbstractResolver";
-import { IDIContainer } from "../DIContainer";
 import { FactoryDefinitionError } from "../errors";
+import { IDIContainer } from "../types";
 
 export type Factory = (container: IDIContainer) => any;
 

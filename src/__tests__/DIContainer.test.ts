@@ -2,7 +2,7 @@ import { Bar, Foo } from "./fakeClasses";
 import DIContainer from "../DIContainer";
 import ObjectResolver from "../resolvers/ObjectResolver";
 import RawValueResolver from "../resolvers/RawValueResolver";
-import { factory, use, object, IDIContainer } from "../index";
+import { factory, func, use, object, IDIContainer } from "../index";
 import { DependencyIsMissingError } from "../errors";
 import { diUse } from "../resolversShorthands";
 
@@ -113,6 +113,18 @@ describe("DIContainer typescript type resolution", () => {
         });
         let foo: Foo = container.get(Foo);
         expect(foo).toBeInstanceOf(Foo);
+    });
+
+    test("if resolves type as function return type", () => {
+        const container: DIContainer = new DIContainer();
+        function myFactory() {
+            return { a: 123 };
+        }
+        container.add({
+            myFactory: func(myFactory),
+        });
+        let { a } = container.get(myFactory);
+        expect(a).toEqual(123);
     });
 
     test("if resolves type as factory return type if function is provided", () => {

@@ -154,8 +154,8 @@ container.add({
 
 ### Factory resolver
 
-You can use factory resolver when you need more flexibility during initialisation. `container: IDIContainer` will be
-pass as an argument to the factory method. So you can resolve other dependencies inside the factory function.
+You can use factory resolver when you need more flexibility during initialization. `container: IDIContainer` will be
+passed in as an argument to the factory method. So you can resolve other dependencies inside the factory function.
 
 ```typescript
 const container = new DIContainer();

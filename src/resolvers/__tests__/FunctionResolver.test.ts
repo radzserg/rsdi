@@ -8,7 +8,7 @@ describe(FunctionResolver.name, () => {
             return "A";
         }
 
-        const resolver = new FunctionResolver(factoryA); 
+        const resolver = new FunctionResolver(factoryA);
         expect(resolver.resolve(new DIContainer())).toEqual("A");
     });
 

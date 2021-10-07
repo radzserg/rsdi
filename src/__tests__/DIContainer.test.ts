@@ -204,7 +204,7 @@ describe("DIContainer circular dependencies detection", () => {
         expect(() => {
             container.get("foo");
         }).toThrow(
-          'Circular Dependency is detected. Dependency: "foo", path: foo -> bar'
+            'Circular Dependency is detected. Dependency: "foo", path: foo -> bar'
         );
     });
 

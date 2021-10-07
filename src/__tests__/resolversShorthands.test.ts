@@ -3,7 +3,13 @@ import { Bar, Foo } from "./fakeClasses";
 import ObjectResolver from "../resolvers/ObjectResolver";
 import RawValueResolver from "../resolvers/RawValueResolver";
 import DIContainer from "../DIContainer";
-import { diFactory, diObject, diUse, diValue } from "../resolversShorthands";
+import {
+    diFactory,
+    diFunc,
+    diObject,
+    diUse,
+    diValue,
+} from "../resolversShorthands";
 import { DependencyResolver } from "../types";
 import FactoryResolver from "../resolvers/FactoryResolver";
 
@@ -38,7 +44,20 @@ describe("definitionBuilders", () => {
         expect(definition).toBeInstanceOf(ObjectResolver);
     });
 
-    test("it creates singleton factory definition", () => {
+    test("it creates function definition", () => {
+        function funcA(s: string) {
+            return s;
+        }
+        const definition = diFunc(funcA, "abc");
+        expect(definition.resolve(container)).toEqual("abc");
+    });
+
+    test("it creates function definition with shorthand function", () => {
+        const definition = diFunc((s: string) => s, "abc");
+        expect(definition.resolve(container)).toEqual("abc");
+    });
+
+    test("it creates factory definition", () => {
         const definition = diFactory(() => {
             return { a: 123 };
         });
@@ -88,6 +107,14 @@ describe("definitionBuilders respects typescript types", () => {
         const definition = diValue(new Bar());
         const bar: Bar = definition.resolve();
         expect(bar).toBeInstanceOf(Bar);
+    });
+
+    test("diFunction 'resolve' returns function ReturnType", () => {
+        const definition = diFunc((bar: Bar) => {
+            return bar;
+        }, new Bar());
+        const resolvedBar = definition.resolve(container);
+        expect(resolvedBar).toBeInstanceOf(Bar);
     });
 
     test("diFactory factory 'resolve' returns factory ReturnType as number", () => {

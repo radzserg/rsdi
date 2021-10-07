@@ -33,7 +33,7 @@ function UsersRepoFactory(knex: Knex): UsersRepo {
 Your DI container initialisation will include
 
 ```typescript
-import DIContainer, { object, use, factory, IDIContainer } from "rsdi";
+import DIContainer, { object, use, factory, func, IDIContainer } from "rsdi";
 
 export default function configureDI() {
     const container = new DIContainer();
@@ -43,8 +43,8 @@ export default function configureDI() {
         AuthStorage: object(AuthStorage).construct(
             use(Storage) // refer to another dependency
         ),
-        knex: knex(),
-        Logger: factory(loggerFactory),
+        knex: knex(), // keeps raw value
+        Logger: func(loggerFactory), // lazy function, will be resolved when it will be needed
         UsersRepo: factory((container: IDIContainer) => {
             return UsersRepoFactory(container.get("knex"));
         }),
@@ -69,6 +69,7 @@ const logger: Logger = container.get(loggerFactory); // object of DummyLogger
 -   [Usage](#usage)
     -   [Raw values](#raw-values)
     -   [Object resolver](#object-resolver)
+    -   [Function resolver](#function-resolver)
     -   [Factory resolver](#factory-resolver)
 -   [Advanced Usage](#advanced-usage)
     -   [Typescript type resolution](#typescript-type-resolution)
@@ -152,10 +153,33 @@ container.add({
 });
 ```
 
+### Function resolver
+
+Function resolver allows declaring lazy functions. Function will be called when it's actually needed.
+
+```typescript
+function UsersRepoFactory(knex: Knex): UsersRepo {
+    return {
+        async findById(id: number) {
+            await knex("users").where({ id });
+        },
+    };
+}
+
+const container = new DIContainer();
+container.add({
+    DBConnection: knex(/* ... */),
+    UsersRepoFactory: func(UsersRepoFactory, use("DBConnection")),
+});
+
+const userRepo = container.get(UsersRepoFactory);
+```
+
 ### Factory resolver
 
-You can use factory resolver when you need more flexibility during initialization. `container: IDIContainer` will be
-passed in as an argument to the factory method. So you can resolve other dependencies inside the factory function.
+Factory resolver is similar to a Function resolver. You can use factory resolver when you need more flexibility
+during initialization. `container: IDIContainer` will be passed in as an argument to the factory method. So you can
+resolve other dependencies inside the factory function.
 
 ```typescript
 const container = new DIContainer();
@@ -197,7 +221,7 @@ let foo2: Foo = container.get<Foo>("Foo"); // custom generic type is provided
 let foo3: Foo = container.get("Foo"); // any type
 ```
 
-Example: `use` defines type for a class constructor. 
+Example: `use` defines type for a class constructor.
 
 ```typescript
 class Foo {
@@ -211,7 +235,7 @@ container.add({
 });
 ```
 
-Example:  `container.get` resolve type based on a given factory return type.
+Example: `container.get` resolve type based on a given factory return type.
 
 ```typescript
 function myFactory() {
@@ -235,22 +259,25 @@ container.add({
 });
 const foo = container.get<Foo>("Foo");
 ```
-In order to avoid magic strings you can operate with types. 
+
+In order to avoid magic strings you can operate with types.
+
 ```typescript
 const foo = container.get(Foo);
 ```
+
 RSDI uses `Foo.name` behind the scene that equals to "Foo". Remember that this approach will not work for uglified code.
-You can also rename the function Foo => Buzz, and forget to rename the declaration. From that perspective you can 
-declare dependencies this way. 
+You can also rename the function Foo => Buzz, and forget to rename the declaration. From that perspective you can
+declare dependencies this way.
+
 ```typescript
 container.add({
     [Foo.name]: new Foo(),
-    [MyFactory.name]: MyFactory()
+    [MyFactory.name]: MyFactory(),
 });
 const foo = container.get(Foo);
 const buzz = container.get(MyFactory);
 ```
-
 
 ### Async factory resolver
 

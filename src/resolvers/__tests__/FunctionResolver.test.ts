@@ -3,6 +3,15 @@ import { diUse } from "../../resolversShorthands";
 import DIContainer from "../../DIContainer";
 
 describe(FunctionResolver.name, () => {
+    test("it lazy resolves function lazily", () => {
+        function factoryA() {
+            return "A";
+        }
+
+        const resolver = new FunctionResolver(factoryA); 
+        expect(resolver.resolve(new DIContainer())).toEqual("A");
+    });
+
     test("it accepts raw values as parameters", () => {
         function factoryA(s: string) {
             return s;

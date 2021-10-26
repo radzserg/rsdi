@@ -273,14 +273,14 @@ class UserRepository {
 
 // configureDI.ts
 import { createConnections } from "my-orm-library";
-import DIContainer, { factory, use, IDIContainer } from "rsdi";
+import DIContainer, { factory, use } from "rsdi";
 
 async function configureDI() {
     // initialize async factories before DI container initialisation
     const dbConnection = await createConnections();
 
     const container = new DIContainer();
-    container.addDefinitions({
+    container.add({
         DbConnection: dbConnection,
         UserRepository: object(UserRepository).construct(use("DbConnection")),
     });

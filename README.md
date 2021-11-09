@@ -44,10 +44,8 @@ export default function configureDI() {
             use(Storage) // refer to another dependency
         ),
         knex: knex(), // keeps raw value
-        Logger: func(loggerFactory), // lazy function, will be resolved when it will be needed
-        UsersRepo: factory((container: IDIContainer) => {
-            return UsersRepoFactory(container.get("knex"));
-        }),
+        Logger: factory(loggerFactory), // lazy function, will be resolved when it will be needed
+        UsersRepo: func(UsersRepoFactory, use("knex")),
     });
     return container;
 }

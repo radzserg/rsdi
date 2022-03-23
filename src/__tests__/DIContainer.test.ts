@@ -4,9 +4,8 @@ import ValueDefinition from "definitions/ValueDefinition";
 import DependencyIsMissingError from "errors/DependencyIsMissingError";
 import { Mode } from "definitions/BaseDefinition";
 
-import { factory, get, object } from "index";
-
 import { Foo } from "./fakeClasses";
+import { diFactory, diGet, diObject } from "definitions/definitionBuilders";
 
 describe("DIContainer", () => {
     test("it adds and resolves definitions", () => {
@@ -31,7 +30,10 @@ describe("DIContainer", () => {
     test("it always returns singleton", () => {
         const container = new DIContainer();
         const definitions = {
-            foo: new ObjectDefinition(Foo, Mode.SINGLETON).construct("name1", undefined),
+            foo: new ObjectDefinition(Foo, Mode.SINGLETON).construct(
+                "name1",
+                undefined
+            ),
         };
         container.addDefinitions(definitions);
 
@@ -105,7 +107,7 @@ describe("DIContainer", () => {
             async findUser() {
                 await this.init();
                 const dbConnection = this.dbConnection;
-                return await new Promise(resolve =>
+                return await new Promise((resolve) =>
                     setTimeout(() => {
                         resolve(`${dbConnection} + findUser`);
                     })
@@ -117,8 +119,8 @@ describe("DIContainer", () => {
         container.addDefinition("dsn", new ValueDefinition("DSN-secret"));
         container.addDefinition(
             "dbConnection",
-            factory((container: DIContainer) => {
-                return new Promise(resolve =>
+            diFactory((container: DIContainer) => {
+                return new Promise((resolve) =>
                     setTimeout(() => {
                         resolve(container.get("dsn"));
                     })
@@ -127,12 +129,11 @@ describe("DIContainer", () => {
         );
         container.addDefinition(
             "TestUserRepository",
-            object(TestUserRepository).construct(get("dbConnection"))
+            diObject(TestUserRepository).construct(diGet("dbConnection"))
         );
 
-        const userRepository = container.get<TestUserRepository>(
-            "TestUserRepository"
-        );
+        const userRepository =
+            container.get<TestUserRepository>("TestUserRepository");
         expect(await userRepository.findUser()).toBe("DSN-secret + findUser");
     });
 
@@ -146,8 +147,8 @@ describe("DIContainer", () => {
 
         const container = new DIContainer();
         container.addDefinitions({
-            foo: new ObjectDefinition(Foo).construct(get("bar")),
-            bar: new ObjectDefinition(Bar).construct(get("foo")),
+            foo: new ObjectDefinition(Foo).construct(diGet("bar")),
+            bar: new ObjectDefinition(Bar).construct(diGet("foo")),
         });
         expect(() => {
             container.get("foo");
@@ -169,9 +170,9 @@ describe("DIContainer", () => {
 
         const container = new DIContainer();
         container.addDefinitions({
-            foo: new ObjectDefinition(Foo).construct(get("bar")),
-            bar: new ObjectDefinition(Bar).construct(get("buzz")),
-            buzz: new ObjectDefinition(Buzz).construct(get("foo")),
+            foo: new ObjectDefinition(Foo).construct(diGet("bar")),
+            bar: new ObjectDefinition(Bar).construct(diGet("buzz")),
+            buzz: new ObjectDefinition(Buzz).construct(diGet("foo")),
         });
         expect(() => {
             container.get("foo");

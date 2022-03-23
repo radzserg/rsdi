@@ -1,10 +1,10 @@
-import {Bar, Buzz, Foo, FooChild} from "../../__tests__/fakeClasses";
+import { Bar, Buzz, Foo, FooChild } from "../../__tests__/fakeClasses";
 
 import ObjectDefinition from "../ObjectDefinition";
 import MethodIsMissingError from "../../errors/MethodIsMissingError";
 import InvalidConstructorError from "../../errors/InvalidConstructorError";
 import DIContainer from "../../container/DIContainer";
-import { get } from "../../index";
+import { diGet } from "definitions/definitionBuilders";
 
 describe("ObjectDefinition", () => {
     const container = new DIContainer();
@@ -20,7 +20,10 @@ describe("ObjectDefinition", () => {
     test("it can initiate child constructors", () => {
         const fakeName = "My name is FooChild";
         const bar = new ObjectDefinition(Bar);
-        const definition = new ObjectDefinition(FooChild).construct(fakeName, bar);
+        const definition = new ObjectDefinition(FooChild).construct(
+            fakeName,
+            bar
+        );
         const instance = definition.resolve<Foo>(container);
         expect(instance).toBeInstanceOf(FooChild);
         expect(instance.name).toEqual(fakeName);
@@ -58,21 +61,20 @@ describe("ObjectDefinition", () => {
         }).toThrow(new MethodIsMissingError("Foo", "undefinedMethod"));
     });
 
-    test.each([
-        [undefined],
-        [() => {}],
-        ["abc"]
-    ])("it throws an error if invalid constructor have been provided", () => {
-        expect((constructorFunction: any) => {
-            new ObjectDefinition(constructorFunction);
-        }).toThrow(new InvalidConstructorError());
-    });
+    test.each([[undefined], [() => {}], ["abc"]])(
+        "it throws an error if invalid constructor have been provided",
+        () => {
+            expect((constructorFunction: any) => {
+                new ObjectDefinition(constructorFunction);
+            }).toThrow(new InvalidConstructorError());
+        }
+    );
 
     test("it resolves deps while calling method", () => {
         container.addDefinition("key1", "value1");
         const definition = new ObjectDefinition(Foo).method(
             "addItem",
-            get("key1")
+            diGet("key1")
         );
         const instance = definition.resolve<Foo>(container);
         expect(instance.items).toEqual(["value1"]);

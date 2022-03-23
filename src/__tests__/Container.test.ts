@@ -8,7 +8,7 @@ describe("Container should", () => {
     afterEach(() => {
         Container.dispose();
     });
-    
+
     describe("be singleton", () => {
         test("get the same instance", () => {
             expect(Container.instance).toBe(Container.instance);
@@ -66,13 +66,13 @@ describe("Container should", () => {
         });
     });
 
-    describe("get instances by name", ()=> {
-        test("register dependency by name and resolve by the same name", ()=> {
+    describe("get instances by name", () => {
+        test("register dependency by name and resolve by the same name", () => {
             const bar = new Bar();
 
             Container.instance.registerInstance("BAR", bar);
 
             expect(Container.instance.resolveByName("BAR")).toBe(bar);
         });
-    })
+    });
 });

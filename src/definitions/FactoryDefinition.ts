@@ -3,9 +3,6 @@ import DIContainer, { IDIContainer } from "container/DIContainer";
 
 export type Factory = (container: IDIContainer) => any;
 
-/**
- * Factory definition - custom function to resolve dependency
- */
 export default class FactoryDefinition extends BaseDefinition {
     private readonly factory: Factory;
 

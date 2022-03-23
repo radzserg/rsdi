@@ -1,8 +1,5 @@
 import BaseDefinition, { Mode } from "./BaseDefinition";
 
-/**
- * Raw value definition
- */
 export default class ValueDefinition extends BaseDefinition {
     private readonly value: any;
 

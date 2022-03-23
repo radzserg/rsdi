@@ -1,5 +1,5 @@
 import DIContainer from "container/DIContainer";
-import { diGet, diObject, diValue } from "definitions/definitionBuilders";
+import { get, object, value } from "definitions/definitionBuilders";
 import { Dependency } from "definitions/Dependency";
 
 type ObjectType<T> = { new (...args: any[]): T };
@@ -14,17 +14,17 @@ export class Container {
             const injections = [];
 
             for (const parameter of dependency.parameters) {
-                injections.push(diGet(parameter.type.name));
+                injections.push(get(parameter.type.name));
 
                 this.container.addDefinition(
                     parameter.type.name,
-                    diObject(parameter.type, parameter.mode)
+                    object(parameter.type, parameter.mode)
                 );
             }
 
             this.container.addDefinition(
                 dependency.type.name,
-                diObject(dependency.type, dependency.mode).construct(
+                object(dependency.type, dependency.mode).construct(
                     ...injections
                 )
             );
@@ -32,7 +32,7 @@ export class Container {
     }
 
     public registerInstance(type: string, instance: any) {
-        this.container.addDefinition(type, diValue(instance));
+        this.container.addDefinition(type, value(instance));
     }
 
     public resolveByName<T>(type: string): T {

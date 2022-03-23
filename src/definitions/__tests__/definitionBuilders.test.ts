@@ -1,25 +1,21 @@
 import DIContainer, { IDIContainer } from "container/DIContainer";
 import ObjectDefinition from "definitions/ObjectDefinition";
 import ValueDefinition from "definitions/ValueDefinition";
-import {
-    diFactory,
-    diGet,
-    diObject,
-} from "definitions/definitionBuilders";
+import { factory, get, object } from "definitions/definitionBuilders";
 import { Bar, Foo } from "__tests__/fakeClasses";
 
 describe("definitionBuilders", () => {
     const container = new DIContainer();
     test("it creates object of correct class", () => {
         const bar = new ObjectDefinition(Bar);
-        const definition = diObject(Foo).construct("a", bar);
+        const definition = object(Foo).construct("a", bar);
 
         expect(definition).toBeInstanceOf(ObjectDefinition);
         expect(definition.resolve(container)).toBeInstanceOf(Foo);
     });
 
     test("it names dependency using class name", () => {
-        const definition = diObject(Foo);
+        const definition = object(Foo);
 
         expect(definition).toBeInstanceOf(ObjectDefinition);
     });
@@ -33,17 +29,17 @@ describe("definitionBuilders", () => {
     test("it resolves existing definition", () => {
         const container = new DIContainer();
         container.addDefinition("key1", new ValueDefinition("value1"));
-        const definition = diGet("key1");
+        const definition = get("key1");
 
         expect(definition.resolve(container)).toEqual("value1");
     });
 
     test("it creates singleton factory definition", () => {
         const container = new DIContainer();
-        const definition = diFactory(() => {
-            return {a: 123};
+        const definition = factory(() => {
+            return { a: 123 };
         });
 
-        expect(definition.resolve(container)).toEqual({a: 123});
+        expect(definition.resolve(container)).toEqual({ a: 123 });
     });
 });

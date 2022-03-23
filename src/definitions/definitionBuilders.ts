@@ -4,18 +4,18 @@ import { Mode } from "./BaseDefinition";
 import ExistingDefinition from "./ExistingDefinition";
 import FactoryDefinition, { Factory } from "./FactoryDefinition";
 
-export function diObject(classConstructor: Type<any>, mode?: Mode) {
+export const object = (classConstructor: Type<any>, mode?: Mode) => {
     return new ObjectDefinition(classConstructor, mode);
-}
+};
 
-export function diValue(value: any) {
+export const value = (value: any) => {
     return new ValueDefinition(value);
-}
+};
 
-export function diGet(name: string) {
+export const get = (name: string) => {
     return new ExistingDefinition(name);
-}
+};
 
-export function diFactory(factory: Factory) {
+export const factory = (factory: Factory) => {
     return new FactoryDefinition(factory);
-}
+};

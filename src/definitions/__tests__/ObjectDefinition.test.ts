@@ -4,7 +4,7 @@ import ObjectDefinition from "../ObjectDefinition";
 import MethodIsMissingError from "../../errors/MethodIsMissingError";
 import InvalidConstructorError from "../../errors/InvalidConstructorError";
 import DIContainer from "../../container/DIContainer";
-import { diGet } from "definitions/definitionBuilders";
+import { get } from "definitions/definitionBuilders";
 
 describe("ObjectDefinition", () => {
     const container = new DIContainer();
@@ -74,7 +74,7 @@ describe("ObjectDefinition", () => {
         container.addDefinition("key1", "value1");
         const definition = new ObjectDefinition(Foo).method(
             "addItem",
-            diGet("key1")
+            get("key1")
         );
         const instance = definition.resolve<Foo>(container);
         expect(instance.items).toEqual(["value1"]);

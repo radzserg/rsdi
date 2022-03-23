@@ -12,9 +12,6 @@ interface IExtraMethods {
     args: any;
 }
 
-/**
- * Definition to create object by provided class name
- */
 export default class ObjectDefinition extends BaseDefinition {
     private readonly constructorFunction: Type<any>;
     private deps: Array<BaseDefinition | any> = [];
@@ -53,7 +50,10 @@ export default class ObjectDefinition extends BaseDefinition {
         this.methods.forEach((method: IExtraMethods) => {
             const { methodName, args } = method;
             if (object[methodName] === undefined) {
-                throw new MethodIsMissingError(object.constructor.name, methodName);
+                throw new MethodIsMissingError(
+                    object.constructor.name,
+                    methodName
+                );
             }
             const resolvedArgs = args.map((arg: any) => {
                 if (arg instanceof BaseDefinition) {

@@ -1,5 +1,5 @@
 import { Container } from "./Container";
-import { build, buildSingleton } from "collaborators/DependencyBuilder";
+import { build, buildSingleton } from "builder/DependencyBuilder";
 
 export default Container;
 export { build, buildSingleton };

@@ -1,8 +1,7 @@
 import { Container } from "Container";
-import { build, buildSingleton } from "collaborators/DependencyBuilder";
-import DependencyIsAlreadyDeclared from "errors/DependencyIsAlreadyDeclared";
+import { build, buildSingleton, register } from "builder/DependencyBuilder";
 
-import { Bar, Foo } from "./fakeClasses";
+import { A, B, C, Foo, Bar } from "./fakeClasses";
 
 describe("Container should", () => {
     afterEach(() => {
@@ -54,16 +53,6 @@ describe("Container should", () => {
 
             expect(bar1).not.toBe(bar2);
         });
-
-        test("throw error when user declare twice times the same dependency", () => {
-            try {
-                const dependencies = [build(Bar), buildSingleton(Foo, Bar)]; //is duplicated here
-
-                Container.instance.register(dependencies);
-            } catch (error) {
-                expect(error).toBeInstanceOf(DependencyIsAlreadyDeclared);
-            }
-        });
     });
 
     describe("get instances by name", () => {
@@ -73,6 +62,70 @@ describe("Container should", () => {
             Container.instance.registerInstance("BAR", bar);
 
             expect(Container.instance.resolveByName("BAR")).toBe(bar);
+        });
+    });
+
+    describe("get instances with tree level of dependencies", () => {
+        test("resolve instance of class A when depends of B and C", () => {
+            const dependencies = [
+                register(B).withDependency(C).build(),
+                register(A).withDependency(B).build(),
+            ];
+
+            Container.instance.register(dependencies);
+
+            expect(Container.instance.resolve(A)).toBeDefined();
+        });
+
+        test("resolve instance of class A when depends of B and C and de sum method is resolved by C", () => {
+            const dependencies = [
+                register(B).withDependency(C).build(),
+                register(A).withDependency(B).build(),
+            ];
+
+            Container.instance.register(dependencies);
+
+            const a = Container.instance.resolve(A);
+
+            expect(a.sum(1, 2)).toBe(3);
+        });
+
+        test("return the value saved by singleton instance of class C", () => {
+            const dependencies = [
+                register(C).asASingleton().build(),
+                register(B).withDependency(C).build(),
+                register(A).withDependency(B).build(),
+            ];
+
+            Container.instance.register(dependencies);
+
+            const b = Container.instance.resolve(B);
+            b.add("fake");
+
+            expect(Container.instance.resolve(C)).toBe(
+                Container.instance.resolve(C)
+            );
+            expect(b.get()).toBe(Container.instance.resolve(B).get());
+            expect(b.get()).toBe(Container.instance.resolve(C).get());
+        });
+
+        test("return different values when C is not a singleton", () => {
+            const dependencies = [
+                register(C).build(),
+                register(B).withDependency(C).build(),
+                register(A).withDependency(B).build(),
+            ];
+
+            Container.instance.register(dependencies);
+
+            const b = Container.instance.resolve(B);
+            b.add("fake");
+
+            expect(Container.instance.resolve(C)).not.toBe(
+                Container.instance.resolve(C)
+            );
+            expect(b.get()).not.toBe(Container.instance.resolve(B).get());
+            expect(b.get()).not.toBe(Container.instance.resolve(C).get());
         });
     });
 });

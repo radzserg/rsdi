@@ -1,9 +1,6 @@
 import BaseDefinition, { Mode } from "definitions/BaseDefinition";
-import DIContainer  from "container/DIContainer";
+import DIContainer from "container/DIContainer";
 
-/**
- * Represents already defined dependency
- */
 export default class ExistingDefinition extends BaseDefinition {
     private readonly existingDefinitionName: string;
 

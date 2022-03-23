@@ -5,7 +5,7 @@ import DependencyIsMissingError from "errors/DependencyIsMissingError";
 import { Mode } from "definitions/BaseDefinition";
 
 import { Foo } from "./fakeClasses";
-import { diFactory, diGet, diObject } from "definitions/definitionBuilders";
+import { factory, get, object } from "definitions/definitionBuilders";
 
 describe("DIContainer", () => {
     test("it adds and resolves definitions", () => {
@@ -119,7 +119,7 @@ describe("DIContainer", () => {
         container.addDefinition("dsn", new ValueDefinition("DSN-secret"));
         container.addDefinition(
             "dbConnection",
-            diFactory((container: DIContainer) => {
+            factory((container: DIContainer) => {
                 return new Promise((resolve) =>
                     setTimeout(() => {
                         resolve(container.get("dsn"));
@@ -129,7 +129,7 @@ describe("DIContainer", () => {
         );
         container.addDefinition(
             "TestUserRepository",
-            diObject(TestUserRepository).construct(diGet("dbConnection"))
+            object(TestUserRepository).construct(get("dbConnection"))
         );
 
         const userRepository =
@@ -147,8 +147,8 @@ describe("DIContainer", () => {
 
         const container = new DIContainer();
         container.addDefinitions({
-            foo: new ObjectDefinition(Foo).construct(diGet("bar")),
-            bar: new ObjectDefinition(Bar).construct(diGet("foo")),
+            foo: new ObjectDefinition(Foo).construct(get("bar")),
+            bar: new ObjectDefinition(Bar).construct(get("foo")),
         });
         expect(() => {
             container.get("foo");
@@ -170,9 +170,9 @@ describe("DIContainer", () => {
 
         const container = new DIContainer();
         container.addDefinitions({
-            foo: new ObjectDefinition(Foo).construct(diGet("bar")),
-            bar: new ObjectDefinition(Bar).construct(diGet("buzz")),
-            buzz: new ObjectDefinition(Buzz).construct(diGet("foo")),
+            foo: new ObjectDefinition(Foo).construct(get("bar")),
+            bar: new ObjectDefinition(Bar).construct(get("buzz")),
+            buzz: new ObjectDefinition(Buzz).construct(get("foo")),
         });
         expect(() => {
             container.get("foo");

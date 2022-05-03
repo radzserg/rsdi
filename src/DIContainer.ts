@@ -47,7 +47,6 @@ export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
         }
 
         const definition: DependencyResolver = this.resolvers[name];
-        // @ts-ignore
         this.resolved[name] = definition.resolve(this, [...parentDeps, name]);
         return this.resolved[name];
     }

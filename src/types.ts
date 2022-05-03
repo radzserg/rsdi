@@ -9,11 +9,6 @@ export interface IDIContainer<ContainerResolvers extends NamedResolvers = {}> {
     ) => ResolveDependencyType<UserDefinedType, Name, ContainerResolvers>;
 }
 
-// public get<UserDefinedType = void, Name extends ResolverName = string>(
-//   dependencyName: Name,
-//   parentDeps: string[] = []
-// ): ResolvedTypeNew<UserDefinedType, Name, ContainerResolvers> {
-
 export type DependencyResolver<T extends any = any> = {
     resolve: (container: IDIContainer, parentDeps?: string[]) => T;
 };
@@ -73,25 +68,6 @@ export type MethodArgs<
 > = ParametersWithResolver<InstanceType<T>[K]>;
 
 /**
- * Defines the type of resolved dependency
- *  - if name of Class is provided - instance type will be returned
- *  - if function is provided - function return type will be returned
- *  - if Custom type is provided - it will be returned
- *  - else any
- */
-export type ResolvedType<
-    UserDefinedType = void,
-    Name extends ResolverName = ResolverName,
-    ExistingNamedResolvers extends NamedResolvers = NamedResolvers
-> = Name extends ClassOf<any>
-    ? InstanceType<Name>
-    : Name extends (...args: any) => infer FT
-    ? FT
-    : UserDefinedType extends void
-    ? any
-    : UserDefinedType;
-
-/**
  * Resolves types using self type
  *  - if T is a class - instance type will be returned
  *  - if T is a function - function return type will be returned
@@ -107,22 +83,31 @@ type ResolveUsingSelfType<T> = T extends ClassOf<any>
  * Tries to resolve type based on provided name and accumulated
  * dependencies in the NamedResolvers
  */
-type TryResolveUsingExistingDependencies<
+type TryResolveUsingExistingResolvers<
     Name,
     ExistingNamedResolvers extends NamedResolvers
 > = Name extends keyof NamedResolvers
     ? ExistingNamedResolvers[Name] extends DependencyResolver
         ? Resolve<ExistingNamedResolvers[Name]>
         : never
-    : ResolveUsingSelfType<Name>;
+    : never;
 
+/**
+ * Resolve dependency type
+ *  - tries to resolve using already defined dependencies
+ *  - reties to resolve using custom type,
+ *      substituted by TS  - const a: MyType = container.get("name")
+ *      or explicitly provided const a = container.get<MyType>("name")
+ *  - tries to resolve using self type. If a class or function is provided
+ *      instance of a class or function return type will be returned
+ */
 export type ResolveDependencyType<
     UserDefinedType = unknown,
     Name extends ResolverName = ResolverName,
     ExistingNamedResolvers extends NamedResolvers = NamedResolvers
-> = TryResolveUsingExistingDependencies<
-    Name,
-    ExistingNamedResolvers
-> extends never
-    ? UserDefinedType
-    : TryResolveUsingExistingDependencies<Name, ExistingNamedResolvers>;
+> = Coalesce<
+    TryResolveUsingExistingResolvers<Name, ExistingNamedResolvers>,
+    Coalesce<UserDefinedType, ResolveUsingSelfType<Name>>
+>;
+
+type Coalesce<T1, T2> = T1 extends never ? T2 : T1;

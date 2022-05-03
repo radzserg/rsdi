@@ -1,6 +1,7 @@
 import FunctionResolver from "../FunctionResolver";
 import { diUse } from "../../resolversShorthands";
 import DIContainer from "../../DIContainer";
+import { IDIContainer } from "../../types";
 
 describe(FunctionResolver.name, () => {
     test("it lazy resolves function lazily", () => {
@@ -36,7 +37,7 @@ describe(FunctionResolver.name, () => {
         }
 
         const resolver = new FunctionResolver(createProcessTask, diUse(Logger));
-        const container = new DIContainer();
+        const container: DIContainer = new DIContainer();
         container.add({
             Logger: new Logger(),
         });
@@ -49,7 +50,7 @@ describe(FunctionResolver.name, () => {
             return s + n;
         }
 
-        const container = new DIContainer();
+        const container: DIContainer = new DIContainer();
         container.add({
             n: 3,
         });

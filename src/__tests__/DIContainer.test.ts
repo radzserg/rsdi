@@ -176,6 +176,19 @@ describe("DIContainer typescript type resolution", () => {
         const { a } = container.get(myFactory);
         expect(a).toEqual("buzz");
     });
+
+    test("it dynamically define simple types", () => {
+        const container: DIContainer = new DIContainer();
+        container.add({
+            a: 123,
+            b: true,
+            c: Date,
+        });
+        const aValue: number = container.get("a");
+        const bValue = container.get("b");
+        // const cValue: number = container.get("c");
+        expect(aValue).toEqual(123);
+    });
 });
 
 describe("DIContainer circular dependencies detection", () => {

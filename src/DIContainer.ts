@@ -1,7 +1,9 @@
 import {
     DependencyResolver,
     IDIContainer,
+    INamedResolvers,
     ResolvedType,
+    ResolveDependencyType,
     ResolverName,
 } from "./types";
 import AbstractResolver from "./resolvers/AbstractResolver";
@@ -9,14 +11,13 @@ import RawValueResolver from "./resolvers/RawValueResolver";
 import { CircularDependencyError, DependencyIsMissingError } from "./errors";
 import { definitionNameToString } from "./DefinitionName";
 
-interface INamedResolvers {
-    [k: string]: DependencyResolver | any;
-}
-
 /**
  * Dependency injection container
  */
-export default class DIContainer implements IDIContainer {
+export default class DIContainer<
+    ContainerResolvers extends INamedResolvers = {}
+> implements IDIContainer<ContainerResolvers>
+{
     private resolvers: INamedResolvers = {};
     private resolved: {
         [name: string]: any;
@@ -27,10 +28,13 @@ export default class DIContainer implements IDIContainer {
      * @param dependencyName - DefinitionName name of the dependency. String or class name.
      * @param parentDeps - array of parent dependencies (used to detect circular dependencies)
      */
-    public get<Custom = void, Name extends ResolverName = string>(
+    public get<
+        UserDefinedType = void,
+        Name extends ResolverName = ResolverName
+    >(
         dependencyName: Name,
         parentDeps: string[] = []
-    ): ResolvedType<Custom, Name> {
+    ): ResolveDependencyType<UserDefinedType, Name, ContainerResolvers> {
         const name = definitionNameToString(dependencyName);
         if (!(name in this.resolvers)) {
             throw new DependencyIsMissingError(name);
@@ -43,6 +47,7 @@ export default class DIContainer implements IDIContainer {
         }
 
         const definition: DependencyResolver = this.resolvers[name];
+        // @ts-ignore
         this.resolved[name] = definition.resolve(this, [...parentDeps, name]);
         return this.resolved[name];
     }
@@ -51,7 +56,10 @@ export default class DIContainer implements IDIContainer {
      * Adds multiple dependency resolvers to the container
      * @param resolvers - named dependency object
      */
-    public add(resolvers: INamedResolvers) {
+    public add<N extends INamedResolvers>(
+        this: DIContainer<ContainerResolvers>,
+        resolvers: N
+    ): asserts this is DIContainer<ContainerResolvers & N> {
         Object.keys(resolvers).map((name: string) => {
             this.addResolver(name, resolvers[name]);
         });

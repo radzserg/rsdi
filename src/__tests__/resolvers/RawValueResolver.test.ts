@@ -1,4 +1,4 @@
-import RawValueResolver from "../RawValueResolver";
+import RawValueResolver from "../../resolvers/RawValueResolver";
 
 describe(RawValueResolver.name, () => {
     test("it resolves value", () => {

@@ -1,4 +1,4 @@
-import FunctionResolver from "../FunctionResolver";
+import FunctionResolver from "../../resolvers/FunctionResolver";
 import { diUse } from "../../resolversShorthands";
 import DIContainer from "../../DIContainer";
 import { IDIContainer } from "../../types";

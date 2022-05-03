@@ -1,5 +1,5 @@
-import ObjectResolver from "../ObjectResolver";
-import { Bar, Buzz, Foo, FooChild } from "../../__tests__/fakeClasses";
+import ObjectResolver from "../../resolvers/ObjectResolver";
+import { Bar, Buzz, Foo, FooChild } from "../fakeClasses";
 import DIContainer, { use } from "../../index";
 import { InvalidConstructorError, MethodIsMissingError } from "../../errors";
 

@@ -1,6 +1,6 @@
-import FactoryResolver from "../FactoryResolver";
+import FactoryResolver from "../../resolvers/FactoryResolver";
 import DIContainer, { IDIContainer } from "../../index";
-import RawValueResolver from "../RawValueResolver";
+import RawValueResolver from "../../resolvers/RawValueResolver";
 import { FactoryDefinitionError } from "../../errors";
 
 describe(FactoryResolver.name, () => {

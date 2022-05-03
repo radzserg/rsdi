@@ -1,6 +1,6 @@
-import RawValueResolver from "../RawValueResolver";
+import RawValueResolver from "../../resolvers/RawValueResolver";
 import DIContainer from "../../DIContainer";
-import ReferenceResolver from "../ReferenceResolver";
+import ReferenceResolver from "../../resolvers/ReferenceResolver";
 
 describe(ReferenceResolver.name, () => {
     test("it resolves existing value from container", () => {

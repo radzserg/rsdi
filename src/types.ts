@@ -102,12 +102,11 @@ type TryResolveUsingExistingResolvers<
  *      instance of a class or function return type will be returned
  */
 export type ResolveDependencyType<
-    UserDefinedType = unknown,
+    UserDefinedType = void,
     Name extends ResolverName = ResolverName,
     ExistingNamedResolvers extends NamedResolvers = NamedResolvers
-> = Coalesce<
-    TryResolveUsingExistingResolvers<Name, ExistingNamedResolvers>,
-    Coalesce<UserDefinedType, ResolveUsingSelfType<Name>>
->;
-
-type Coalesce<T1, T2> = T1 extends never ? T2 : T1;
+> = TryResolveUsingExistingResolvers<Name, ExistingNamedResolvers> extends never
+    ? UserDefinedType extends void
+        ? ResolveUsingSelfType<Name>
+        : UserDefinedType
+    : TryResolveUsingExistingResolvers<Name, ExistingNamedResolvers>;

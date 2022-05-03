@@ -182,12 +182,14 @@ describe("DIContainer typescript type resolution", () => {
         container.add({
             a: 123,
             b: true,
-            c: Date,
+            c: new Date("2022-05-03"),
         });
         const aValue: number = container.get("a");
-        const bValue = container.get("b");
-        // const cValue: number = container.get("c");
+        const bValue: boolean = container.get("b");
+        const cValue: Date = container.get("c");
         expect(aValue).toEqual(123);
+        expect(bValue).toEqual(true);
+        expect(cValue).toEqual(new Date("2022-05-03"));
     });
 });
 

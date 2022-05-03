@@ -112,15 +112,17 @@ type TryResolveUsingExistingDependencies<
     ExistingNamedResolvers extends NamedResolvers
 > = Name extends keyof NamedResolvers
     ? ExistingNamedResolvers[Name] extends DependencyResolver
-        ? //? Resolve<ExistingNamedResolvers[Name]>
-          Date
+        ? Resolve<ExistingNamedResolvers[Name]>
         : never
     : ResolveUsingSelfType<Name>;
 
 export type ResolveDependencyType<
-    UserDefinedType = void,
+    UserDefinedType = unknown,
     Name extends ResolverName = ResolverName,
     ExistingNamedResolvers extends NamedResolvers = NamedResolvers
-> = UserDefinedType extends void
-    ? TryResolveUsingExistingDependencies<Name, ExistingNamedResolvers>
-    : UserDefinedType;
+> = TryResolveUsingExistingDependencies<
+    Name,
+    ExistingNamedResolvers
+> extends never
+    ? UserDefinedType
+    : TryResolveUsingExistingDependencies<Name, ExistingNamedResolvers>;

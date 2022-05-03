@@ -1,10 +1,11 @@
 import {
     DependencyResolver,
     IDIContainer,
-    INamedResolvers,
-    ResolvedType,
+    NamedResolvers,
     ResolveDependencyType,
     ResolverName,
+    ConvertToDefinedDependencies,
+    NonStrictNamedResolvers,
 } from "./types";
 import AbstractResolver from "./resolvers/AbstractResolver";
 import RawValueResolver from "./resolvers/RawValueResolver";
@@ -14,11 +15,10 @@ import { definitionNameToString } from "./DefinitionName";
 /**
  * Dependency injection container
  */
-export default class DIContainer<
-    ContainerResolvers extends INamedResolvers = {}
-> implements IDIContainer<ContainerResolvers>
+export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
+    implements IDIContainer<ContainerResolvers>
 {
-    private resolvers: INamedResolvers = {};
+    private resolvers: NamedResolvers = {};
     private resolved: {
         [name: string]: any;
     } = {};
@@ -56,10 +56,12 @@ export default class DIContainer<
      * Adds multiple dependency resolvers to the container
      * @param resolvers - named dependency object
      */
-    public add<N extends INamedResolvers>(
+    public add<N extends NonStrictNamedResolvers>(
         this: DIContainer<ContainerResolvers>,
         resolvers: N
-    ): asserts this is DIContainer<ContainerResolvers & N> {
+    ): asserts this is DIContainer<
+        ContainerResolvers & ConvertToDefinedDependencies<N>
+    > {
         Object.keys(resolvers).map((name: string) => {
             this.addResolver(name, resolvers[name]);
         });

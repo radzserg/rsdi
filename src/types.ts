@@ -1,7 +1,9 @@
 /**
  * Dependency injection container interface to expose
  */
-export interface IDIContainer<ContainerResolvers extends INamedResolvers = {}> {
+import RawValueResolver from "./resolvers/RawValueResolver";
+
+export interface IDIContainer<ContainerResolvers extends NamedResolvers = {}> {
     get: <UserDefinedType = void, Name extends ResolverName = ResolverName>(
         dependencyName: Name
     ) => ResolveDependencyType<UserDefinedType, Name, ContainerResolvers>;
@@ -12,13 +14,39 @@ export interface IDIContainer<ContainerResolvers extends INamedResolvers = {}> {
 //   parentDeps: string[] = []
 // ): ResolvedTypeNew<UserDefinedType, Name, ContainerResolvers> {
 
-export type DependencyResolver<T extends any = unknown> = {
+export type DependencyResolver<T extends any = any> = {
     resolve: (container: IDIContainer, parentDeps?: string[]) => T;
 };
 
-export interface INamedResolvers {
+/**
+ * Resolvers map
+ * {
+ *   a: new FunctionResolver(() => 123),
+ *   b: new RawValueResolver("stringValue"),
+ *   // and also can contain raw value declarations
+ *   c: "StringValue"
+ * }
+ */
+export interface NonStrictNamedResolvers {
     [k: string]: DependencyResolver | any;
 }
+
+/**
+ * Resolvers map
+ * {
+ *   a: new FunctionResolver(() => 123),
+ *   b: new RawValueResolver("stringValue"),
+ * }
+ */
+export interface NamedResolvers {
+    [k: string]: DependencyResolver;
+}
+
+export type ConvertToDefinedDependencies<T = NonStrictNamedResolvers> = {
+    [K in keyof T]: T[K] extends DependencyResolver
+        ? T[K]
+        : RawValueResolver<T[K]>;
+};
 
 export type WrapWithResolver<T extends any[]> = {
     [K in keyof T]: T[K] | DependencyResolver<T[K]>;
@@ -54,7 +82,7 @@ export type MethodArgs<
 export type ResolvedType<
     UserDefinedType = void,
     Name extends ResolverName = ResolverName,
-    NamedResolvers extends INamedResolvers = INamedResolvers
+    ExistingNamedResolvers extends NamedResolvers = NamedResolvers
 > = Name extends ClassOf<any>
     ? InstanceType<Name>
     : Name extends (...args: any) => infer FT
@@ -79,17 +107,20 @@ type ResolveUsingSelfType<T> = T extends ClassOf<any>
  * Tries to resolve type based on provided name and accumulated
  * dependencies in the NamedResolvers
  */
-type TryResolveUsingExistingDependencies<Name, NamedResolvers> =
-    Name extends keyof NamedResolvers
-        ? NamedResolvers[Name] extends DependencyResolver
-            ? Resolve<NamedResolvers[Name]>
-            : NamedResolvers[Name]
-        : ResolveUsingSelfType<Name>;
+type TryResolveUsingExistingDependencies<
+    Name,
+    ExistingNamedResolvers extends NamedResolvers
+> = Name extends keyof NamedResolvers
+    ? ExistingNamedResolvers[Name] extends DependencyResolver
+        ? //? Resolve<ExistingNamedResolvers[Name]>
+          Date
+        : never
+    : ResolveUsingSelfType<Name>;
 
 export type ResolveDependencyType<
     UserDefinedType = void,
     Name extends ResolverName = ResolverName,
-    NamedResolvers extends INamedResolvers = INamedResolvers
+    ExistingNamedResolvers extends NamedResolvers = NamedResolvers
 > = UserDefinedType extends void
-    ? TryResolveUsingExistingDependencies<Name, NamedResolvers>
+    ? TryResolveUsingExistingDependencies<Name, ExistingNamedResolvers>
     : UserDefinedType;

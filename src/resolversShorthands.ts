@@ -13,7 +13,7 @@ import FunctionResolver from "./resolvers/FunctionResolver";
  * @param classConstructor
  */
 export function diObject<T extends ClassOf<any>>(classConstructor: T) {
-    return new ObjectResolver(classConstructor);
+  return new ObjectResolver(classConstructor);
 }
 
 /**
@@ -21,7 +21,7 @@ export function diObject<T extends ClassOf<any>>(classConstructor: T) {
  * @param value
  */
 export function diValue<T extends any = unknown>(value: T) {
-    return new RawValueResolver<T>(value);
+  return new RawValueResolver<T>(value);
 }
 
 /**
@@ -31,25 +31,25 @@ export function diValue<T extends any = unknown>(value: T) {
  *  - if function is provided - function return type will be returned
  */
 type ResolvedType<Custom, Name extends ResolverName> = Custom extends void
-    ? Name extends string
-        ? any
-        : Name extends ClassOf<any>
-        ? InstanceType<Name>
-        : Name extends (...args: any) => infer FT
-        ? FT
-        : never
-    : Custom;
+  ? Name extends string
+    ? any
+    : Name extends ClassOf<any>
+    ? InstanceType<Name>
+    : Name extends (...args: any) => infer FT
+    ? FT
+    : never
+  : Custom;
 
 /**
  * Refers to existing definition. i.e. definition with provided name must exists in DIContainer
  * @param definitionName
  */
 export function diUse<Custom = void, Name extends ResolverName = ResolverName>(
-    definitionName: Name
+  definitionName: Name
 ) {
-    return new ReferenceResolver<ResolvedType<Custom, Name>>(
-        definitionNameToString(definitionName)
-    );
+  return new ReferenceResolver<ResolvedType<Custom, Name>>(
+    definitionNameToString(definitionName)
+  );
 }
 
 /**
@@ -57,7 +57,7 @@ export function diUse<Custom = void, Name extends ResolverName = ResolverName>(
  * @param factory
  */
 export function diFactory<T extends Factory>(factory: T) {
-    return new FactoryResolver(factory);
+  return new FactoryResolver(factory);
 }
 
 /**
@@ -67,10 +67,10 @@ export function diFactory<T extends Factory>(factory: T) {
  * @param parameters
  */
 export function diFunc<T extends (...args: any) => any>(
-    func: T,
-    ...parameters: T extends (...args: infer ArgTypes) => any
-        ? WrapWithResolver<ArgTypes>
-        : never
+  func: T,
+  ...parameters: T extends (...args: infer ArgTypes) => any
+    ? WrapWithResolver<ArgTypes>
+    : never
 ) {
-    return new FunctionResolver(func, ...parameters);
+  return new FunctionResolver(func, ...parameters);
 }

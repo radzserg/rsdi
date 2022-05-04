@@ -4,13 +4,13 @@
 import RawValueResolver from "./resolvers/RawValueResolver";
 
 export interface IDIContainer<ContainerResolvers extends NamedResolvers = {}> {
-    get: <UserDefinedType = void, Name extends ResolverName = ResolverName>(
-        dependencyName: Name
-    ) => ResolveDependencyType<UserDefinedType, Name, ContainerResolvers>;
+  get: <UserDefinedType = void, Name extends ResolverName = ResolverName>(
+    dependencyName: Name
+  ) => ResolveDependencyType<UserDefinedType, Name, ContainerResolvers>;
 }
 
 export type DependencyResolver<T extends any = any> = {
-    resolve: (container: IDIContainer, parentDeps?: string[]) => T;
+  resolve: (container: IDIContainer, parentDeps?: string[]) => T;
 };
 
 /**
@@ -23,7 +23,7 @@ export type DependencyResolver<T extends any = any> = {
  * }
  */
 export interface NonStrictNamedResolvers {
-    [k: string]: DependencyResolver | any;
+  [k: string]: DependencyResolver | any;
 }
 
 /**
@@ -34,37 +34,37 @@ export interface NonStrictNamedResolvers {
  * }
  */
 export interface NamedResolvers {
-    [k: string]: DependencyResolver;
+  [k: string]: DependencyResolver;
 }
 
 export type ConvertToDefinedDependencies<T = NonStrictNamedResolvers> = {
-    [K in keyof T]: T[K] extends DependencyResolver
-        ? T[K]
-        : RawValueResolver<T[K]>;
+  [K in keyof T]: T[K] extends DependencyResolver
+    ? T[K]
+    : RawValueResolver<T[K]>;
 };
 
 export type WrapWithResolver<T extends any[]> = {
-    [K in keyof T]: T[K] | DependencyResolver<T[K]>;
+  [K in keyof T]: T[K] | DependencyResolver<T[K]>;
 };
 
 type Resolve<N extends DependencyResolver> = N extends {
-    resolve(...args: any[]): infer R;
+  resolve(...args: any[]): infer R;
 }
-    ? R
-    : never;
+  ? R
+  : never;
 
 export type ResolverName = string | { name: string };
 
 export type ParametersWithResolver<T extends (...args: any) => any> =
-    T extends (...args: infer P) => any ? WrapWithResolver<P> : never;
+  T extends (...args: infer P) => any ? WrapWithResolver<P> : never;
 
 export interface ClassOf<C extends Object> {
-    new (...args: any[]): C;
+  new (...args: any[]): C;
 }
 
 export type MethodArgs<
-    T extends ClassOf<any>,
-    K extends keyof InstanceType<T>
+  T extends ClassOf<any>,
+  K extends keyof InstanceType<T>
 > = ParametersWithResolver<InstanceType<T>[K]>;
 
 /**
@@ -74,23 +74,23 @@ export type MethodArgs<
  *  - else any
  */
 type ResolveUsingSelfType<T> = T extends ClassOf<any>
-    ? InstanceType<T>
-    : T extends (...args: any) => infer FT
-    ? FT
-    : any;
+  ? InstanceType<T>
+  : T extends (...args: any) => infer FT
+  ? FT
+  : any;
 
 /**
  * Tries to resolve type based on provided name and accumulated
  * dependencies in the NamedResolvers
  */
 type TryResolveUsingExistingResolvers<
-    Name,
-    ExistingNamedResolvers extends NamedResolvers
+  Name,
+  ExistingNamedResolvers extends NamedResolvers
 > = Name extends keyof NamedResolvers
-    ? ExistingNamedResolvers[Name] extends DependencyResolver
-        ? Resolve<ExistingNamedResolvers[Name]>
-        : never
-    : never;
+  ? ExistingNamedResolvers[Name] extends DependencyResolver
+    ? Resolve<ExistingNamedResolvers[Name]>
+    : never
+  : never;
 
 /**
  * Resolve dependency type
@@ -102,11 +102,11 @@ type TryResolveUsingExistingResolvers<
  *      instance of a class or function return type will be returned
  */
 export type ResolveDependencyType<
-    UserDefinedType = void,
-    Name extends ResolverName = ResolverName,
-    ExistingNamedResolvers extends NamedResolvers = NamedResolvers
+  UserDefinedType = void,
+  Name extends ResolverName = ResolverName,
+  ExistingNamedResolvers extends NamedResolvers = NamedResolvers
 > = TryResolveUsingExistingResolvers<Name, ExistingNamedResolvers> extends never
-    ? UserDefinedType extends void
-        ? ResolveUsingSelfType<Name>
-        : UserDefinedType
-    : TryResolveUsingExistingResolvers<Name, ExistingNamedResolvers>;
+  ? UserDefinedType extends void
+    ? ResolveUsingSelfType<Name>
+    : UserDefinedType
+  : TryResolveUsingExistingResolvers<Name, ExistingNamedResolvers>;

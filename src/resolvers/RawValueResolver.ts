@@ -5,16 +5,16 @@ import AbstractResolver from "./AbstractResolver";
  *
  */
 export default class RawValueResolver<
-    T extends any
+  T extends any
 > extends AbstractResolver<T> {
-    private readonly value: T;
+  private readonly value: T;
 
-    constructor(value: T) {
-        super();
-        this.value = value;
-    }
+  constructor(value: T) {
+    super();
+    this.value = value;
+  }
 
-    resolve = (): T => {
-        return this.value;
-    };
+  resolve = (): T => {
+    return this.value;
+  };
 }

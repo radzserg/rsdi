@@ -2,9 +2,8 @@ import { Bar, Foo } from "./fakeClasses";
 import DIContainer from "../DIContainer";
 import ObjectResolver from "../resolvers/ObjectResolver";
 import RawValueResolver from "../resolvers/RawValueResolver";
-import { factory, func, use, object, IDIContainer } from "../index";
+import { factory, func, IDIContainer, object, use } from "../index";
 import { DependencyIsMissingError } from "../errors";
-import { diUse } from "../resolversShorthands";
 
 describe("DIContainer adds resolvers", () => {
   test("it adds and resolves resolvers", () => {
@@ -17,6 +16,24 @@ describe("DIContainer adds resolvers", () => {
     const foo = container.get("foo");
     expect(foo).toBeInstanceOf(Foo);
     expect(container.get("key1")).toEqual("value1");
+  });
+
+  test("it add func resolver", () => {
+    const container: DIContainer = new DIContainer();
+    container.add({
+      a: "a",
+      b: "b",
+      concat: func(
+        function (a: string, b: string) {
+          return a + b;
+        },
+        use("a"),
+        use("b")
+      ),
+    });
+
+    const concat = container.get("concat");
+    expect(concat).toEqual("ab");
   });
 
   test("it adds resolver to existing list", () => {

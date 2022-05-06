@@ -1,8 +1,10 @@
-import { ResolverName } from "./types";
+import { NamedResolvers, ResolverName } from "./types";
 
-export function definitionNameToString(definitionName: ResolverName): string {
-  if (typeof definitionName === "string") {
-    return definitionName;
+export function definitionNameToString<
+  ContainerResolvers extends NamedResolvers = {}
+>(definitionName: ResolverName<ContainerResolvers>): string {
+  if (typeof definitionName === "object" && definitionName.name) {
+    return definitionName.name.toString();
   }
-  return definitionName.name;
+  return definitionName.toString();
 }

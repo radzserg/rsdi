@@ -2,8 +2,9 @@ import DIContainer from "../../DIContainer";
 import { Bar, Foo } from "../fakeClasses";
 import { expectNotType, expectType } from "tsd";
 import ObjectResolver from "../../resolvers/ObjectResolver";
-import { factory, func, IDIContainer } from "../../index";
+import { factory, func, IDIContainer, use } from "../../index";
 import { diUse } from "../../resolversShorthands";
+import { ConvertToDefinedDependencies } from "../../types";
 
 describe("DIContainer typescript type resolution", () => {
   test("if resolves type as given raw values", () => {
@@ -12,6 +13,7 @@ describe("DIContainer typescript type resolution", () => {
       key1: "string",
       key2: 123,
       bar: new Bar(),
+      d: "" as unknown,
     });
     expectType<string>(container.get("key1"));
     expectType<number>(container.get("key2"));
@@ -91,5 +93,27 @@ describe("DIContainer typescript type resolution", () => {
 
     const { a } = container.get(myFactory);
     expectType<string>(a);
+  });
+
+  test("use can accept only known properties", () => {
+    const container: DIContainer = new DIContainer();
+    container.add({
+      a: "a",
+      b: "b",
+      concat: func(
+        function (a: string, b: string) {
+          return a + b;
+        },
+        use("a"),
+        use("b")
+      ),
+    });
+
+    let b: keyof ConvertToDefinedDependencies<{
+      a: string;
+      b: number;
+    }> = {} as unknown as any;
+
+    // let b = test(container);
   });
 });

@@ -6,7 +6,7 @@ import RawValueResolver from "./resolvers/RawValueResolver";
 export interface IDIContainer<ContainerResolvers extends NamedResolvers = {}> {
   get: <UserDefinedType = void, Name extends ResolverName = ResolverName>(
     dependencyName: Name
-  ) => ResolveDependencyType<UserDefinedType, Name, ContainerResolvers>;
+  ) => ResolveDependencyType<UserDefinedType, ContainerResolvers, Name>;
 }
 
 export type DependencyResolver<T extends any = any> = {
@@ -22,9 +22,9 @@ export type DependencyResolver<T extends any = any> = {
  *   c: "StringValue"
  * }
  */
-export interface NonStrictNamedResolvers {
+export type NonStrictNamedResolvers = {
   [k: string]: DependencyResolver | any;
-}
+};
 
 /**
  * Resolvers map
@@ -53,7 +53,9 @@ type Resolve<N extends DependencyResolver> = N extends {
   ? R
   : never;
 
-export type ResolverName = string | { name: string };
+export type ResolverName<Resolvers extends NamedResolvers = {}> =
+  | keyof Resolvers
+  | { name: keyof Resolvers };
 
 export type ParametersWithResolver<T extends (...args: any) => any> =
   T extends (...args: infer P) => any ? WrapWithResolver<P> : never;
@@ -77,7 +79,7 @@ type ResolveUsingSelfType<T> = T extends ClassOf<any>
   ? InstanceType<T>
   : T extends (...args: any) => infer FT
   ? FT
-  : any;
+  : never;
 
 /**
  * Tries to resolve type based on provided name and accumulated
@@ -103,8 +105,8 @@ type TryResolveUsingExistingResolvers<
  */
 export type ResolveDependencyType<
   UserDefinedType = void,
-  Name extends ResolverName = ResolverName,
-  ExistingNamedResolvers extends NamedResolvers = NamedResolvers
+  ExistingNamedResolvers extends NamedResolvers = NamedResolvers,
+  Name extends ResolverName<ExistingNamedResolvers> = ResolverName<ExistingNamedResolvers>
 > = TryResolveUsingExistingResolvers<Name, ExistingNamedResolvers> extends never
   ? UserDefinedType extends void
     ? ResolveUsingSelfType<Name>

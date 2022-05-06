@@ -12,6 +12,11 @@ import RawValueResolver from "./resolvers/RawValueResolver";
 import { CircularDependencyError, DependencyIsMissingError } from "./errors";
 import { definitionNameToString } from "./DefinitionName";
 
+type UnfoldContainerResolvers<C extends DIContainer<any>> =
+  C extends DIContainer<infer T> ? T : unknown;
+
+// UnfoldContainerResolvers<DIContainer<ContainerResolvers>>
+
 /**
  * Dependency injection container
  */
@@ -28,11 +33,15 @@ export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
    * @param dependencyName - DefinitionName name of the dependency. String or class name.
    * @param parentDeps - array of parent dependencies (used to detect circular dependencies)
    */
-  public get<UserDefinedType = void, Name extends ResolverName = ResolverName>(
+  public get<
+    UserDefinedType = void,
+    Name extends ResolverName<ContainerResolvers> = ResolverName<ContainerResolvers>
+  >(
     dependencyName: Name,
     parentDeps: string[] = []
-  ): ResolveDependencyType<UserDefinedType, Name, ContainerResolvers> {
-    const name = definitionNameToString(dependencyName);
+  ): ResolveDependencyType<UserDefinedType, ContainerResolvers, Name> {
+    const name: string =
+      definitionNameToString<ContainerResolvers>(dependencyName);
     if (!(name in this.resolvers)) {
       throw new DependencyIsMissingError(name);
     }

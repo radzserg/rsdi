@@ -88,6 +88,7 @@ describe("DIContainer resolution", () => {
   test("it throws an error if definition is missing during resolution", () => {
     const container: DIContainer = new DIContainer();
     expect(() => {
+      // @ts-ignore
       container.get("Logger");
     }).toThrow(new DependencyIsMissingError("Logger"));
   });

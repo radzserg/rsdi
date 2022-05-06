@@ -1,6 +1,9 @@
 import ObjectResolver from "./resolvers/ObjectResolver";
+import FunctionResolver from "./resolvers/FunctionResolver";
 
 export type AnyNamedResolvers = { [k: string]: DependencyResolver<any> };
+
+// @todo use different resolver for IDIContainer
 
 export interface IDIContainer<
   ContainerResolvers extends NamedResolvers = AnyNamedResolvers
@@ -57,7 +60,7 @@ type Resolve<N extends DependencyResolver> = N extends {
   ? R
   : never;
 
-export type FetchClasses<
+export type FetchClassesFromContainerResolvers<
   ContainerResolvers extends NamedResolvers = AnyNamedResolvers
 > = {
   [P in keyof ContainerResolvers]: ContainerResolvers[P] extends ObjectResolver<
@@ -69,12 +72,23 @@ export type FetchClasses<
     : never;
 }[keyof ContainerResolvers];
 
+export type FetchFunctionsFromContainerResolvers<
+  ContainerResolvers extends NamedResolvers = AnyNamedResolvers
+> = {
+  [P in keyof ContainerResolvers]: ContainerResolvers[P] extends FunctionResolver<
+    infer FT
+  >
+    ? FT
+    : never;
+}[keyof ContainerResolvers];
+
 export type ResolverName<
   ContainerResolvers extends NamedResolvers = AnyNamedResolvers
 > =
   | keyof ContainerResolvers
   | { name: keyof ContainerResolvers }
-  | FetchClasses<ContainerResolvers>;
+  | FetchClassesFromContainerResolvers<ContainerResolvers>
+  | FetchFunctionsFromContainerResolvers<ContainerResolvers>;
 
 export type ParametersWithResolver<T extends (...args: any) => any> =
   T extends (...args: infer P) => any ? WrapWithResolver<P> : never;

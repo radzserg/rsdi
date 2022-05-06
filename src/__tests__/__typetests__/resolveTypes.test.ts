@@ -1,17 +1,21 @@
 import {
   AnyNamedResolvers,
-  ClassOf,
-  FetchClasses,
-  NamedResolvers,
-  ResolveDependencyType,
+  FetchClassesFromContainerResolvers,
+  FetchFunctionsFromContainerResolvers,
   ResolverName,
   ResolveUsingSelfType,
   TryResolveUsingExistingResolvers,
 } from "../../types";
 import { Bar, Foo } from "../fakeClasses";
-import { expectAssignable, expectNotAssignable, expectType } from "tsd";
+import {
+  expectAssignable,
+  expectNotAssignable,
+  expectType,
+  printType,
+} from "tsd";
 import RawValueResolver from "../../resolvers/RawValueResolver";
 import ObjectResolver from "../../resolvers/ObjectResolver";
+import FunctionResolver from "../../resolvers/FunctionResolver";
 
 const any = () => ({} as unknown as any);
 
@@ -41,8 +45,8 @@ describe("ResolverName", () => {
     }>;
     expectAssignable<T>("a");
     expectAssignable<T>("b");
+    expectAssignable<T>("foo");
     expectNotAssignable<T>("c");
-    expectNotAssignable<T>("foo");
   });
 
   test("ResolverName resolves to any when container resolvers are not defined", () => {
@@ -52,7 +56,7 @@ describe("ResolverName", () => {
   });
 
   test("FetchClasses fetches classes from ResolverName", () => {
-    type T = FetchClasses<{
+    type T = FetchClassesFromContainerResolvers<{
       a: RawValueResolver<string>;
       b: RawValueResolver<boolean>;
       foo: ObjectResolver<typeof Foo>;
@@ -60,6 +64,18 @@ describe("ResolverName", () => {
     }>;
     expectAssignable<T>(Foo);
     expectAssignable<T>(Bar);
+  });
+
+  test("FetchFunctions fetches functions from ResolverName", () => {
+    function fooFunc() {
+      return { a: 123, b: "asd" };
+    }
+
+    type T = FetchFunctionsFromContainerResolvers<{
+      a: RawValueResolver<string>;
+      fooFunc: FunctionResolver<() => { a: number; b: string }>;
+    }>;
+    expectAssignable<T>(fooFunc);
   });
 
   test("ResolverName resolves to instance of class when typeof class is provided", () => {
@@ -70,6 +86,18 @@ describe("ResolverName", () => {
     }>;
     expectAssignable<T>(Foo);
     expectAssignable<T>(Bar);
+  });
+
+  test("ResolverName resolves to function when function is provided", () => {
+    function fooFunc() {
+      return { a: 123, b: "asd" };
+    }
+    type T = ResolverName<{
+      a: RawValueResolver<string>;
+      b: RawValueResolver<boolean>;
+      fooFunc: FunctionResolver<() => { a: number; b: string }>;
+    }>;
+    expectAssignable<T>(fooFunc);
   });
 });
 

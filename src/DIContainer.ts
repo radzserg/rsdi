@@ -32,6 +32,7 @@ export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
     Name extends ResolverName<ContainerResolvers> = ResolverName<ContainerResolvers>
   >(
     dependencyName: Name,
+    // @todo: move parent deps to separate method
     parentDeps: string[] = []
   ): ResolveDependencyType<ContainerResolvers, Name> {
     const name: string =

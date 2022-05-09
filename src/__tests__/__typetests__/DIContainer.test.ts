@@ -93,7 +93,7 @@ describe("DIContainer typescript type resolution", () => {
       }),
     });
 
-    const { a } = container.get(myFactory);
+    const { a } = container.get("myFactory");
     expectType<string>(a);
   });
 

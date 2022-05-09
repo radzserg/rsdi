@@ -1,7 +1,9 @@
 import {
   AnyNamedResolvers,
   FetchClassesFromContainerResolvers,
+  FetchFactoriesFromContainerResolvers,
   FetchFunctionsFromContainerResolvers,
+  IDIContainer,
   ResolverName,
   ResolveUsingSelfType,
   TryResolveUsingExistingResolvers,
@@ -11,6 +13,9 @@ import { expectAssignable, expectNotAssignable, expectType } from "tsd";
 import RawValueResolver from "../../resolvers/RawValueResolver";
 import ObjectResolver from "../../resolvers/ObjectResolver";
 import FunctionResolver from "../../resolvers/FunctionResolver";
+import DIContainer from "../../DIContainer";
+import { factory } from "../../index";
+import FactoryResolver from "../../resolvers/FactoryResolver";
 
 const any = () => ({} as unknown as any);
 
@@ -73,6 +78,18 @@ describe("ResolverName", () => {
     expectAssignable<T>(fooFunc);
   });
 
+  test("FetchFactories fetches factories from ResolverName", () => {
+    function fooFunc() {
+      return { a: 123, b: "asd" };
+    }
+
+    type T = FetchFactoriesFromContainerResolvers<{
+      a: RawValueResolver<string>;
+      fooFunc: FactoryResolver<() => { a: number; b: string }>;
+    }>;
+    expectAssignable<T>(fooFunc);
+  });
+
   test("ResolverName resolves to instance of class when typeof class is provided", () => {
     type T = ResolverName<{
       foo: ObjectResolver<typeof Foo>;
@@ -92,6 +109,19 @@ describe("ResolverName", () => {
       b: RawValueResolver<boolean>;
       fooFunc: FunctionResolver<() => { a: number; b: string }>;
     }>;
+    expectAssignable<T>(fooFunc);
+  });
+
+  test("ResolverName resolves to factory name", () => {
+    function fooFunc() {
+      return { a: 123, b: "asd" };
+    }
+    type T = ResolverName<{
+      a: RawValueResolver<string>;
+      b: RawValueResolver<boolean>;
+      fooFunc: FactoryResolver<() => { a: number; b: string }>;
+    }>;
+
     expectAssignable<T>(fooFunc);
   });
 });

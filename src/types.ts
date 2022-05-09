@@ -1,11 +1,12 @@
 import ObjectResolver from "./resolvers/ObjectResolver";
 import FunctionResolver from "./resolvers/FunctionResolver";
 import DIContainer from "./DIContainer";
+import FactoryResolver from "./resolvers/FactoryResolver";
 
 export type AnyNamedResolvers = { [k: string]: DependencyResolver };
 
 export interface IDIContainer {
-  get: (dependencyName: string) => any;
+  get: (dependencyName: string | { name: string }) => any;
 }
 
 export type DependencyResolver<T extends any = any> = {
@@ -75,13 +76,24 @@ export type FetchFunctionsFromContainerResolvers<
     : never;
 }[keyof ContainerResolvers];
 
+export type FetchFactoriesFromContainerResolvers<
+  ContainerResolvers extends NamedResolvers = AnyNamedResolvers
+> = {
+  [P in keyof ContainerResolvers]: ContainerResolvers[P] extends FactoryResolver<
+    infer FT
+  >
+    ? FT
+    : never;
+}[keyof ContainerResolvers];
+
 export type ResolverName<
   ContainerResolvers extends NamedResolvers = AnyNamedResolvers
 > =
   | keyof ContainerResolvers
   | { name: keyof ContainerResolvers }
   | FetchClassesFromContainerResolvers<ContainerResolvers>
-  | FetchFunctionsFromContainerResolvers<ContainerResolvers>;
+  | FetchFunctionsFromContainerResolvers<ContainerResolvers>
+  | FetchFactoriesFromContainerResolvers<ContainerResolvers>;
 
 export type ParametersWithResolver<T extends (...args: any) => any> =
   T extends (...args: infer P) => any ? WrapWithResolver<P> : never;

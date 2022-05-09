@@ -3,35 +3,30 @@ import {
   FetchClassesFromContainerResolvers,
   FetchFactoriesFromContainerResolvers,
   FetchFunctionsFromContainerResolvers,
-  IDIContainer,
   ResolverName,
   ResolveUsingSelfType,
   TryResolveUsingExistingResolvers,
 } from "../../types";
-import { Bar, Foo } from "../fakeClasses";
+import { anyType, Bar, Foo } from "../fakeClasses";
 import { expectAssignable, expectNotAssignable, expectType } from "tsd";
 import RawValueResolver from "../../resolvers/RawValueResolver";
 import ObjectResolver from "../../resolvers/ObjectResolver";
 import FunctionResolver from "../../resolvers/FunctionResolver";
-import DIContainer from "../../DIContainer";
-import { factory } from "../../index";
 import FactoryResolver from "../../resolvers/FactoryResolver";
-
-const any = () => ({} as unknown as any);
 
 describe("ResolveUsingSelfType", () => {
   test("ResolveUsingSelfType when typeof class is provided", () => {
-    let a: ResolveUsingSelfType<typeof Bar> = any();
+    let a: ResolveUsingSelfType<typeof Bar> = anyType();
     expectType<Bar>(a);
   });
 
   test("ResolveUsingSelfType when typeof class is provided", () => {
-    let a: ResolveUsingSelfType<() => { a: 123; b: "string" }> = any();
+    let a: ResolveUsingSelfType<() => { a: 123; b: "string" }> = anyType();
     expectType<{ a: 123; b: "string" }>(a);
   });
 
   test("ResolveUsingSelfType when typeof class is provided", () => {
-    let a: ResolveUsingSelfType<() => { a: 123; b: "string" }> = any();
+    let a: ResolveUsingSelfType<() => { a: 123; b: "string" }> = anyType();
     expectType<{ a: 123; b: "string" }>(a);
   });
 });
@@ -133,10 +128,12 @@ describe("TryResolveUsingExistingResolvers", () => {
       b: RawValueResolver<Set<bigint>>;
     };
 
-    const a: TryResolveUsingExistingResolvers<"a", ExistingResolvers> = any();
+    const a: TryResolveUsingExistingResolvers<"a", ExistingResolvers> =
+      anyType();
     expectType<Date>(a);
 
-    const b: TryResolveUsingExistingResolvers<"b", ExistingResolvers> = any();
+    const b: TryResolveUsingExistingResolvers<"b", ExistingResolvers> =
+      anyType();
     expectType<Set<bigint>>(b);
 
     // @ts-ignore
@@ -148,7 +145,8 @@ describe("TryResolveUsingExistingResolvers", () => {
   });
 
   test("resolves any resolvers", () => {
-    const a: TryResolveUsingExistingResolvers<"a", AnyNamedResolvers> = any();
+    const a: TryResolveUsingExistingResolvers<"a", AnyNamedResolvers> =
+      anyType();
     expectType<any>(a);
   });
 });

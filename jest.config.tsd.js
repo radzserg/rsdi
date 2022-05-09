@@ -7,5 +7,5 @@ module.exports = {
         "fakeClasses.ts"
     ],
     runner: 'jest-runner-tsd',
-    testMatch: ['**/__typetests__/*.test.ts'],
+    testMatch: ['**/__typetests__/**/*.test.ts'],
 };

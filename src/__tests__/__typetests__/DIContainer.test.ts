@@ -34,9 +34,6 @@ describe("DIContainer typescript type resolution", () => {
     expectType<string>(container.get("key1"));
     const b: Boolean = (container as IDIContainer).get("key4");
     expectType<Boolean>(b);
-
-    // @todo fix me
-    expectType<Boolean>((container as IDIContainer).get<Boolean>("key4"));
   });
 
   test("if resolves type as class instance if class is provided", () => {

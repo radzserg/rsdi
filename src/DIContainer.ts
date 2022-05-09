@@ -12,16 +12,11 @@ import RawValueResolver from "./resolvers/RawValueResolver";
 import { CircularDependencyError, DependencyIsMissingError } from "./errors";
 import { definitionNameToString } from "./DefinitionName";
 
-type UnfoldContainerResolvers<C extends DIContainer<any>> =
-  C extends DIContainer<infer T> ? T : unknown;
-
-// UnfoldContainerResolvers<DIContainer<ContainerResolvers>>
-
 /**
  * Dependency injection container
  */
 export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
-  implements IDIContainer<ContainerResolvers>
+  implements IDIContainer
 {
   private resolvers: NamedResolvers = {};
   private resolved: {
@@ -34,12 +29,11 @@ export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
    * @param parentDeps - array of parent dependencies (used to detect circular dependencies)
    */
   public get<
-    UserDefinedType = void,
     Name extends ResolverName<ContainerResolvers> = ResolverName<ContainerResolvers>
   >(
     dependencyName: Name,
     parentDeps: string[] = []
-  ): ResolveDependencyType<UserDefinedType, ContainerResolvers, Name> {
+  ): ResolveDependencyType<ContainerResolvers, Name> {
     const name: string =
       definitionNameToString<ContainerResolvers>(dependencyName);
     if (!(name in this.resolvers)) {
@@ -53,7 +47,8 @@ export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
     }
 
     const definition: DependencyResolver = this.resolvers[name];
-    this.resolved[name] = definition.resolve(this, [...parentDeps, name]);
+    definition.setParentDependencies([...parentDeps, name]);
+    this.resolved[name] = definition.resolve(this);
     return this.resolved[name];
   }
 
@@ -89,13 +84,14 @@ export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
  * Resolves given function parameters
  */
 export function resolveFunctionParameters(
-  diContainer: IDIContainer,
+  diContainer: DIContainer,
   parameters: Array<DependencyResolver<any> | any> = [],
   parentDeps: string[] = []
 ) {
   return parameters.map((parameter: DependencyResolver<any> | any) => {
     if (parameter instanceof AbstractResolver) {
-      return parameter.resolve(diContainer, parentDeps);
+      parameter.setParentDependencies(parentDeps);
+      return parameter.resolve(diContainer);
     }
     return parameter;
   });

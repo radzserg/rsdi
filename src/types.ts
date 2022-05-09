@@ -1,23 +1,16 @@
 import ObjectResolver from "./resolvers/ObjectResolver";
 import FunctionResolver from "./resolvers/FunctionResolver";
+import DIContainer from "./DIContainer";
 
-export type AnyNamedResolvers = { [k: string]: DependencyResolver<any> };
+export type AnyNamedResolvers = { [k: string]: DependencyResolver };
 
-// @todo use different resolver for IDIContainer
-
-export interface IDIContainer<
-  ContainerResolvers extends NamedResolvers = AnyNamedResolvers
-> {
-  get: <
-    UserDefinedType = void,
-    Name extends ResolverName<ContainerResolvers> = ResolverName<ContainerResolvers>
-  >(
-    dependencyName: Name
-  ) => ResolveDependencyType<UserDefinedType, ContainerResolvers, Name>;
+export interface IDIContainer {
+  get: (dependencyName: string) => any;
 }
 
 export type DependencyResolver<T extends any = any> = {
-  resolve: (container: IDIContainer, parentDeps?: string[]) => T;
+  setParentDependencies: (parentDeps: string[]) => void;
+  resolve: (container: DIContainer) => T;
 };
 
 /**
@@ -137,11 +130,8 @@ export type TryResolveUsingExistingResolvers<
  *      instance of a class or function return type will be returned
  */
 export type ResolveDependencyType<
-  UserDefinedType = void,
   ExistingNamedResolvers extends NamedResolvers = NamedResolvers,
   Name extends ResolverName<ExistingNamedResolvers> = ResolverName<ExistingNamedResolvers>
 > = TryResolveUsingExistingResolvers<Name, ExistingNamedResolvers> extends never
-  ? UserDefinedType extends void
-    ? ResolveUsingSelfType<Name>
-    : UserDefinedType
+  ? ResolveUsingSelfType<Name>
   : TryResolveUsingExistingResolvers<Name, ExistingNamedResolvers>;

@@ -1,13 +1,16 @@
-import { DependencyResolver, IDIContainer } from "../types";
+import { DependencyResolver } from "../types";
+import DIContainer from "../DIContainer";
 
 /**
- * Keep AbstractResolver so we can use `if (dep instanceof AbstractResolver) ` checks
+ * Keep AbstractResolver, so we can use `if (dep instanceof AbstractResolver) ` checks
  */
 abstract class AbstractResolver<T = any> implements DependencyResolver<T> {
-  public abstract resolve: (
-    container: IDIContainer,
-    parentDeps?: string[]
-  ) => T;
+  protected parentDeps: string[] = [];
+  public abstract resolve: (container: DIContainer) => T;
+
+  public setParentDependencies(parentDeps: string[]): void {
+    this.parentDeps = parentDeps;
+  }
 }
 
 export default AbstractResolver;

@@ -3,11 +3,10 @@ import { InvalidConstructorError, MethodIsMissingError } from "../errors";
 import {
   ClassOf,
   DependencyResolver,
-  IDIContainer,
   MethodArgs,
   WrapWithResolver,
 } from "../types";
-import { resolveFunctionParameters } from "../DIContainer";
+import DIContainer, { resolveFunctionParameters } from "../DIContainer";
 
 interface IExtraMethods<I> {
   methodName: keyof I;
@@ -65,14 +64,11 @@ export default class ObjectResolver<T extends ClassOf<any>>
     return this;
   }
 
-  resolve = (
-    diContainer: IDIContainer,
-    parentDeps: string[] = []
-  ): InstanceType<T> => {
+  resolve = (diContainer: DIContainer): InstanceType<T> => {
     const constructorParameters = resolveFunctionParameters(
       diContainer,
       this.deps,
-      parentDeps
+      this.parentDeps
     );
     const object = new this.constructorFunction(...constructorParameters);
     this.methods.forEach((method: IExtraMethods<InstanceType<T>>) => {
@@ -86,7 +82,7 @@ export default class ObjectResolver<T extends ClassOf<any>>
       const resolvedArgs = resolveFunctionParameters(
         diContainer,
         args,
-        parentDeps
+        this.parentDeps
       );
       object[methodName](...resolvedArgs);
     });

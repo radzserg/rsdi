@@ -1,7 +1,7 @@
 import AbstractResolver from "./AbstractResolver";
 import { FactoryDefinitionError } from "../errors";
-import { IDIContainer, WrapWithResolver } from "../types";
-import { resolveFunctionParameters } from "../DIContainer";
+import { WrapWithResolver } from "../types";
+import DIContainer, { resolveFunctionParameters } from "../DIContainer";
 
 /**
  * FunctionResolver - allows to use custom function with specified parameters, where parameters are references to
@@ -26,11 +26,11 @@ export default class FunctionResolver<
     this.parameters = parameters;
   }
 
-  resolve = (container: IDIContainer, parentDeps?: string[]): ReturnType<T> => {
+  resolve = (container: DIContainer): ReturnType<T> => {
     const parameters = resolveFunctionParameters(
       container,
       this.parameters,
-      parentDeps
+      this.parentDeps
     );
     return this.func(...parameters);
   };

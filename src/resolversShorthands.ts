@@ -4,6 +4,7 @@ import ReferenceResolver from "./resolvers/ReferenceResolver";
 import FactoryResolver, { Factory } from "./resolvers/FactoryResolver";
 import { definitionNameToString } from "./DefinitionName";
 import {
+  AnyNamedResolvers,
   ClassOf,
   NamedResolvers,
   ResolveDependencyType,
@@ -36,13 +37,13 @@ export function diValue<T extends any = unknown>(value: T) {
  *
  */
 export function diUse<
-  Custom = void,
-  ExistingNamedResolvers extends NamedResolvers = NamedResolvers,
+  ExistingNamedResolvers extends NamedResolvers = AnyNamedResolvers,
   Name extends ResolverName<ExistingNamedResolvers> = ResolverName<ExistingNamedResolvers>
 >(definitionName: Name) {
-  return new ReferenceResolver<
-    ResolveDependencyType<Custom, ExistingNamedResolvers, Name>
-  >(definitionNameToString<ExistingNamedResolvers>(definitionName));
+  // <ExistingNamedResolvers, Name>
+  return new ReferenceResolver(
+    definitionNameToString<ExistingNamedResolvers>(definitionName)
+  );
 }
 
 /**

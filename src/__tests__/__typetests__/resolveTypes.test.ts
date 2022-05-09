@@ -7,12 +7,7 @@ import {
   TryResolveUsingExistingResolvers,
 } from "../../types";
 import { Bar, Foo } from "../fakeClasses";
-import {
-  expectAssignable,
-  expectNotAssignable,
-  expectType,
-  printType,
-} from "tsd";
+import { expectAssignable, expectNotAssignable, expectType } from "tsd";
 import RawValueResolver from "../../resolvers/RawValueResolver";
 import ObjectResolver from "../../resolvers/ObjectResolver";
 import FunctionResolver from "../../resolvers/FunctionResolver";
@@ -127,9 +122,3 @@ describe("TryResolveUsingExistingResolvers", () => {
     expectType<any>(a);
   });
 });
-
-// describe("ResolveDependencyType", () => {
-//   test("ResolveDependencyType resolves to custom user type when container resolvers are not defined", () => {
-//     type T = ResolveDependencyType2<Boolean, AnyNamedResolvers, string>;
-//   });
-// });

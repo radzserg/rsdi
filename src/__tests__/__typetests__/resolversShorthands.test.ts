@@ -8,7 +8,7 @@ import {
   diUse,
   diValue,
 } from "../../resolversShorthands";
-import { expectNotType, expectType } from "tsd";
+import { expectType } from "tsd";
 import { DependencyResolver } from "../../types";
 import FactoryResolver from "../../resolvers/FactoryResolver";
 
@@ -17,10 +17,10 @@ describe("definitionBuilders respects typescript types", () => {
 
   test("it overrides default resolved type", () => {
     container.add({ key1: new RawValueResolver(22) });
-    const definition: DependencyResolver<string> = diUse<string>("key1");
+    const definition: DependencyResolver<string> = diUse("key1");
     expectType<string>(definition.resolve(container));
 
-    const definition2: DependencyResolver<Bar> = diUse<Bar>("key1");
+    const definition2: DependencyResolver<Bar> = diUse("key1");
     expectType<Bar>(definition2.resolve(container));
   });
 

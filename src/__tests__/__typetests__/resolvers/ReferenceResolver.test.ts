@@ -1,0 +1,3 @@
+describe("ReferenceResolver types", () => {
+  test("", () => {});
+});

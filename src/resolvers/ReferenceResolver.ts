@@ -1,25 +1,31 @@
 import AbstractResolver from "./AbstractResolver";
 import DIContainer from "../DIContainer";
-import { IDIContainer } from "../types";
+import {
+  AnyNamedResolvers,
+  NamedResolvers,
+  ResolveDependencyType,
+  ResolverName,
+} from "../types";
 
 /**
  * Refers to existing definition. i.e. definition with provided name must exists in DIContainer
  */
-export default class ReferenceResolver<T = any> extends AbstractResolver<T> {
-  private readonly existingDefinitionName: string;
+export default class ReferenceResolver<
+  ExistingNamedResolvers extends NamedResolvers = AnyNamedResolvers,
+  Name extends ResolverName<ExistingNamedResolvers> = ResolverName<ExistingNamedResolvers>
+> extends AbstractResolver<
+  ResolveDependencyType<ExistingNamedResolvers, Name>
+> {
+  private readonly existingDefinitionName: Name;
 
-  constructor(existingDefinitionName: string) {
+  constructor(existingDefinitionName: Name) {
     super();
     this.existingDefinitionName = existingDefinitionName;
   }
 
-  resolve = <Y extends T>(
-    container: IDIContainer,
-    parentDeps: string[] = []
-  ): Y => {
-    return (container as DIContainer).get(
-      this.existingDefinitionName,
-      parentDeps
-    );
+  resolve = (
+    container: DIContainer<ExistingNamedResolvers>
+  ): ResolveDependencyType<ExistingNamedResolvers, Name> => {
+    return container.get(this.existingDefinitionName, this.parentDeps);
   };
 }

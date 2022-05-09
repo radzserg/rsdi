@@ -1,6 +1,7 @@
 import AbstractResolver from "./AbstractResolver";
 import { FactoryDefinitionError } from "../errors";
 import { IDIContainer } from "../types";
+import DIContainer from "../DIContainer";
 
 export type Factory = (container: IDIContainer) => any;
 
@@ -20,7 +21,7 @@ export default class FactoryResolver<
     this.factory = factory;
   }
 
-  resolve = (container: IDIContainer): ReturnType<T> => {
-    return this.factory(container);
+  resolve = (container: DIContainer): ReturnType<T> => {
+    return this.factory(container as IDIContainer);
   };
 }

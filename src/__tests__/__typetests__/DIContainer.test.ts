@@ -2,7 +2,7 @@ import DIContainer from "../../DIContainer";
 import { Bar, Foo } from "../fakeClasses";
 import { expectNotType, expectType } from "tsd";
 import ObjectResolver from "../../resolvers/ObjectResolver";
-import { factory, func, IDIContainer, use } from "../../index";
+import { factory, func, IDIContainer, object, use } from "../../index";
 import { diUse } from "../../resolversShorthands";
 import { ConvertToDefinedDependencies } from "../../types";
 
@@ -81,7 +81,7 @@ describe("DIContainer typescript type resolution", () => {
     expectType<Foo>(resolvedFactory);
   });
 
-  test("if correctly resolves container.get inside factory", () => {
+  test("it correctly resolves container.get inside factory", () => {
     const container: DIContainer = new DIContainer();
     function myFactory(bar: Bar) {
       return { a: bar.buzz() };
@@ -98,25 +98,17 @@ describe("DIContainer typescript type resolution", () => {
     expectType<string>(a);
   });
 
-  test("use can accept only known properties", () => {
+  test("it correctly resolves container.get function", () => {
     const container: DIContainer = new DIContainer();
     container.add({
-      a: "a",
-      b: "b",
-      concat: func(
-        function (a: string, b: string) {
-          return a + b;
-        },
-        use("a"),
-        use("b")
-      ),
+      str: "hooray",
+      bar: object(Bar),
     });
-
-    let b: keyof ConvertToDefinedDependencies<{
-      a: string;
-      b: number;
-    }> = {} as unknown as any;
-
-    // let b = test(container);
+    expectType<string>(container.get("str"));
+    expectType<Bar>(container.get("bar"));
+    container.add({
+      foo: object(Foo).construct("bla", container.get("bar")),
+    });
+    expectType<Foo>(container.get("foo"));
   });
 });

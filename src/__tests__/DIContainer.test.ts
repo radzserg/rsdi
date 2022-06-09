@@ -74,6 +74,17 @@ describe("DIContainer adds resolvers", () => {
     container.add({ key2: "value2" });
     expect(container.get("key2")).toEqual("value2");
   });
+
+  test("if can use container .get function", () => {
+    const container: DIContainer = new DIContainer();
+    container.add({
+      bar: object(Bar),
+    });
+    container.add({
+      foo: object(Foo).construct("bla", container.get("bar")),
+    });
+    expect(container.get("foo")).toBeInstanceOf(Foo);
+  });
 });
 
 describe("DIContainer resolution", () => {

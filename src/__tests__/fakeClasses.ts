@@ -3,9 +3,15 @@ export class Foo {
   public service: Bar;
   public items: string[] = [];
 
-  constructor(name: string, service: Bar) {
+  constructor(name: string, bar: Bar) {
     this.name = name;
-    this.service = service;
+    if (!name) {
+      throw new Error("Name is missing");
+    }
+    if (!bar) {
+      throw new Error("Bar is missing");
+    }
+    this.service = bar;
   }
 
   addItem(item: string) {

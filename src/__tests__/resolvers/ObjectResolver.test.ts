@@ -38,6 +38,7 @@ describe(ObjectResolver.name, () => {
 
   test("it calls methods after object have been initiated", () => {
     const definition = new ObjectResolver(Foo)
+      .construct("string", new Bar())
       .method("addItem", "item1")
       .method("addItem", "item2");
     const instance = definition.resolve(container);
@@ -46,14 +47,14 @@ describe(ObjectResolver.name, () => {
   });
 
   test("it throws an error if method does not exist", () => {
-    const definition = new ObjectResolver(Foo).method(
-      // @ts-ignore rsdi identifies incorrect method
+    const definition = new ObjectResolver(Bar).method(
       "undefinedMethod",
+      // @ts-ignore rsdi identifies incorrect method
       "item1"
     );
     expect(() => {
       definition.resolve(container);
-    }).toThrow(new MethodIsMissingError("Foo", "undefinedMethod"));
+    }).toThrow(new MethodIsMissingError("Bar", "undefinedMethod"));
   });
 
   test.each([[undefined], [() => {}], ["abc"]])(
@@ -67,7 +68,9 @@ describe(ObjectResolver.name, () => {
 
   test("it resolves deps while calling method", () => {
     container.add({ key1: "value1" });
-    const definition = new ObjectResolver(Foo).method("addItem", use("key1"));
+    const definition = new ObjectResolver(Foo)
+      .construct("str", new Bar())
+      .method("addItem", use("key1"));
     const instance = definition.resolve(container);
     expect(instance.items).toEqual(["value1"]);
   });

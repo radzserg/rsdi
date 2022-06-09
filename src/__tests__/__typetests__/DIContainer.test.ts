@@ -62,7 +62,7 @@ describe("DIContainer typescript type resolution", () => {
       return { a: 123 };
     }
     container.add({
-      myFactory: factory((container: IDIContainer) => {
+      myFactory: factory(() => {
         return myFactory();
       }),
     });
@@ -72,6 +72,7 @@ describe("DIContainer typescript type resolution", () => {
 
   test("if resolves type for diUse to match constructor parameters", () => {
     const container: DIContainer = new DIContainer();
+    let a = diUse(Bar);
     container.add({
       Bar: new Bar(),
       Foo: new ObjectResolver(Foo).construct("some string", diUse(Bar)),

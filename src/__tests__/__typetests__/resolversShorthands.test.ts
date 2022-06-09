@@ -11,17 +11,18 @@ import {
 import { expectType } from "tsd";
 import { DependencyResolver } from "../../types";
 import FactoryResolver from "../../resolvers/FactoryResolver";
+import { expectAssignable } from "tsd/dist/lib/assertions/assert";
 
 describe("definitionBuilders respects typescript types", () => {
   let container: DIContainer;
 
   test("it overrides default resolved type", () => {
     container.add({ key1: new RawValueResolver(22) });
-    const definition: DependencyResolver<string> = diUse("key1");
-    expectType<string>(definition.resolve(container));
+    const definition = diUse("key1");
+    expectAssignable<string>(definition.resolve(container));
 
-    const definition2: DependencyResolver<Bar> = diUse("key1");
-    expectType<Bar>(definition2.resolve(container));
+    const definition2 = diUse("key1");
+    expectAssignable<Bar>(definition2.resolve(container));
   });
 
   test("diGet resolves type as function return type based on function name", () => {
@@ -29,9 +30,18 @@ describe("definitionBuilders respects typescript types", () => {
       return { b: 123 };
     }
     container.add({ customFunction: new FactoryResolver(customFunction) });
-    const definition: DependencyResolver<{ b: number }> = diUse(customFunction);
+    const definition = diUse(customFunction);
     const { b } = definition.resolve(container);
     expectType<number>(b);
+  });
+
+  test("diGet resolves type based on existing resolvers", () => {
+    type ExistingResolvers = {
+      b: RawValueResolver<boolean>;
+    };
+    const definition = diUse<ExistingResolvers, "b">("b");
+    const value = definition.resolve(container);
+    expectType<boolean>(value);
   });
 
   test("diValue 'resolve' returns scalar", () => {

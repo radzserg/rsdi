@@ -6,14 +6,13 @@ import { definitionNameToString } from "./DefinitionName";
 import {
   AnyNamedResolvers,
   ClassOf,
+  DependencyResolver,
   NamedResolvers,
   ResolveDependencyType,
   ResolverName,
   WrapWithResolver,
 } from "./types";
 import FunctionResolver from "./resolvers/FunctionResolver";
-
-// shorthands for Definition classes
 
 /**
  * ObjectDefinition creates objects from the provided class.
@@ -32,18 +31,24 @@ export function diValue<T extends any = unknown>(value: T) {
 }
 
 /**
- * Refers to existing definition. i.e. definition with provided name must exists in DIContainer
+ * Refers to existing definition. i.e. definition with provided name must exist in DIContainer.
+ * Fallback to self type
+ *
  * @param definitionName
  *
  */
 export function diUse<
   ExistingNamedResolvers extends NamedResolvers = AnyNamedResolvers,
   Name extends ResolverName<ExistingNamedResolvers> = ResolverName<ExistingNamedResolvers>
->(definitionName: Name) {
-  // <ExistingNamedResolvers, Name>
-  return new ReferenceResolver(
-    definitionNameToString<ExistingNamedResolvers>(definitionName)
-  );
+>(
+  definitionName: Name
+): DependencyResolver<ResolveDependencyType<ExistingNamedResolvers, Name>> {
+  const dependencyName = definitionNameToString<ExistingNamedResolvers>(
+    definitionName
+  ) as Name;
+  return new ReferenceResolver<ExistingNamedResolvers, Name>(
+    dependencyName
+  ) as any;
 }
 
 /**

@@ -11,6 +11,7 @@ import AbstractResolver from "./resolvers/AbstractResolver";
 import RawValueResolver from "./resolvers/RawValueResolver";
 import { CircularDependencyError, DependencyIsMissingError } from "./errors";
 import { definitionNameToString } from "./DefinitionName";
+import ReferenceResolver from "./resolvers/ReferenceResolver";
 
 /**
  * Dependency injection container
@@ -19,7 +20,7 @@ export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
   implements IDIContainer
 {
   private resolvers: NamedResolvers = {};
-  private resolved: {
+  private resolvedDependencies: {
     [name: string]: any;
   } = {};
 
@@ -43,14 +44,20 @@ export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
     if (parentDeps.includes(name)) {
       throw new CircularDependencyError(name, parentDeps);
     }
-    if (this.resolved[name] !== undefined) {
-      return this.resolved[name];
+    if (this.resolvedDependencies[name] !== undefined) {
+      return this.resolvedDependencies[name];
     }
 
     const definition: DependencyResolver = this.resolvers[name];
     definition.setParentDependencies([...parentDeps, name]);
-    this.resolved[name] = definition.resolve(this);
-    return this.resolved[name];
+    this.resolvedDependencies[name] = definition.resolve(this);
+    return this.resolvedDependencies[name];
+  }
+
+  public use<
+    Name extends ResolverName<ContainerResolvers> = ResolverName<ContainerResolvers>
+  >(dependencyName: Name) {
+    return new ReferenceResolver<ContainerResolvers, Name>(dependencyName);
   }
 
   /**

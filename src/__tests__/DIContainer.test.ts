@@ -9,7 +9,7 @@ describe("DIContainer adds resolvers", () => {
   test("it adds and resolves resolvers", () => {
     const container: DIContainer = new DIContainer();
     const resolvers = {
-      foo: new ObjectResolver(Foo),
+      foo: new ObjectResolver(Foo).construct("foo", new Bar()),
       key1: new RawValueResolver("value1"),
     };
     container.add(resolvers);

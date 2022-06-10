@@ -6,6 +6,20 @@ import { factory, func, IDIContainer, object, use } from "../index";
 import { DependencyIsMissingError } from "../errors";
 
 describe("DIContainer adds resolvers", () => {
+  test("it uses use inside add", () => {
+    const container: DIContainer = new DIContainer();
+
+    container.add({
+      bar: new ObjectResolver(Bar),
+      key1: new RawValueResolver("value1"),
+    });
+    container.add({
+      foo: new ObjectResolver(Foo).construct("foo", container.use("bar")),
+    });
+    const foo = container.get("foo");
+    expect(foo).toBeInstanceOf(Foo);
+  });
+
   test("it adds and resolves resolvers", () => {
     const container: DIContainer = new DIContainer();
     const resolvers = {

@@ -6,8 +6,9 @@ import { FactoryDefinitionError } from "../../errors";
 describe(FactoryResolver.name, () => {
   test("it throw an error when factory is not a function", () => {
     expect(() => {
-      // @ts-ignore
-      new FactoryResolver({});
+      new FactoryResolver(() => {
+        return `srt`;
+      });
     }).toThrow(new FactoryDefinitionError());
   });
 

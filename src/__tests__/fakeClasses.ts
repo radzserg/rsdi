@@ -1,3 +1,9 @@
+export class Bar {
+  public buzz() {
+    return "buzz";
+  }
+}
+
 export class Foo {
   public name: string;
   public service: Bar;
@@ -16,12 +22,6 @@ export class Foo {
 
   addItem(item: string) {
     this.items.push(item);
-  }
-}
-
-export class Bar {
-  public buzz() {
-    return "buzz";
   }
 }
 

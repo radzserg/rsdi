@@ -3,8 +3,6 @@ import FunctionResolver from "./resolvers/FunctionResolver";
 import DIContainer from "./DIContainer";
 import FactoryResolver from "./resolvers/FactoryResolver";
 
-export type AnyNamedResolvers = { [k: string]: DependencyResolver };
-
 export interface IDIContainer {
   get: (dependencyName: string | { name: string }) => any;
 }
@@ -13,6 +11,8 @@ export type DependencyResolver<T extends any = any> = {
   setParentDependencies: (parentDeps: string[]) => void;
   resolve: (container: DIContainer) => T;
 };
+
+export type AnyNamedResolvers = { [k: string]: DependencyResolver };
 
 /**
  * Resolvers map
@@ -53,6 +53,10 @@ type Resolve<N extends DependencyResolver> = N extends {
 }
   ? R
   : never;
+
+export interface ClassOf<C extends Object> {
+  new (...args: any[]): C;
+}
 
 export type FetchClassesFromContainerResolvers<
   ContainerResolvers extends NamedResolvers = AnyNamedResolvers
@@ -97,10 +101,6 @@ export type ResolverName<
 
 export type ParametersWithResolver<T extends (...args: any) => any> =
   T extends (...args: infer P) => any ? WrapWithResolver<P> : never;
-
-export interface ClassOf<C extends Object> {
-  new (...args: any[]): C;
-}
 
 export type MethodArgs<
   T extends ClassOf<any>,

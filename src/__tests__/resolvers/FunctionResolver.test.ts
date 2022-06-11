@@ -1,7 +1,6 @@
 import FunctionResolver from "../../resolvers/FunctionResolver";
 import { diUse } from "../../resolversShorthands";
 import DIContainer from "../../DIContainer";
-import { IDIContainer } from "../../types";
 
 describe(FunctionResolver.name, () => {
   test("it lazy resolves function lazily", () => {
@@ -31,7 +30,7 @@ describe(FunctionResolver.name, () => {
     class Task {}
     function createProcessTask(logger: Logger) {
       return (task: Task) => {
-        logger.info("Finished ${task.id}");
+        logger.info(`Finished`);
         return "Done";
       };
     }

@@ -16,17 +16,17 @@ import FactoryResolver from "../../resolvers/FactoryResolver";
 
 describe("ResolveUsingSelfType", () => {
   test("ResolveUsingSelfType when typeof class is provided", () => {
-    let a: ResolveUsingSelfType<typeof Bar> = anyType();
+    const a: ResolveUsingSelfType<typeof Bar> = anyType();
     expectType<Bar>(a);
   });
 
   test("ResolveUsingSelfType when typeof class is provided", () => {
-    let a: ResolveUsingSelfType<() => { a: 123; b: "string" }> = anyType();
+    const a: ResolveUsingSelfType<() => { a: 123; b: "string" }> = anyType();
     expectType<{ a: 123; b: "string" }>(a);
   });
 
   test("ResolveUsingSelfType when typeof class is provided", () => {
-    let a: ResolveUsingSelfType<() => { a: 123; b: "string" }> = anyType();
+    const a: ResolveUsingSelfType<() => { a: 123; b: "string" }> = anyType();
     expectType<{ a: 123; b: "string" }>(a);
   });
 });

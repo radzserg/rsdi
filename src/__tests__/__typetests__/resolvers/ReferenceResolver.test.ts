@@ -7,14 +7,14 @@ import ObjectResolver from "../../../resolvers/ObjectResolver";
 
 describe("ReferenceResolver types", () => {
   test("Return any type if existing dependencies are not set", () => {
-    let resolver: ReferenceResolver = anyType();
-    let value = resolver.resolve(anyType() as DIContainer);
+    const resolver: ReferenceResolver = anyType();
+    const value = resolver.resolve(anyType() as DIContainer);
     expectType<any>(value);
   });
 
   test("Return specified type if existing dependencies are not set", () => {
-    let resolver: ReferenceResolver = anyType();
-    let value: boolean = resolver.resolve(anyType() as DIContainer);
+    const resolver: ReferenceResolver = anyType();
+    const value: boolean = resolver.resolve(anyType() as DIContainer);
     expectType<boolean>(value);
   });
 
@@ -25,12 +25,13 @@ describe("ReferenceResolver types", () => {
       foo: ObjectResolver<typeof Foo>;
     };
 
-    let bResolver: ReferenceResolver<ExistingDependencies, "b"> = anyType();
-    let bValue = bResolver.resolve(anyType() as DIContainer<{}>);
+    const bResolver: ReferenceResolver<ExistingDependencies, "b"> = anyType();
+    const bValue = bResolver.resolve(anyType() as DIContainer<{}>);
     expectType<boolean>(bValue);
 
-    let fooResolver: ReferenceResolver<ExistingDependencies, "foo"> = anyType();
-    let fooValue = fooResolver.resolve(anyType() as DIContainer<{}>);
+    const fooResolver: ReferenceResolver<ExistingDependencies, "foo"> =
+      anyType();
+    const fooValue = fooResolver.resolve(anyType() as DIContainer<{}>);
     expectType<Foo>(fooValue);
   });
 });

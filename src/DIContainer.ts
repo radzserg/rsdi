@@ -70,7 +70,7 @@ export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
   ): asserts this is DIContainer<
     ContainerResolvers & ConvertToDefinedDependencies<N>
   > {
-    Object.keys(resolvers).map((name: string) => {
+    Object.keys(resolvers).forEach((name: string) => {
       this.addResolver(name, resolvers[name]);
     });
   }

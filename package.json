@@ -1,41 +1,48 @@
 {
-    "name": "rsdi",
-    "version": "2.1.2",
-    "description": "Simple dependency injection container for JavaScript/TypeScript",
-    "scripts": {
-        "test": "jest",
-        "test:types": "jest -c jest.config.tsd.js",
-        "format": "prettier 'src/**/*.ts' --write",
-        "build": "tsc",
-        "build-prod": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json && cp README.md package.json dist/",
-        "pre-commit": "lint-staged"
-    },
-    "keywords": [
-        "dependency injection",
-        "dependency",
-        "injection",
-        "ioc",
-        "container",
-        "javascript",
-        "typescript"
-    ],
-    "homepage": "https://github.com/radzserg/rsdi",
-    "author": "Sergey Radzishevskii <radzserg@gmail.com>",
-    "license": "ISC",
-    "lint-staged": {
-        "src/**/*.ts": "prettier --write --ignore-unknown"
-    },
-    "devDependencies": {
-        "@tsd/typescript": "^4.6.4",
-        "@types/jest": "^27.5.0",
-        "husky": "^7.0.2",
-        "jest": "^28.0.3",
-        "jest-runner-tsd": "^3.0.0",
-        "lint-staged": "^11.2.0",
-        "prettier": "^2.6.2",
-        "ts-jest": "^28.0.1",
-        "tsd": "^0.20.0",
-        "typescript": "^4.6.4"
-    },
-    "dependencies": {}
+  "name": "rsdi",
+  "version": "2.1.2",
+  "description": "Simple dependency injection container for JavaScript/TypeScript",
+  "scripts": {
+    "test": "jest",
+    "test:types": "jest -c jest.config.tsd.js",
+    "format": "prettier 'src/**/*.ts' --write",
+    "build": "tsc",
+    "build-prod": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json && cp README.md package.json dist/",
+    "pre-commit": "lint-staged"
+  },
+  "keywords": [
+    "dependency injection",
+    "dependency",
+    "injection",
+    "ioc",
+    "container",
+    "javascript",
+    "typescript"
+  ],
+  "homepage": "https://github.com/radzserg/rsdi",
+  "author": "Sergey Radzishevskii <radzserg@gmail.com>",
+  "license": "ISC",
+  "lint-staged": {
+    "src/**/*.ts": "prettier --write --ignore-unknown"
+  },
+  "devDependencies": {
+    "@tsd/typescript": "^4.6.4",
+    "@types/jest": "^27.5.0",
+    "@typescript-eslint/eslint-plugin": "^5.27.1",
+    "eslint": "^8.17.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-config-standard-with-typescript": "^21.0.1",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^6.0.0",
+    "husky": "^7.0.2",
+    "jest": "^28.0.3",
+    "jest-runner-tsd": "^3.0.0",
+    "lint-staged": "^11.2.0",
+    "prettier": "^2.6.2",
+    "ts-jest": "^28.0.1",
+    "tsd": "^0.20.0",
+    "typescript": "^4.6.4"
+  },
+  "dependencies": {}
 }

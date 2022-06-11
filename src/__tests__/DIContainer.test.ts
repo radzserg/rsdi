@@ -1,3 +1,5 @@
+/* eslint-disable no-useless-constructor */
+
 import { Bar, Foo } from "./fakeClasses";
 import DIContainer from "../DIContainer";
 import ObjectResolver from "../resolvers/ObjectResolver";
@@ -243,6 +245,7 @@ describe("DIContainer async behaviour", () => {
       async init() {
         this.dbConnection = await this.dbConnectionPromise;
       }
+
       async findUser() {
         await this.init();
         const dbConnection = this.dbConnection;

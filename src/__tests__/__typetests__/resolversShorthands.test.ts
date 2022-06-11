@@ -9,7 +9,6 @@ import {
   diValue,
 } from "../../resolversShorthands";
 import { expectType } from "tsd";
-import { DependencyResolver } from "../../types";
 import FactoryResolver from "../../resolvers/FactoryResolver";
 import { expectAssignable } from "tsd/dist/lib/assertions/assert";
 

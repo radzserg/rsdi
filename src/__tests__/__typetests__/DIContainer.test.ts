@@ -2,9 +2,8 @@ import DIContainer from "../../DIContainer";
 import { Bar, Foo } from "../fakeClasses";
 import { expectNotType, expectType } from "tsd";
 import ObjectResolver from "../../resolvers/ObjectResolver";
-import { factory, func, IDIContainer, object, use } from "../../index";
+import { factory, func, IDIContainer, object } from "../../index";
 import { diUse } from "../../resolversShorthands";
-import { ConvertToDefinedDependencies } from "../../types";
 
 describe("DIContainer typescript type resolution", () => {
   test("if resolves type as given raw values", () => {
@@ -52,7 +51,7 @@ describe("DIContainer typescript type resolution", () => {
     container.add({
       myFactory: func(myFactory),
     });
-    let { a } = container.get(myFactory);
+    const { a } = container.get(myFactory);
     expectType<number>(a);
   });
 
@@ -66,18 +65,17 @@ describe("DIContainer typescript type resolution", () => {
         return myFactory();
       }),
     });
-    let { a } = container.get(myFactory);
+    const { a } = container.get(myFactory);
     expectType<number>(a);
   });
 
   test("if resolves type for diUse to match constructor parameters", () => {
     const container: DIContainer = new DIContainer();
-    let a = diUse(Bar);
     container.add({
       Bar: new Bar(),
       Foo: new ObjectResolver(Foo).construct("some string", diUse(Bar)),
     });
-    let resolvedFactory = container.get(Foo);
+    const resolvedFactory = container.get(Foo);
     expectType<Foo>(resolvedFactory);
   });
 

@@ -4,6 +4,9 @@ import { expectNotType, expectType } from "tsd";
 import ObjectResolver from "../../resolvers/ObjectResolver";
 import { factory, func, IDIContainer, object } from "../../index";
 import { diUse } from "../../resolversShorthands";
+import RawValueResolver from "../../resolvers/RawValueResolver";
+import ReferenceResolver from "../../resolvers/ReferenceResolver";
+import { ConvertToDefinedDependencies } from "../../types";
 
 describe("DIContainer typescript type resolution", () => {
   test("if resolves type as given raw values", () => {
@@ -108,5 +111,35 @@ describe("DIContainer typescript type resolution", () => {
       foo: object(Foo).construct("bla", container.get("bar")),
     });
     expectType<Foo>(container.get("foo"));
+  });
+
+  test("it resolves type for use", () => {
+    const container: DIContainer = new DIContainer();
+
+    container.add({
+      bar: new ObjectResolver(Bar),
+      key1: new RawValueResolver("value1"),
+    });
+
+    type ExistingDeps = ConvertToDefinedDependencies<{
+      bar: ObjectResolver<typeof Bar>;
+      key1: RawValueResolver<string>;
+    }>;
+
+    expectType<ReferenceResolver<ExistingDeps, "bar">>(container.use("bar"));
+    const bar = container.use("bar").resolve(container);
+    expectType<Bar>(bar);
+
+    container.add({
+      foo: new ObjectResolver(Foo).construct("foo", container.use("bar")),
+    });
+    expectType<
+      ReferenceResolver<
+        ExistingDeps & { foo: ObjectResolver<typeof Foo> },
+        "foo"
+      >
+    >(container.use("foo"));
+    const foo = container.use("foo").resolve(container);
+    expectType<Foo>(foo);
   });
 });

@@ -1,22 +1,20 @@
 {
-  "compilerOptions": {
-    "declaration": true,
-    "outDir": "./dist/",
-    "module": "es6",
-    "target": "es6",
-    "sourceMap": true,
-    "noImplicitAny": true,
-    "esModuleInterop": true,
-    "moduleResolution": "node",
-    "allowJs": false,
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "baseUrl": "src",
-    "paths": {
-      "src/*": [
-        "src/*"
-      ]
-    }
-  },
-  "include": ["src", "declarations.d.ts"],
-  "exclude": ["node_modules"]
+    "compilerOptions": {
+        "declaration": true,
+        "outDir": "./dist/",
+        "module": "es6",
+        "target": "es6",
+        "sourceMap": true,
+        "noImplicitAny": true,
+        "esModuleInterop": true,
+        "moduleResolution": "node",
+        "allowJs": false,
+        "lib": ["dom", "dom.iterable", "esnext"],
+        "baseUrl": "src",
+        "paths": {
+            "src/*": ["src/*"]
+        }
+    },
+    "include": ["src", "declarations.d.ts"],
+    "exclude": ["node_modules"]
 }

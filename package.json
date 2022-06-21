@@ -1,5 +1,5 @@
 {
-  "name": "rsdi",
+  "name": "ts-injecty",
   "version": "1.0.9",
   "description": "dependency injection container",
   "scripts": {
@@ -14,8 +14,8 @@
     "dic",
     "injector"
   ],
-  "homepage": "https://github.com/radzserg/rsdi",
-  "author": "Sergey Radzishevskii <radzserg@gmail.com>",
+  "homepage": "https://github.com/damianpumar/rsdi",
+  "author": "Damián Pumar <damianpumar@gmail.com>",
   "license": "ISC",
   "devDependencies": {
     "@types/jest": "^25.2.1",

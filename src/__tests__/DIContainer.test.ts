@@ -1,11 +1,11 @@
-import DIContainer from "container/DIContainer";
-import ObjectDefinition from "definitions/ObjectDefinition";
-import ValueDefinition from "definitions/ValueDefinition";
-import DependencyIsMissingError from "errors/DependencyIsMissingError";
-import { Mode } from "definitions/BaseDefinition";
+import DIContainer, { IDIContainer } from "../container/DIContainer";
+import ObjectDefinition from "../definitions/ObjectDefinition";
+import ValueDefinition from "../definitions/ValueDefinition";
+import DependencyIsMissingError from "../errors/DependencyIsMissingError";
+import { Mode } from "../definitions/BaseDefinition";
+import { factory, get, object } from "../definitions/definitionBuilders";
 
 import { Foo } from "./fakeClasses";
-import { factory, get, object } from "definitions/definitionBuilders";
 
 describe("DIContainer", () => {
     test("it adds and resolves definitions", () => {
@@ -119,7 +119,7 @@ describe("DIContainer", () => {
         container.addDefinition("dsn", new ValueDefinition("DSN-secret"));
         container.addDefinition(
             "dbConnection",
-            factory((container: DIContainer) => {
+            factory((container: IDIContainer) => {
                 return new Promise((resolve) =>
                     setTimeout(() => {
                         resolve(container.get("dsn"));

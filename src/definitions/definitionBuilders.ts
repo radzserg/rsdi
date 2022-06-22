@@ -1,5 +1,5 @@
-import ObjectDefinition, { Type } from "../definitions/ObjectDefinition";
-import ValueDefinition from "../definitions/ValueDefinition";
+import ObjectDefinition, { Type } from "./ObjectDefinition";
+import ValueDefinition from "./ValueDefinition";
 import { Mode } from "./BaseDefinition";
 import ExistingDefinition from "./ExistingDefinition";
 import FactoryDefinition, { Factory } from "./FactoryDefinition";

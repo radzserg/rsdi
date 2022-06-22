@@ -4,11 +4,8 @@ import { IDIContainer } from "../container/DIContainer";
 export type Factory = (container: IDIContainer) => any;
 
 export default class FactoryDefinition extends BaseDefinition {
-    private readonly factory: Factory;
-
-    constructor(factory: Factory) {
+    constructor(private readonly factory: Factory) {
         super(Mode.SINGLETON);
-        this.factory = factory;
     }
 
     resolve<T>(container: IDIContainer): T {

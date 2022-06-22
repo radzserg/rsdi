@@ -1,5 +1,5 @@
 import DIContainer from "./container/DIContainer";
-import { get, object, value } from "./definitions/definitionBuilders";
+import { get, object, value } from "./definitions/DefinitionBuilders";
 import { Dependency } from "./definitions/Dependency";
 
 type ObjectType<T> = { new (...args: any[]): T };

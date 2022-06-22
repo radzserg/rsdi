@@ -1,8 +1,9 @@
-import DIContainer, { IDIContainer } from "container/DIContainer";
-import ObjectDefinition from "definitions/ObjectDefinition";
-import ValueDefinition from "definitions/ValueDefinition";
-import { factory, get, object } from "definitions/definitionBuilders";
-import { Bar, Foo } from "__tests__/fakeClasses";
+import DIContainer from "../../container/DIContainer";
+import ObjectDefinition from "../ObjectDefinition";
+import ValueDefinition from "../ValueDefinition";
+import { factory, get, object } from "../definitionBuilders";
+
+import { Bar, Foo } from "../../__tests__/fakeClasses";
 
 describe("definitionBuilders", () => {
     const container = new DIContainer();

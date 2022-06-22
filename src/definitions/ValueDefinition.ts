@@ -1,11 +1,8 @@
 import BaseDefinition, { Mode } from "./BaseDefinition";
 
 export default class ValueDefinition extends BaseDefinition {
-    private readonly value: any;
-
-    constructor(value: any) {
+    constructor(private readonly value: any) {
         super(Mode.SINGLETON);
-        this.value = value;
     }
 
     resolve<T>(): T {

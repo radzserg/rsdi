@@ -1,10 +1,10 @@
-import { Bar, Buzz, Foo, FooChild } from "../../__tests__/fakeClasses";
-
 import ObjectDefinition from "../ObjectDefinition";
 import MethodIsMissingError from "../../errors/MethodIsMissingError";
 import InvalidConstructorError from "../../errors/InvalidConstructorError";
 import DIContainer from "../../container/DIContainer";
-import { get } from "definitions/definitionBuilders";
+import { get } from "../../definitions/definitionBuilders";
+
+import { Bar, Buzz, Foo, FooChild } from "../../__tests__/fakeClasses";
 
 describe("ObjectDefinition", () => {
     const container = new DIContainer();

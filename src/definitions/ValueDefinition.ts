@@ -8,7 +8,7 @@ export default class ValueDefinition extends BaseDefinition {
         this.value = value;
     }
 
-    resolve = <T>(): T => {
+    resolve<T>(): T {
         return this.value as T;
-    };
+    }
 }

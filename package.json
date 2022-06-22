@@ -1,6 +1,6 @@
 {
   "name": "ts-injecty",
-  "version": "1.0.2",
+  "version": "0.0.1",
   "description": "dependency injection container",
   "scripts": {
     "test": "jest",
@@ -8,7 +8,7 @@
     "build": "tsc",
     "build-prod": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json && cp README.md package.json dist/",
     "pre-commit": "lint-staged",
-    "deploy": "npm publish --access public"
+    "deploy": "cd ./dist && npm publish --access public"
   },
   "keywords": [
     "dependency injection",

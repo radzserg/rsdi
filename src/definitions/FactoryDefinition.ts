@@ -1,5 +1,5 @@
-import BaseDefinition, { Mode } from "definitions/BaseDefinition";
-import DIContainer, { IDIContainer } from "container/DIContainer";
+import BaseDefinition, { Mode } from "./BaseDefinition";
+import { IDIContainer } from "../container/DIContainer";
 
 export type Factory = (container: IDIContainer) => any;
 
@@ -11,7 +11,7 @@ export default class FactoryDefinition extends BaseDefinition {
         this.factory = factory;
     }
 
-    resolve = <T>(container: DIContainer): T => {
+    resolve<T>(container: IDIContainer): T {
         return this.factory(container);
-    };
+    }
 }

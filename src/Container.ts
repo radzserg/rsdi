@@ -1,6 +1,6 @@
-import DIContainer from "container/DIContainer";
-import { get, object, value } from "definitions/definitionBuilders";
-import { Dependency } from "definitions/Dependency";
+import DIContainer from "./container/DIContainer";
+import { get, object, value } from "./definitions/definitionBuilders";
+import { Dependency } from "./definitions/Dependency";
 
 type ObjectType<T> = { new (...args: any[]): T };
 
@@ -43,7 +43,7 @@ export class Container {
         return this.container.get<T>(type.name);
     }
 
-    private static _instance: Container;
+    private static _instance: Container | null;
     public static get instance(): Container {
         if (!this._instance) {
             this._instance = new Container();

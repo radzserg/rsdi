@@ -1,5 +1,5 @@
-import { Mode } from "definitions/BaseDefinition";
-import { Dependency } from "definitions/Dependency";
+import { Mode } from "../definitions/BaseDefinition";
+import { Dependency } from "../definitions/Dependency";
 
 export const register = (type: any) => {
     let dependencies: any[] = [];

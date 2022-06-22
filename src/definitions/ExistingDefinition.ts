@@ -1,5 +1,5 @@
-import BaseDefinition, { Mode } from "definitions/BaseDefinition";
-import DIContainer from "container/DIContainer";
+import DIContainer from "../container/DIContainer";
+import BaseDefinition, { Mode } from "./BaseDefinition";
 
 export default class ExistingDefinition extends BaseDefinition {
     private readonly existingDefinitionName: string;
@@ -9,7 +9,7 @@ export default class ExistingDefinition extends BaseDefinition {
         this.existingDefinitionName = existingDefinitionName;
     }
 
-    resolve = <T>(container: DIContainer, parentDeps: string[] = []): T => {
+    resolve<T>(container: DIContainer, parentDeps: string[] = []): T {
         return container.get(this.existingDefinitionName, parentDeps);
-    };
+    }
 }

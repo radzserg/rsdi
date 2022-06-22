@@ -2,19 +2,16 @@
     "compilerOptions": {
         "declaration": true,
         "outDir": "./dist/",
-        "module": "es6",
-        "target": "es6",
         "sourceMap": true,
         "noImplicitAny": true,
+        "module": "commonjs",
+        "strict": true,
+        "target": "es6",
         "esModuleInterop": true,
         "moduleResolution": "node",
         "allowJs": false,
-        "lib": ["dom", "dom.iterable", "esnext"],
-        "baseUrl": "src",
-        "paths": {
-            "src/*": ["src/*"]
-        }
+        "lib": ["dom", "dom.iterable", "esnext"]
     },
     "include": ["src", "declarations.d.ts"],
-    "exclude": ["node_modules"]
+    "exclude": ["node_modules", "**/__tests__/*"]
 }

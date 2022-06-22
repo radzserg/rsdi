@@ -1,8 +1,8 @@
-import { IDefinition } from "definitions/IDefinition";
-import BaseDefinition from "definitions/BaseDefinition";
-import ValueDefinition from "definitions/ValueDefinition";
-import DependencyIsMissingError from "errors/DependencyIsMissingError";
-import CircularDependencyError from "errors/CircularDependencyError";
+import { IDefinition } from "../definitions/IDefinition";
+import BaseDefinition from "../definitions/BaseDefinition";
+import ValueDefinition from "../definitions/ValueDefinition";
+import DependencyIsMissingError from "../errors/DependencyIsMissingError";
+import CircularDependencyError from "../errors/CircularDependencyError";
 
 export interface IDIContainer {
     get: <T>(serviceName: string) => T;

@@ -1,7 +1,7 @@
-import BaseDefinition, { Mode } from "definitions/BaseDefinition";
-import { IDIContainer } from "container/DIContainer";
-import MethodIsMissingError from "errors/MethodIsMissingError";
-import InvalidConstructorError from "errors/InvalidConstructorError";
+import BaseDefinition, { Mode } from "./BaseDefinition";
+import { IDIContainer } from "../container/DIContainer";
+import MethodIsMissingError from "../errors/MethodIsMissingError";
+import InvalidConstructorError from "../errors/InvalidConstructorError";
 
 export interface Type<T> extends Function {
     new (...args: any[]): T;
@@ -38,7 +38,7 @@ export default class ObjectDefinition extends BaseDefinition {
         return this;
     }
 
-    resolve = <T>(diContainer: IDIContainer, parentDeps: string[] = []): T => {
+    resolve<T>(diContainer: IDIContainer, parentDeps: string[] = []): T {
         const deps = this.deps.map((dep: BaseDefinition | any) => {
             if (dep instanceof BaseDefinition) {
                 return dep.resolve(diContainer, parentDeps);
@@ -65,5 +65,5 @@ export default class ObjectDefinition extends BaseDefinition {
         });
 
         return object;
-    };
+    }
 }

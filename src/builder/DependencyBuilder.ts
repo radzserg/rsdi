@@ -2,7 +2,7 @@ import { Mode } from "../definitions/BaseDefinition";
 import { Dependency } from "../definitions/Dependency";
 
 export const register = (type: any) => {
-    let dependencies: any[] = [];
+    const dependencies: any[] = [];
     let mode: Mode = Mode.TRANSIENT;
 
     const withDependency = (parameter: any) => {

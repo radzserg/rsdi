@@ -1,5 +1,5 @@
 import { Container } from "../Container";
-import { build, buildSingleton, register } from "../builder/DependencyBuilder";
+import { build, buildSingleton, register } from "../DependencyBuilder";
 
 import { A, B, C, Foo, Bar } from "./fakeClasses";
 

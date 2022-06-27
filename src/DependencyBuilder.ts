@@ -1,14 +1,31 @@
+import { ObjectType } from "./Container";
 import { Mode } from "./definitions/BaseDefinition";
 import { Dependency } from "./definitions/Dependency";
 
-export const register = (type: any) => {
+export const register = <T>(type: string | ObjectType<T>) => {
     const dependencies: any[] = [];
     let mode: Mode = Mode.TRANSIENT;
 
-    const withDependency = (parameter: any) => {
+    const withDependency = <T>(parameter: string | ObjectType<T>) => {
         dependencies.push(parameter);
 
         return { and: withDependency, build };
+    };
+
+    const withImplementation = (parameter: any | ObjectType<T>) => {
+        if (typeof type === "string") {
+            return {
+                build: () =>
+                    buildImplementation(
+                        Mode.SINGLETON,
+                        type as string,
+                        parameter
+                    ),
+            };
+        }
+        return {
+            build: () => buildImplementation(Mode.TRANSIENT, type, parameter),
+        };
     };
 
     const asASingleton = () => {
@@ -21,7 +38,7 @@ export const register = (type: any) => {
         return buildDependency(mode, type, dependencies);
     };
 
-    return { withDependency, build, asASingleton };
+    return { withDependency, withImplementation, build, asASingleton };
 };
 
 export const build = (type: any, ...parameters: any[]): Dependency => {
@@ -42,4 +59,8 @@ const buildDependency = (
     });
 
     return new Dependency(mode, type, dependencies);
+};
+
+const buildImplementation = (mode: Mode, type: any, implementation: any) => {
+    return new Dependency(mode, type, [], implementation);
 };

@@ -61,7 +61,7 @@ describe("Container should", () => {
 
             Container.instance.registerInstance("BAR", bar);
 
-            expect(Container.instance.resolveByName("BAR")).toBe(bar);
+            expect(Container.instance.resolve("BAR")).toBe(bar);
         });
     });
 
@@ -126,6 +126,65 @@ describe("Container should", () => {
             );
             expect(b.get()).not.toBe(Container.instance.resolve(B).get());
             expect(b.get()).not.toBe(Container.instance.resolve(C).get());
+        });
+
+        test("Resolve interface with function implementation", () => {
+            interface Fake {
+                run: () => string;
+            }
+
+            const fakeFunc = (): Fake => {
+                const x = () => {};
+                x.run = (): string => {
+                    return "Hello World";
+                };
+
+                return x;
+            };
+
+            class F {
+                constructor(private readonly fake: Fake) {}
+
+                run() {
+                    return this.fake.run();
+                }
+            }
+
+            const dependencies = [
+                register("Fake").withImplementation(fakeFunc()).build(),
+                register(F).withDependency("Fake").build(),
+            ];
+
+            Container.instance.register(dependencies);
+
+            const r = Container.instance.resolve<Fake>("Fake");
+
+            expect(r.run()).toBe("Hello World");
+            expect(Container.instance.resolve(F).run()).toBe("Hello World");
+        });
+
+        test("Resolve class with other implementation", () => {
+            class One {
+                public run() {
+                    return "One";
+                }
+            }
+
+            class Two extends One {
+                public run() {
+                    return "Two";
+                }
+            }
+
+            const dependencies = [
+                register(One).withImplementation(Two).build(),
+            ];
+
+            Container.instance.register(dependencies);
+
+            const r = Container.instance.resolve(One);
+
+            expect(r.run()).toBe("Two");
         });
     });
 });

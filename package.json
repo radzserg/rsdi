@@ -1,13 +1,13 @@
 {
   "name": "ts-injecty",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "dependency injection container",
   "scripts": {
     "test": "jest",
     "format": "prettier 'src/**/*.ts' --write",
     "build": "tsc",
     "pre-commit": "lint-staged",
-    "build-prod": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json && cp README.md package.json dist/",
+    "build-release": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json && cp README.md package.json dist/",
     "minify": "minify-all-js ./dist",
     "deploy": "cd ./dist && npm publish --access public",
     "prepare": "husky install"

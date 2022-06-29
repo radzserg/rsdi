@@ -34,7 +34,7 @@ class AuthStorage {
 }
 
 // configure DI container
-import Container, { build, buildSingleton } from "rsdi";
+import Container, { build, buildSingleton } from "ts-injecty";
 
 export const configureDI = () => {
     // For transient instances
@@ -61,7 +61,7 @@ class AuthStorage {
 }
 
 // configure DI container
-import Container, { register } from "rsdi";
+import Container, { register } from "ts-injecty";
 
 export const configureDI() {
   // And also you can use fluent builder api

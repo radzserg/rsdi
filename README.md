@@ -34,6 +34,9 @@ break up huge components into smaller ones to control the complexity. You have c
 use other components. You have application layers and a layer hierarchy. There is a need to transfer dependencies from
 the upper layers to the lower ones.
 
+You like and respect and use Dependency Injection and TDD. You have to use Dependency Injection in order to have proper
+unit tests. Tests that test only one module - class, component, function, but not integration with nested dependencies.
+
 ## DI Container vs Context
 
 ```typescript
@@ -68,7 +71,7 @@ web application as an example. Given that your application is quite large and ha
 
 ![architecture](docs/RSDI_architecture.jpg "RSDI Architecture")
 
-An application always has an entry point, be it a web application or a CLI application. This is the only place where you
+An application always has an entry point, whether it is a web application or a CLI application. This is the only place where you
 should configure your dependency injection container. The top level components will then have the lower level components
 injected. The entry point is the dirtiest place in your application, but everything is clean behind it.
 
@@ -79,6 +82,18 @@ new user. A real application will consist of dozens of components. The logic of 
 complicated. This is just a demo.
 
 ```typescript
+// configure Express router
+export default function configureRouter(
+  app: core.Express,
+  diContainer: IDIContainer
+) {
+  const usersController = diContainer.get(UsersController);
+  app
+    .route("/users")
+    .get(usersController.list.bind(usersController))
+    .post(usersController.create.bind(usersController));
+}
+
 export function UserController(
   userRegistrator: UserRegistrator,
   userRepository: UserRepository
@@ -106,12 +121,18 @@ export class UserRegistrator {
   }
 }
 
-export function MyDbProviderUserRepository(db: DbConnection): UserRepository {
+export function MyDbProviderUserRepository(db: Knex): UserRepository {
   return {
     async saveNewUser(userAccountData: SignupData): Promise<void> {
       await this.db("insert").insert(userAccountData);
     },
   };
+}
+
+export function buildDbConnection(): Knex {
+  return knex({
+    /* db credentials */
+  });
 }
 ```
 
@@ -124,10 +145,12 @@ import DIContainer, { object, use, factory, func, IDIContainer } from "rsdi";
 export default function configureDI() {
   const container = new DIContainer();
   container.add({
-    dbConnection: knex(),
+    buildDbConnection: factory(() => {
+      buildDbConnection();
+    }),
     [MyDbProviderUserRepository.name]: func(
       MyDbProviderUserRepository,
-      use("dbConnection")
+      use(buildDbConnection)
     ),
     [UserRegistrator.name]: object(UserRegistrator).contrstruct(
       use(MyDbProviderUserRepository.name)
@@ -142,17 +165,25 @@ export default function configureDI() {
 }
 ```
 
+**All resolvers are resolved only once and their result persists over the life of the container.**
+
+
 Add `configureDI` in the entry point of your application.
 
 ```typescript
-// server.ts
+// express.ts
+const app = express();
+const PORT = 8000;
 
-const container = configureDI();
+const diContainer = configureDI();
+configureRouter(app, diContainer);
 
-// @todo show how we configure server routes
+app.listen(PORT, () => {
+  console.log(`⚡️[server]: Server is running at http://localhost:${PORT}`);
+});
 ```
 
-**All resolvers are resolved only once and their result persists over the life of the container.**
+The complete example can be found [here](https://radzserg.medium.com/dependency-injection-in-express-application-dd85295694ab)
 
 ## Features
 
@@ -270,13 +301,14 @@ const history = container.get<History>("BrowserHistory");
 
 ### Typescript type resolution
 
-`container.get` - return type based on declaration. 
-  - for `myName: "resolution"` - String, 
-  - for `myName: new Date()` - Date, 
-  - for `myName: object(Foo)` - instance of class Foo, 
-  - for `myName: func(MyFunc)` - return type of function foo.
+`container.get` - return type based on declaration.
 
-`contrainer.use` - allows to reference declared dependency with respect to types. 
+- for `myName: "resolution"` - String,
+- for `myName: new Date()` - Date,
+- for `myName: object(Foo)` - instance of class Foo,
+- for `myName: func(MyFunc)` - return type of function foo.
+
+`contrainer.use` - allows to reference declared dependency with respect to types.
 
 ```typescript
 const container: DIContainer = new DIContainer();
@@ -292,11 +324,10 @@ container.add({
 
 `use` defines allows to reference dependencies that will be defined
 
--   if given name is class - instance of a class
--   if given name is function - return type of function
--   if custom generic type is provided - custom type
--   otherwise - any
-
+- if given name is class - instance of a class
+- if given name is function - return type of function
+- if custom generic type is provided - custom type
+- otherwise - any
 
 ```typescript
 class Foo {
@@ -309,7 +340,6 @@ container.add({
   Foo: object(Foo).construct(use(Bar)), // constuct method checks type and use return Bar type
 });
 ```
-
 
 Example: `container.get` resolve type based on a given factory return type.
 

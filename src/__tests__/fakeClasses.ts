@@ -25,7 +25,11 @@ export class Foo {
   }
 }
 
-export class Buzz {}
+export class Buzz {
+  public getClassName() {
+    return "RealBuzz";
+  }
+}
 
 export abstract class AbstractFoo {
   public name: string;

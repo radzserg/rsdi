@@ -301,6 +301,8 @@ const history = container.get<History>("BrowserHistory");
 
 ### Typescript type resolution
 
+
+
 `container.get` - return type based on declaration.
 
 - for `myName: "resolution"` - String,

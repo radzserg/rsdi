@@ -7,9 +7,8 @@ import {
   AnyNamedResolvers,
   ClassOf,
   DependencyResolver,
-  NamedResolvers,
-  ResolveDependencyType,
   ResolverName,
+  ResolveUsingSelfType,
   WrapWithResolver,
 } from "./types";
 import FunctionResolver from "./resolvers/FunctionResolver";
@@ -37,18 +36,15 @@ export function diValue<T extends any = unknown>(value: T) {
  * @param definitionName
  *
  */
-export function diUse<
-  ExistingNamedResolvers extends NamedResolvers = AnyNamedResolvers,
-  Name extends ResolverName<ExistingNamedResolvers> = ResolverName<ExistingNamedResolvers>
->(
+export function diUse<Custom = void, Name extends ResolverName = ResolverName>(
   definitionName: Name
-): DependencyResolver<ResolveDependencyType<ExistingNamedResolvers, Name>> {
-  const dependencyName = definitionNameToString<ExistingNamedResolvers>(
+): Custom extends void
+  ? DependencyResolver<ResolveUsingSelfType<Name>>
+  : DependencyResolver<Custom> {
+  const dependencyName = definitionNameToString<AnyNamedResolvers>(
     definitionName
   ) as Name;
-  return new ReferenceResolver<ExistingNamedResolvers, Name>(
-    dependencyName
-  ) as any;
+  return new ReferenceResolver<AnyNamedResolvers, Name>(dependencyName) as any;
 }
 
 /**

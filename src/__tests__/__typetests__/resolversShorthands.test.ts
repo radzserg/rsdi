@@ -20,7 +20,7 @@ describe("definitionBuilders respects typescript types", () => {
     const definition = diUse("key1");
     expectAssignable<string>(definition.resolve(container));
 
-    const definition2 = diUse("key1");
+    const definition2 = diUse<Bar>("key1");
     expectAssignable<Bar>(definition2.resolve(container));
   });
 
@@ -32,15 +32,6 @@ describe("definitionBuilders respects typescript types", () => {
     const definition = diUse(customFunction);
     const { b } = definition.resolve(container);
     expectType<number>(b);
-  });
-
-  test("diGet resolves type based on existing resolvers", () => {
-    type ExistingResolvers = {
-      b: RawValueResolver<boolean>;
-    };
-    const definition = diUse<ExistingResolvers, "b">("b");
-    const value = definition.resolve(container);
-    expectType<boolean>(value);
   });
 
   test("diValue 'resolve' returns scalar", () => {

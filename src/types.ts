@@ -3,10 +3,6 @@ import FunctionResolver from "./resolvers/FunctionResolver";
 import DIContainer from "./DIContainer";
 import FactoryResolver from "./resolvers/FactoryResolver";
 
-export interface IDIContainer {
-  get: (dependencyName: string | { name: string }) => any;
-}
-
 export type DependencyResolver<T extends any = any> = {
   setParentDependencies: (parentDeps: string[]) => void;
   resolve: (container: DIContainer) => T;
@@ -147,3 +143,7 @@ export type ResolveDependencyType<
 > = TryResolveUsingExistingResolvers<Name, ExistingNamedResolvers> extends never
   ? ResolveUsingSelfType<Name>
   : TryResolveUsingExistingResolvers<Name, ExistingNamedResolvers>;
+
+export interface IDIContainer {
+  get: (dependencyName: string | { name: string }) => any;
+}

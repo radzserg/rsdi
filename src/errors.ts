@@ -31,9 +31,3 @@ export class FactoryDefinitionError extends Error {
     super(`Factory must be a function`);
   }
 }
-
-export class DependencyIsDefined extends Error {
-  constructor(name: string) {
-    super(`Dependency ${name} is defined`);
-  }
-}

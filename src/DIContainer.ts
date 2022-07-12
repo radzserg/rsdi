@@ -9,11 +9,7 @@ import {
 } from "./types";
 import AbstractResolver from "./resolvers/AbstractResolver";
 import RawValueResolver from "./resolvers/RawValueResolver";
-import {
-  CircularDependencyError,
-  DependencyIsDefined,
-  DependencyIsMissingError,
-} from "./errors";
+import { CircularDependencyError, DependencyIsMissingError } from "./errors";
 import { definitionNameToString } from "./DefinitionName";
 import ReferenceResolver from "./resolvers/ReferenceResolver";
 
@@ -87,9 +83,6 @@ export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
   private addResolver(name: string, resolver: DependencyResolver | any) {
     if (!(resolver instanceof AbstractResolver)) {
       resolver = new RawValueResolver(resolver);
-    }
-    if (this.resolvers[name]) {
-      throw new DependencyIsDefined(name);
     }
     this.resolvers[name] = resolver;
   }

@@ -1,6 +1,6 @@
 {
   "name": "rsdi",
-  "version": "2.1.2",
+  "version": "2.2.0",
   "description": "Simple dependency injection container for JavaScript/TypeScript",
   "scripts": {
     "test": "jest",
@@ -25,7 +25,10 @@
   "author": "Sergey Radzishevskii <radzserg@gmail.com>",
   "license": "ISC",
   "lint-staged": {
-    "src/**/*.ts": ["prettier --write --ignore-unknown", "eslint"]
+    "src/**/*.ts": [
+      "prettier --write --ignore-unknown",
+      "eslint"
+    ]
   },
   "devDependencies": {
     "@tsd/typescript": "^4.6.4",

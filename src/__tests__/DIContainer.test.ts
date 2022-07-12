@@ -1,7 +1,6 @@
 /* eslint-disable no-useless-constructor */
 
-import { Bar, Foo, Buzz } from "./fakeClasses";
-import { Buzz as FakedBuzz } from "./fakeClassesInDifferentModule";
+import { Bar, Foo } from "./fakeClasses";
 import DIContainer from "../DIContainer";
 import ObjectResolver from "../resolvers/ObjectResolver";
 import RawValueResolver from "../resolvers/RawValueResolver";
@@ -101,17 +100,6 @@ describe("DIContainer adds resolvers", () => {
       foo: object(Foo).construct("bla", container.get("bar")),
     });
     expect(container.get("foo")).toBeInstanceOf(Foo);
-  });
-
-  test("it adds classes with the same names", () => {
-    const container: DIContainer = new DIContainer();
-
-    container.add({
-      [Buzz.name]: new ObjectResolver(Buzz),
-    });
-    expect(() => {
-      container.add({ [FakedBuzz.name]: new ObjectResolver(FakedBuzz) });
-    }).toThrow("Dependency Buzz is defined");
   });
 });
 

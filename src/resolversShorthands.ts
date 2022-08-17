@@ -38,9 +38,9 @@ export function diValue<T extends any = unknown>(value: T) {
  */
 export function diUse<Custom = void, Name extends ResolverName = ResolverName>(
   definitionName: Name
-): Custom extends void
-  ? DependencyResolver<ResolveUsingSelfType<Name>>
-  : DependencyResolver<Custom> {
+): DependencyResolver<ResolveUsingSelfType<Name>> extends void
+  ? DependencyResolver<Custom>
+  : DependencyResolver<ResolveUsingSelfType<Name>> {
   const dependencyName = definitionNameToString<AnyNamedResolvers>(
     definitionName
   ) as Name;

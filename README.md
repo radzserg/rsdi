@@ -96,10 +96,8 @@ export class UserRegistrator {
   public constructor(public readonly userRepository: UserRepository) {}
 
   public async register(userData: SignupData) {
-    // validate
-    const user = this.userRepository.saveNewUser(userData);
-    // send sign up email
-    return user;
+    // validate and send sign up email
+    return this.userRepository.saveNewUser(userData);
   }
 }
 
@@ -134,7 +132,7 @@ export default function configureDI() {
       MyDbProviderUserRepository,
       use(buildDbConnection)
     ),
-    [UserRegistrator.name]: object(UserRegistrator).contrstruct(
+    [UserRegistrator.name]: object(UserRegistrator).construct(
       use(MyDbProviderUserRepository.name)
     ),
     [UserController.name]: func(

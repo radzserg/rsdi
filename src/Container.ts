@@ -2,12 +2,14 @@ import DIContainer from "./container/DIContainer";
 import { get, object, value } from "./definitions/DefinitionBuilders";
 import { Dependency } from "./definitions/Dependency";
 
-export type ObjectType<T> = { new (...args: any[]): T };
+export type ObjectType<T> = { new(...args: any[]): T };
+
+export type Resolve<T> = string | symbol | ObjectType<T>;
 
 export class Container {
     private readonly container: DIContainer = new DIContainer();
 
-    private constructor() {}
+    private constructor() { }
 
     public register(dependencies: Dependency[]): void {
         for (const dependency of dependencies) {
@@ -62,8 +64,9 @@ export class Container {
         this.container.addDefinition(type, value(instance));
     }
 
-    public resolve<T>(type: string | ObjectType<T>): T {
+    public resolve<T>(type: Resolve<T>): T {
         if (typeof type === "string") return this.container.get<T>(type);
+        if (typeof type === "symbol") return this.container.get<T>(type.toString());
 
         return this.container.get<T>(type.name);
     }

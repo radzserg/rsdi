@@ -19,7 +19,7 @@ export class Bar {
     }
 }
 
-export class Buzz {}
+export class Buzz { }
 
 export abstract class AbstractFoo {
     public name: string;
@@ -36,10 +36,10 @@ export abstract class AbstractFoo {
     }
 }
 
-export class FooChild extends AbstractFoo {}
+export class FooChild extends AbstractFoo { }
 
 export class A {
-    constructor(private b: B) {}
+    constructor(private b: B) { }
 
     public sum(x: number, y: number) {
         return this.b.sum(x, y);
@@ -47,11 +47,12 @@ export class A {
 }
 
 export class B {
-    constructor(private c: C) {}
+    constructor(private c: C) { }
 
     public sum(x: number, y: number) {
         return this.c.sum(x, y);
     }
+
     public add(value: any) {
         this.c.add(value);
     }

@@ -31,7 +31,7 @@ export const register = <T>(type: string | ObjectType<T>) => {
     const asASingleton = () => {
         mode = Mode.SINGLETON;
 
-        return { build };
+        return { withDependency, build };
     };
 
     const build = () => {

@@ -1,6 +1,6 @@
 {
   "name": "ts-injecty",
-  "version": "0.0.5",
+  "version": "0.0.7",
   "description": "dependency injection container",
   "scripts": {
     "test": "jest",

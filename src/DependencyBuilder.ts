@@ -13,18 +13,14 @@ export const register = <T>(type: string | ObjectType<T>) => {
     };
 
     const withImplementation = (parameter: any | ObjectType<T>) => {
-        if (typeof type === "string") {
-            return {
-                build: () =>
-                    buildImplementation(
-                        Mode.SINGLETON,
-                        type as string,
-                        parameter
-                    ),
-            };
-        }
         return {
-            build: () => buildImplementation(Mode.TRANSIENT, type, parameter),
+            build: () => buildImplementation(Mode.SINGLETON, type, parameter),
+        };
+    };
+
+    const withDynamicValue = (parameter: any | ObjectType<T>) => {
+        return {
+            build: () => buildImplementation(Mode.SINGLETON, type, parameter()),
         };
     };
 
@@ -38,7 +34,7 @@ export const register = <T>(type: string | ObjectType<T>) => {
         return buildDependency(mode, type, dependencies);
     };
 
-    return { withDependency, withImplementation, build, asASingleton };
+    return { withDependency, withImplementation, withDynamicValue, build, asASingleton };
 };
 
 export const build = (type: any, ...parameters: any[]): Dependency => {

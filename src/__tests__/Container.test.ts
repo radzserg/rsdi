@@ -31,7 +31,6 @@ describe("Container should", () => {
 
 
     test("Sum with class A with dependency injection", () => {
-
         const dependencies = [
             register(C).build(),
             register(B).withDependency(C).build(),
@@ -45,4 +44,27 @@ describe("Container should", () => {
         expect(a.sum(1, 2)).toBe(3);
     })
 
+    test("With implementation value", () => {
+        const func = () => "HI";
+
+        Container.instance.register([
+            register("test").withImplementation(func()).build()
+        ])
+
+        const resolved = Container.instance.resolve("test");
+
+        expect(resolved).toBe("HI")
+    })
+
+    test("With dynamic value", () => {
+        const func = () => "HI";
+
+        Container.instance.register([
+            register("test").withDynamicValue(() => func()).build()
+        ])
+
+        const resolved = Container.instance.resolve("test");
+
+        expect(resolved).toBe("HI")
+    })
 });

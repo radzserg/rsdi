@@ -1,4 +1,4 @@
-import DIContainer, { IDIContainer } from "../container/DIContainer";
+import DIContainer from "../container/DIContainer";
 import ObjectDefinition from "../definitions/ObjectDefinition";
 import ValueDefinition from "../definitions/ValueDefinition";
 import DependencyIsMissingError from "../errors/DependencyIsMissingError";
@@ -100,7 +100,7 @@ describe("DIContainer", () => {
     test("it resolves factory returning pending Promise", async () => {
         class TestUserRepository {
             private dbConnection: any;
-            public constructor(private readonly dbConnectionPromise: any) {}
+            public constructor(private readonly dbConnectionPromise: any) { }
             async init() {
                 this.dbConnection = await this.dbConnectionPromise;
             }
@@ -119,7 +119,7 @@ describe("DIContainer", () => {
         container.addDefinition("dsn", new ValueDefinition("DSN-secret"));
         container.addDefinition(
             "dbConnection",
-            factory((container: IDIContainer) => {
+            factory((container) => {
                 return new Promise((resolve) =>
                     setTimeout(() => {
                         resolve(container.get("dsn"));
@@ -139,10 +139,10 @@ describe("DIContainer", () => {
 
     test("it can detect simple circular dependencies", () => {
         class Foo {
-            constructor(public bar: Bar) {}
+            constructor(public bar: Bar) { }
         }
         class Bar {
-            constructor(public foo: Foo) {}
+            constructor(public foo: Foo) { }
         }
 
         const container = new DIContainer();
@@ -159,13 +159,13 @@ describe("DIContainer", () => {
 
     test("it can detect deep circular dependencies", () => {
         class Foo {
-            constructor(public bar: Bar) {}
+            constructor(public bar: Bar) { }
         }
         class Bar {
-            constructor(public buzz: Buzz) {}
+            constructor(public buzz: Buzz) { }
         }
         class Buzz {
-            constructor(public foo: Foo) {}
+            constructor(public foo: Foo) { }
         }
 
         const container = new DIContainer();

@@ -1,4 +1,5 @@
-import DIContainer, { IDIContainer } from "../../container/DIContainer";
+import DIContainer from "../../container/DIContainer";
+import { IDIContainer } from "../../container/IDIContainer";
 import FactoryDefinition from "../FactoryDefinition";
 import ValueDefinition from "../ValueDefinition";
 

@@ -1,12 +1,11 @@
 import { IDefinition } from "../definitions/IDefinition";
+import { IDIContainer } from "./IDIContainer";
+
 import BaseDefinition from "../definitions/BaseDefinition";
 import ValueDefinition from "../definitions/ValueDefinition";
+
 import DependencyIsMissingError from "../errors/DependencyIsMissingError";
 import CircularDependencyError from "../errors/CircularDependencyError";
-
-export interface IDIContainer {
-    get: <T>(serviceName: string) => T;
-}
 
 interface INamedDefinitions {
     [x: string]: IDefinition | any;
@@ -18,7 +17,7 @@ export default class DIContainer implements IDIContainer {
         [name: string]: any;
     } = {};
 
-    get<T>(name: string, parentDeps: string[] = []): T {
+    public get<T>(name: string, parentDeps: string[] = []): T {
         if (!(name in this.definitions)) {
             throw new DependencyIsMissingError(name);
         }
@@ -28,7 +27,7 @@ export default class DIContainer implements IDIContainer {
 
         const definition: IDefinition = this.definitions[name];
 
-        if (definition.isSingleton() && this.resolved[name] !== undefined) {
+        if (definition.isSingleton() && !!this.resolved[name]) {
             return this.resolved[name];
         }
 
@@ -37,7 +36,7 @@ export default class DIContainer implements IDIContainer {
         return this.resolved[name];
     }
 
-    addDefinition(name: string, definition: IDefinition | any) {
+    public addDefinition(name: string, definition: IDefinition | any) {
         if (name in this.definitions) return;
 
         if (!(definition instanceof BaseDefinition)) {
@@ -46,7 +45,7 @@ export default class DIContainer implements IDIContainer {
         this.definitions[name] = definition;
     }
 
-    addDefinitions(definitions: INamedDefinitions) {
+    public addDefinitions(definitions: INamedDefinitions) {
         Object.keys(definitions).map((name: string) => {
             this.addDefinition(name, definitions[name]);
         });

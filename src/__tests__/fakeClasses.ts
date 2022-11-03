@@ -75,3 +75,22 @@ export class C {
         return this.raw;
     }
 }
+
+export interface Interface {
+    doSomething(): string;
+}
+
+export class InterfaceImplementation implements Interface {
+    doSomething(): string {
+        return "HI";
+    }
+}
+
+export class ClassWithInterfaceDependency implements Interface {
+    constructor(private readonly dependency: Interface) {
+
+    }
+    doSomething(): string {
+        return this.dependency.doSomething();
+    }
+}

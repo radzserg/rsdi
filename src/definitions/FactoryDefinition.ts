@@ -1,5 +1,5 @@
 import BaseDefinition, { Mode } from "./BaseDefinition";
-import { IDIContainer } from "../container/DIContainer";
+import { IDIContainer } from "../container/IDIContainer";
 
 export type Factory = (container: IDIContainer) => any;
 

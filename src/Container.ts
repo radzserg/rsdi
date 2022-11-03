@@ -1,78 +1,26 @@
+import { Resolve } from "./types";
+
 import DIContainer from "./container/DIContainer";
+import BaseDefinition from "./definitions/BaseDefinition";
+import { Registration } from "./registration/Registration";
 import { get, object, value } from "./definitions/DefinitionBuilders";
-import { Dependency } from "./definitions/Dependency";
-
-export type ObjectType<T> = { new(...args: any[]): T };
-
-export type Resolve<T> = string | symbol | ObjectType<T>;
+import ImplementationIsMissingError from "./errors/ImplementationIsMissingError";
 
 export class Container {
     private readonly container: DIContainer = new DIContainer();
 
     private constructor() { }
 
-    public register(dependencies: Dependency[]): void {
-        for (const dependency of dependencies) {
-            const injections = [];
-
-            for (const parameter of dependency.parameters) {
-                if (typeof parameter.type === "string") {
-                    injections.push(get(parameter.type));
-
-                    continue;
-                }
-
-                injections.push(get(parameter.type.name));
-
-                this.container.addDefinition(
-                    parameter.type.name,
-                    object(parameter.type, parameter.mode)
-                );
-            }
-
-            if (typeof dependency.type === "string") {
-                this.container.addDefinition(
-                    dependency.type,
-                    value(dependency.implementation!)
-                );
-
-                continue;
-            }
-
-            if (dependency.implementation) {
-                this.container.addDefinition(
-                    dependency.type.name,
-                    object(
-                        dependency.implementation,
-                        dependency.mode
-                    ).construct(...injections)
-                );
-
-                continue;
-            }
-
-            this.container.addDefinition(
-                dependency.type.name,
-                object(dependency.type, dependency.mode).construct(
-                    ...injections
-                )
-            );
-        }
+    public static register(registrations: Registration[]): void {
+        this.instance.register(registrations);
     }
 
-    public registerInstance(type: string, instance: any) {
-        this.container.addDefinition(type, value(instance));
-    }
-
-    public resolve<T>(type: Resolve<T>): T {
-        if (typeof type === "string") return this.container.get<T>(type);
-        if (typeof type === "symbol") return this.container.get<T>(type.toString());
-
-        return this.container.get<T>(type.name);
+    public static resolve<T>(type: Resolve<T>): T {
+        return this.instance.resolve<T>(type);
     }
 
     private static _instance: Container | null;
-    public static get instance(): Container {
+    private static get instance(): Container {
         if (!this._instance) {
             this._instance = new Container();
         }
@@ -82,5 +30,65 @@ export class Container {
 
     public static dispose() {
         this._instance = null;
+    }
+
+    public register(registrations: Registration[]): void {
+        for (const registration of registrations) {
+            const dependencies = this.registerDependencies(registration);
+
+            this.registerParent(registration, dependencies);
+        }
+    }
+
+    public resolve<T>(type: Resolve<T>): T {
+        if (typeof type === "string") return this.container.get<T>(type);
+
+        return this.container.get<T>(type.name);
+    }
+
+    private registerParent(registration: Registration, dependencies: BaseDefinition[]) {
+        if (typeof registration.type === "string") {
+            if (!registration.implementation)
+                throw new ImplementationIsMissingError(registration.type);
+
+            this.container.addDefinition(
+                registration.type,
+                typeof registration.implementation === "function" ?
+                    object(registration.implementation, registration.mode) :
+                    value(registration.implementation)
+            );
+
+            return;
+        }
+
+        this.container.addDefinition(
+            registration.type.name,
+            object(registration.implementation ?? registration.type, registration.mode).construct(
+                ...dependencies
+            )
+        );
+    }
+
+    private registerDependencies(registration: Registration) {
+        const injections: BaseDefinition[] = [];
+
+        for (const parameter of registration.dependencies) {
+            const { type, mode } = parameter;
+
+            if (typeof type === "string") {
+                injections.push(get(type));
+
+                continue;
+            }
+
+            injections.push(get(type.name));
+
+            this.container.addDefinition(
+                type.name,
+                object(type, mode)
+            );
+        }
+
+        return injections;
     }
 }

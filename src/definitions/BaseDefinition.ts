@@ -1,15 +1,15 @@
-import { IDIContainer } from "../container/DIContainer";
+import { IDIContainer } from "../container/IDIContainer";
 import { IDefinition } from "./IDefinition";
 
 abstract class BaseDefinition implements IDefinition {
-    constructor(public readonly mode: Mode) {}
+    constructor(public readonly mode: Mode) { }
 
-    public abstract resolve<T>(
+    abstract resolve<T>(
         container: IDIContainer,
         parentDeps?: string[]
     ): T;
 
-    public isSingleton(): boolean {
+    isSingleton(): boolean {
         return this.mode === Mode.SINGLETON;
     }
 }

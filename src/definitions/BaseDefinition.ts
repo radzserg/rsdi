@@ -1,7 +1,7 @@
 import { IDIContainer } from "../container/IDIContainer";
 import { IDefinition } from "./IDefinition";
 
-abstract class BaseDefinition implements IDefinition {
+export default abstract class BaseDefinition implements IDefinition {
     constructor(public readonly mode: Mode) { }
 
     abstract resolve<T>(
@@ -13,8 +13,6 @@ abstract class BaseDefinition implements IDefinition {
         return this.mode === Mode.SINGLETON;
     }
 }
-
-export default BaseDefinition;
 
 export enum Mode {
     SINGLETON,

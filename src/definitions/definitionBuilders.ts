@@ -1,8 +1,7 @@
-import { Class } from "../types";
+import { Class, Mode } from "../types";
 
 import ObjectDefinition from "./ObjectDefinition";
 import ValueDefinition from "./ValueDefinition";
-import { Mode } from "./BaseDefinition";
 import ExistingDefinition from "./ExistingDefinition";
 import FactoryDefinition, { Factory } from "./FactoryDefinition";
 

@@ -1,4 +1,5 @@
-import BaseDefinition, { Mode } from "./BaseDefinition";
+import { Mode } from "../types";
+import BaseDefinition from "./BaseDefinition";
 
 export default class ValueDefinition extends BaseDefinition {
     constructor(private readonly value: any) {

@@ -2,10 +2,10 @@ import DIContainer from "../container/DIContainer";
 import ObjectDefinition from "../definitions/ObjectDefinition";
 import ValueDefinition from "../definitions/ValueDefinition";
 import DependencyIsMissingError from "../errors/DependencyIsMissingError";
-import { Mode } from "../definitions/BaseDefinition";
 import { factory, get, object } from "../definitions/definitionBuilders";
 
 import { Foo } from "./fakeClasses";
+import { Mode } from "../types";
 
 describe("DIContainer", () => {
     test("it adds and resolves definitions", () => {

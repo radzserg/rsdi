@@ -1,8 +1,7 @@
-import { Resolve } from "./types";
+import { Registration, ResolveArg } from "./types";
 
 import DIContainer from "./container/DIContainer";
 import BaseDefinition from "./definitions/BaseDefinition";
-import { Registration } from "./registration/Registration";
 import { get, object, value } from "./definitions/DefinitionBuilders";
 import ImplementationIsMissingError from "./errors/ImplementationIsMissingError";
 
@@ -15,7 +14,7 @@ export class Container {
         this.instance.register(registrations);
     }
 
-    public static resolve<T>(type: Resolve<T>): T {
+    public static resolve<T>(type: ResolveArg<T>): T {
         return this.instance.resolve<T>(type);
     }
 
@@ -40,7 +39,7 @@ export class Container {
         }
     }
 
-    public resolve<T>(type: Resolve<T>): T {
+    public resolve<T>(type: ResolveArg<T>): T {
         if (typeof type === "string") return this.container.get<T>(type);
 
         return this.container.get<T>(type.name);

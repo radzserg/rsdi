@@ -1,3 +1,4 @@
+import { Mode } from "../types";
 import { IDIContainer } from "../container/IDIContainer";
 import { IDefinition } from "./IDefinition";
 
@@ -12,9 +13,4 @@ export default abstract class BaseDefinition implements IDefinition {
     isSingleton(): boolean {
         return this.mode === Mode.SINGLETON;
     }
-}
-
-export enum Mode {
-    SINGLETON,
-    TRANSIENT,
 }

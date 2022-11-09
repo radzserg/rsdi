@@ -1,8 +1,8 @@
-import BaseDefinition, { Mode } from "./BaseDefinition";
+import { Class, Mode } from "../types";
+import BaseDefinition from "./BaseDefinition";
 import { IDIContainer } from "../container/IDIContainer";
 import MethodIsMissingError from "../errors/MethodIsMissingError";
 import InvalidConstructorError from "../errors/InvalidConstructorError";
-import { Class } from "../types";
 
 interface IExtraMethods {
     methodName: string;

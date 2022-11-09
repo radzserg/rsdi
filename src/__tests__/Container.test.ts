@@ -35,18 +35,6 @@ describe("Container should", () => {
         expect(a.sum(1, 2)).toBe(3);
     })
 
-    test("With function implementation value", () => {
-        const func = () => "HI";
-
-        Container.register([
-            register("test").withImplementation(func()).build()
-        ])
-
-        const resolved = Container.resolve("test");
-
-        expect(resolved).toBe("HI")
-    })
-
     test("With class implementation", () => {
         class Implementation {
             hi() {

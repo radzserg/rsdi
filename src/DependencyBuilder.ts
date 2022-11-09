@@ -1,18 +1,16 @@
-import { Mode } from "./definitions/BaseDefinition";
-import { Registration } from "./registration/Registration";
-import { Dependency, Implementation, Register } from "./types";
+import { DependencyArg, ImplementationArg, Mode, RegisterType, Registration } from "./types";
 
-export const register = <T>(type: Register<T>) => {
+export const register = <R>(type: R) => {
     const dependencies: any[] = [];
     let mode: Mode = Mode.TRANSIENT;
 
-    const withDependency = <T>(parameter: Dependency<T>) => {
+    const withDependency = <D>(parameter: DependencyArg<R, D>) => {
         dependencies.push(parameter);
 
         return { and: withDependency, build };
     };
 
-    const withImplementation = (parameter: Implementation<T>) => {
+    const withImplementation = (parameter: ImplementationArg<R>) => {
         return {
             build: () => buildImplementation(Mode.SINGLETON, type, parameter),
         };
@@ -34,7 +32,7 @@ export const register = <T>(type: Register<T>) => {
         return buildDependency(mode, type, dependencies);
     };
 
-    return { withDependency, withImplementation, withDynamic, build, asASingleton };
+    return { build, withImplementation, withDynamic, asASingleton, withDependency } as unknown as RegisterType<R>;
 };
 
 const buildDependency = (

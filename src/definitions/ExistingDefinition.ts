@@ -1,5 +1,6 @@
+import { Mode } from "../types";
 import DIContainer from "../container/DIContainer";
-import BaseDefinition, { Mode } from "./BaseDefinition";
+import BaseDefinition from "./BaseDefinition";
 
 export default class ExistingDefinition extends BaseDefinition {
     constructor(private readonly existingDefinitionName: string) {

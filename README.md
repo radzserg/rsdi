@@ -11,6 +11,7 @@
 -   Simple but powerful
 -   Does not requires decorators
 -   Works great with both javascript and typescript
+-   Auto register dependencies class.
 
 ## Motivation
 
@@ -24,52 +25,83 @@ Disadvantages of other solutions
 
 ## Usage
 
-### Build dependencies API
+### Register Class with Class dependency
 
 ```typescript
-// your classes
-class CookieStorage {}
-class AuthStorage {
-  constructor(storage: CookieStorage) {}
+export class A {
+    constructor(private b: B) { }
+
+    public sum(x: number, y: number) {
+        return this.b.sum(x, y);
+    }
 }
 
-// configure DI container
-import Container, { build, buildSingleton } from "ts-injecty";
-
-export const configureDI = () => {
-    // For transient instances
-    const dependencies = [build(AuthStorage, CookieStorage)];
-
-    // For singleton instances
-    const dependencies = [buildSingleton(AuthStorage, CookieStorage)];
-
-    // For transient instance for CookieStorage and AuthStorage singleton.
-    const dependencies = [build(CookieStorage), buildSingleton(AuthStorage, CookieStorage)];
-
-    Container.instance.register(dependencies);
+export class B {
+    public sum(x: number, y: number) {
+        return x + y;
+    }
 }
 
+const dependencies = [
+  register(A).withDependency(B).build(),
+];
+
+Container.register(dependencies);
+
+const a = Container.resolve(A);
+
+expect(a.sum(1, 2)).toBe(3);
 ```
 
-### And also you can use fluent builder dependencies api
+### Register interface with class implementation
 
 ```typescript
-class CookieStorage {}
-class Foo {}
-class AuthStorage {
-  constructor(storage: CookieStorage, a: Foo) {}
+export interface Interface {
+    doSomething(): string;
 }
 
-// configure DI container
-import Container, { register } from "ts-injecty";
-
-export const configureDI() {
-  // And also you can use fluent builder api
-    const dependencies [register(AuthStorage).withDependency(CookieStorage).and(Foo).build(),
-                        register(AuthStorage).asASingleton().build(),
-                        register(AuthStorage).build()]
-
-    Container.instance.register(dependencies);
+export class InterfaceImplementation implements Interface {
+    doSomething(): string {
+        return "HI";
+    }
 }
 
+export class ClassWithInterfaceDependency {
+    constructor(private readonly dependency: Interface) {
+
+    }
+    doSomething(): string {
+        return this.dependency.doSomething();
+    }
+}
+
+Container.register([
+  register("Interface").withImplementation(InterfaceImplementation).build(),
+  register(ClassWithInterfaceDependency).withDependency("Interface").build(),
+]);
+
+const resolved = Container.resolve(ClassWithInterfaceDependency);
+
+expect(resolved.doSomething()).toBe("HI")
+```
+
+### Register api
+
+```typescript
+//if you want register interfaces 👇
+//register interface with custom string, because typescript doesn't transpile interfaces.
+register("Interface").withDynamic(parameter: Function).build();
+register("Interface").withImplementation(implementation: Function | Class | object).build();
+
+//if you want register classes 👇
+// Singleton registration
+register(YourClass).asASingleton().build();
+
+// Transient registration without dependencies
+register(YourClass).build();
+
+//The dependency can be a string because previously we can register interfaces.
+register(YourClass).withDependency(dependency: string | Function | Class).build();
+
+register(YourClass).withImplementation(implementation: Function | Class | object).build();
 ```

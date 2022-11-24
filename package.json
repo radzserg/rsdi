@@ -21,6 +21,11 @@
     "javascript",
     "typescript"
   ],
+  "files": [
+    "dist/**"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "homepage": "https://github.com/radzserg/rsdi",
   "author": "Sergey Radzishevskii <radzserg@gmail.com>",
   "license": "ISC",
@@ -48,6 +53,5 @@
     "ts-jest": "^28.0.1",
     "tsd": "^0.20.0",
     "typescript": "^4.6.4"
-  },
-  "dependencies": {}
+  }
 }

@@ -17,7 +17,7 @@ import ReferenceResolver from "./resolvers/ReferenceResolver";
  * Dependency injection container
  */
 export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
-  implements IDIContainer
+  implements IDIContainer<ContainerResolvers>
 {
   private resolvers: NamedResolvers = {};
   private resolvedDependencies: {
@@ -30,12 +30,15 @@ export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
    * @param parentDeps - array of parent dependencies (used to detect circular dependencies)
    */
   public get<
+    UserDefinedType = void,
     Name extends ResolverName<ContainerResolvers> = ResolverName<ContainerResolvers>
   >(
     dependencyName: Name,
     // @todo: move parent deps to separate method
     parentDeps: string[] = []
-  ): ResolveDependencyType<ContainerResolvers, Name> {
+  ): UserDefinedType extends void
+    ? ResolveDependencyType<ContainerResolvers, Name>
+    : UserDefinedType {
     const name: string =
       definitionNameToString<ContainerResolvers>(dependencyName);
     if (!(name in this.resolvers)) {

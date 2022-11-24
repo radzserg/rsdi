@@ -1,13 +1,13 @@
 {
   "name": "rsdi",
-  "version": "2.2.2",
+  "version": "2.3.0",
   "description": "Simple dependency injection container for JavaScript/TypeScript",
   "scripts": {
     "test": "jest",
     "test:types": "jest -c jest.config.tsd.js",
     "format": "prettier 'src/**/*.ts' --write",
     "build": "tsc",
-    "build-prod": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json && cp README.md package.json dist/",
+    "deploy": "yarn version minor && yarn build && yarn npm publish",
     "pre-commit": "lint-staged",
     "lint": "yarn eslint src/**/**.ts",
     "prettify": "prettier --write --ignore-unknown"

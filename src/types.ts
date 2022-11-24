@@ -144,6 +144,14 @@ export type ResolveDependencyType<
   ? ResolveUsingSelfType<Name>
   : TryResolveUsingExistingResolvers<Name, ExistingNamedResolvers>;
 
-export interface IDIContainer {
-  get: (dependencyName: string | { name: string }) => any;
+
+export interface IDIContainer<
+  ContainerResolvers extends NamedResolvers = AnyNamedResolvers
+> {
+  get: <
+    UserDefinedType = void,
+    Name extends ResolverName<ContainerResolvers> = ResolverName<ContainerResolvers>
+  >(
+    dependencyName: Name
+  ) => UserDefinedType extends void ? ResolveDependencyType<ContainerResolvers, Name> : UserDefinedType;
 }

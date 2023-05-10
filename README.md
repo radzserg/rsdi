@@ -85,6 +85,21 @@ const resolved = Container.resolve(ClassWithInterfaceDependency);
 expect(resolved.doSomething()).toBe("HI")
 ```
 
+### Register objects or functions as reference without any manipulation from container
+
+    const FooFunction = () => "HI";
+
+    Container.register([
+        register("Foo").withImplementation(FooFunction).build(),
+    ]);
+
+    const resolved = Container.resolve<typeof FooFunction>("Foo");
+
+    expect(resolved).toBe(FooFunction);
+    expect(resolved()).toBe("HI")
+
+NOTE: The difference for withImplementation or withDynamic is that the first one just save the function reference, but the last one is used for hooks or dynamic functions with reactivity or re rendering cases.
+
 ### Register api
 
 ```typescript

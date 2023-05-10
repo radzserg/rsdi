@@ -52,7 +52,7 @@ export class Container {
 
             this.container.addDefinition(
                 registration.type,
-                typeof registration.implementation === "function" ?
+                !!registration.implementation.prototype?.constructor ?
                     object(registration.implementation, registration.mode) :
                     value(registration.implementation)
             );

@@ -99,4 +99,17 @@ describe("Container should", () => {
 
         expect(resolved.doSomething()).toBe("HI")
     })
+
+    test("Resolve function as implementation", () => {
+        const FooFunction = () => "HI";
+
+        Container.register([
+            register("Foo").withImplementation(FooFunction).build(),
+        ]);
+
+        const resolved = Container.resolve<typeof FooFunction>("Foo");
+
+        expect(resolved).toBe(FooFunction);
+        expect(resolved()).toBe("HI")
+    })
 });

@@ -26,6 +26,7 @@ export default class ReferenceResolver<
   resolve = (
     container: DIContainer<ExistingNamedResolvers>
   ): ResolveDependencyType<ExistingNamedResolvers, Name> => {
-    return container.get(this.existingDefinitionName, this.parentDeps);
+    const resolved =  container.get(this.existingDefinitionName, this.parentDeps);
+    return resolved;
   };
 }

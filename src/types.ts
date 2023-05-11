@@ -5,7 +5,7 @@ import FactoryResolver from "./resolvers/FactoryResolver";
 
 export type DependencyResolver<T extends any = any> = {
   setParentDependencies: (parentDeps: string[]) => void;
-  resolve: (container: DIContainer) => T;
+  resolve: (container: DIContainer<any>) => T;
 };
 
 export type AnyNamedResolvers = { [k: string]: DependencyResolver };

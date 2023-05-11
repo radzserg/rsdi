@@ -6,7 +6,7 @@ import DIContainer from "../DIContainer";
  */
 abstract class AbstractResolver<T = any> implements DependencyResolver<T> {
   protected parentDeps: string[] = [];
-  public abstract resolve: (container: DIContainer) => T;
+  public abstract resolve: (container: DIContainer<any>) => T;
 
   public setParentDependencies(parentDeps: string[]): void {
     this.parentDeps = parentDeps;

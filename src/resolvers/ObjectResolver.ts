@@ -70,6 +70,7 @@ export default class ObjectResolver<T extends ClassOf<any>>
       this.deps,
       this.parentDeps
     );
+    // eslint-disable-next-line new-cap
     const object = new this.constructorFunction(...constructorParameters);
     this.methods.forEach((method: IExtraMethods<InstanceType<T>>) => {
       const { methodName, args } = method;

@@ -34,7 +34,6 @@ export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
     Name extends ResolverName<ContainerResolvers> = ResolverName<ContainerResolvers>
   >(
     dependencyName: Name,
-    // @todo: move parent deps to separate method
     parentDeps: string[] = []
   ): UserDefinedType extends void
     ? ResolveDependencyType<ContainerResolvers, Name>
@@ -88,6 +87,10 @@ export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
       resolver = new RawValueResolver(resolver);
     }
     this.resolvers[name] = resolver;
+  }
+
+  public __(): ContainerResolvers {
+    throw new Error("Method not implemented.")
   }
 }
 

@@ -61,6 +61,7 @@ describe(ObjectResolver.name, () => {
     "it throws an error if invalid constructor have been provided",
     () => {
       expect((constructorFunction: any) => {
+        // eslint-disable-next-line no-new
         new ObjectResolver(constructorFunction);
       }).toThrow(new InvalidConstructorError());
     }

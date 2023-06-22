@@ -1,41 +1,39 @@
 {
-  "name": "ts-injecty",
-  "version": "0.0.11",
-  "description": "dependency injection container",
-  "scripts": {
-    "test": "jest",
-    "format": "prettier 'src/**/*.ts' --write",
-    "build": "tsc",
-    "pre-commit": "lint-staged",
-    "build-release": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json && cp README.md package.json dist/",
-    "minify": "minify-all-js ./dist",
-    "deploy": "cd ./dist && npm publish --access public",
-    "prepare": "husky install"
-  },
-  "keywords": [
-    "dependency injection",
-    "dependency",
-    "injection",
-    "ioc",
-    "container",
-    "javascript",
-    "typescript"
-  ],
-  "homepage": "https://github.com/damianpumar/ts-injecty",
-  "author": "Damián Pumar <damianpumar@gmail.com>",
-  "license": "ISC",
-  "lint-staged": {
-    "src/**/*.ts": "prettier --write --ignore-unknown"
-  },
-  "devDependencies": {
-    "@types/jest": "^27.5.2",
-    "husky": "^8.0.0",
-    "jest": "^27.0.6",
-    "lint-staged": "^11.2.0",
-    "minify-all-js": "^0.1.9",
-    "prettier": "^2.4.1",
-    "tcr": "^0.5.0",
-    "ts-jest": "^27.0.3",
-    "typescript": "^4.3.5"
-  }
+    "name": "ts-injecty",
+    "version": "0.0.12",
+    "description": "dependency injection container",
+    "scripts": {
+        "test": "jest",
+        "format": "prettier 'src/**/*.ts' --write",
+        "build": "tsc",
+        "pre-commit": "lint-staged",
+        "build-release": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json && cp README.md package.json dist/",
+        "minify": "minify-all-js ./dist",
+        "deploy": "cd ./dist && npm publish --access public"
+    },
+    "keywords": [
+        "dependency injection",
+        "dependency",
+        "injection",
+        "ioc",
+        "container",
+        "javascript",
+        "typescript"
+    ],
+    "homepage": "https://github.com/damianpumar/ts-injecty",
+    "author": "Damián Pumar <damianpumar@gmail.com>",
+    "license": "ISC",
+    "lint-staged": {
+        "src/**/*.ts": "prettier --write --ignore-unknown"
+    },
+    "devDependencies": {
+        "@types/jest": "^27.5.2",
+        "jest": "^27.0.6",
+        "lint-staged": "^11.2.0",
+        "minify-all-js": "^0.1.9",
+        "prettier": "^2.4.1",
+        "tcr": "^0.5.0",
+        "ts-jest": "^27.0.3",
+        "typescript": "^4.3.5"
+    }
 }

@@ -1,13 +1,12 @@
 {
     "name": "ts-injecty",
-    "version": "0.0.12",
+    "version": "0.0.13",
     "description": "dependency injection container",
     "scripts": {
         "test": "jest",
         "format": "prettier 'src/**/*.ts' --write",
         "build": "tsc",
-        "pre-commit": "lint-staged",
-        "build-release": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json && cp README.md package.json dist/",
+        "release": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json && cp README.md package.json dist/",
         "minify": "minify-all-js ./dist",
         "deploy": "cd ./dist && npm publish --access public"
     },
@@ -23,9 +22,6 @@
     "homepage": "https://github.com/damianpumar/ts-injecty",
     "author": "Damián Pumar <damianpumar@gmail.com>",
     "license": "ISC",
-    "lint-staged": {
-        "src/**/*.ts": "prettier --write --ignore-unknown"
-    },
     "devDependencies": {
         "@types/jest": "^27.5.2",
         "jest": "^27.0.6",

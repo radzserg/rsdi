@@ -44,7 +44,8 @@ export default class ObjectDefinition extends BaseDefinition {
             return dep;
         });
 
-        const object = new this.constructorFunction(...deps);
+        const object = this.createObject(deps);
+
         this.methods.forEach((method: IExtraMethods) => {
             const { methodName, args } = method;
             if (object[methodName] === undefined) {
@@ -64,4 +65,11 @@ export default class ObjectDefinition extends BaseDefinition {
 
         return object;
     }
+
+    private createObject = (deps: Array<BaseDefinition | any>) => {
+        return this.constructorFunction.prototype &&
+            Object.hasOwn(this.constructorFunction.prototype, "constructor")
+            ? new this.constructorFunction(...deps)
+            : (this.constructorFunction as any)();
+    };
 }

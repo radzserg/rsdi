@@ -8,7 +8,7 @@ import ImplementationIsMissingError from "./errors/ImplementationIsMissingError"
 export class Container {
     private readonly container: DIContainer = new DIContainer();
 
-    private constructor() { }
+    private constructor() {}
 
     public static register(registrations: Registration[]): void {
         this.instance.register(registrations);
@@ -45,16 +45,19 @@ export class Container {
         return this.container.get<T>(type.name);
     }
 
-    private registerParent(registration: Registration, dependencies: BaseDefinition[]) {
+    private registerParent(
+        registration: Registration,
+        dependencies: BaseDefinition[]
+    ) {
         if (typeof registration.type === "string") {
             if (!registration.implementation)
                 throw new ImplementationIsMissingError(registration.type);
 
             this.container.addDefinition(
                 registration.type,
-                !!registration.implementation.prototype?.constructor ?
-                    object(registration.implementation, registration.mode) :
-                    value(registration.implementation)
+                !!registration.implementation.prototype?.constructor
+                    ? object(registration.implementation, registration.mode)
+                    : value(registration.implementation)
             );
 
             return;
@@ -62,9 +65,10 @@ export class Container {
 
         this.container.addDefinition(
             registration.type.name,
-            object(registration.implementation ?? registration.type, registration.mode).construct(
-                ...dependencies
-            )
+            object(
+                registration.implementation ?? registration.type,
+                registration.mode
+            ).construct(...dependencies)
         );
     }
 
@@ -82,10 +86,7 @@ export class Container {
 
             injections.push(get(type.name));
 
-            this.container.addDefinition(
-                type.name,
-                object(type, mode)
-            );
+            this.container.addDefinition(type.name, object(type, mode));
         }
 
         return injections;

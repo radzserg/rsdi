@@ -1,7 +1,13 @@
 import { Container } from "../Container";
 import { register } from "../DependencyBuilder";
 
-import { A, B, C, ClassWithInterfaceDependency, InterfaceImplementation } from "./fakeClasses";
+import {
+    A,
+    B,
+    C,
+    ClassWithInterfaceDependency,
+    InterfaceImplementation,
+} from "./fakeClasses";
 
 describe("Container should", () => {
     afterEach(() => {
@@ -9,9 +15,7 @@ describe("Container should", () => {
     });
 
     test("Register class as a singleton", () => {
-        const dependencies = [
-            register(C).asASingleton().build(),
-        ];
+        const dependencies = [register(C).asASingleton().build()];
 
         Container.register(dependencies);
 
@@ -19,7 +23,7 @@ describe("Container should", () => {
         const c2 = Container.resolve(C);
 
         expect(c1).toBe(c2);
-    })
+    });
 
     test("Sum with class A with dependency injection", () => {
         const dependencies = [
@@ -33,72 +37,80 @@ describe("Container should", () => {
         const a = Container.resolve(A);
 
         expect(a.sum(1, 2)).toBe(3);
-    })
+    });
 
     test("With class implementation", () => {
         class Implementation {
             hi() {
-                return "HI"
+                return "HI";
             }
         }
 
         Container.register([
-            register("test").withImplementation(new Implementation()).build()
-        ])
+            register("test").withImplementation(new Implementation()).build(),
+        ]);
 
         const resolved = Container.resolve<Implementation>("test");
 
-        expect(resolved.hi()).toBe("HI")
-    })
+        expect(resolved.hi()).toBe("HI");
+    });
 
     test("With object implementation", () => {
         const implementation = {
             hi: () => {
-                return "HI"
-            }
-        }
+                return "HI";
+            },
+        };
 
         Container.register([
-            register("test").withImplementation(implementation).build()
-        ])
+            register("test").withImplementation(implementation).build(),
+        ]);
 
         const resolved = Container.resolve<typeof implementation>("test");
 
-        expect(resolved.hi()).toBe("HI")
-    })
+        expect(resolved.hi()).toBe("HI");
+    });
 
     test("With dynamic value", () => {
         const dynamicHook = () => "HI";
 
         Container.register([
-            register("test").withDynamic(() => dynamicHook()).build()
-        ])
+            register("test")
+                .withDynamic(() => dynamicHook())
+                .build(),
+        ]);
 
         const resolved = Container.resolve("test");
 
-        expect(resolved).toBe("HI")
-    })
+        expect(resolved).toBe("HI");
+    });
 
     test("Resolve interface dependency", () => {
         Container.register([
-            register("Interface").withImplementation(InterfaceImplementation).build(),
-            register(ClassWithInterfaceDependency).withDependency("Interface").build(),
+            register("Interface")
+                .withImplementation(InterfaceImplementation)
+                .build(),
+            register(ClassWithInterfaceDependency)
+                .withDependency("Interface")
+                .build(),
         ]);
 
         const resolved = Container.resolve(ClassWithInterfaceDependency);
 
-        expect(resolved.doSomething()).toBe("HI")
-    })
+        expect(resolved.doSomething()).toBe("HI");
+    });
 
     test("Resolve interface dependency other way", () => {
         Container.register([
-            register(ClassWithInterfaceDependency).withDependency(InterfaceImplementation).build(),
+            register(ClassWithInterfaceDependency)
+                .withDependency(InterfaceImplementation)
+                .build(),
         ]);
 
         const resolved = Container.resolve(ClassWithInterfaceDependency);
 
-        expect(resolved.doSomething()).toBe("HI")
-    })
+        expect(resolved.doSomething()).toBe("HI");
+    });
 
     test("Resolve function as implementation", () => {
         const FooFunction = () => "HI";
@@ -110,6 +122,27 @@ describe("Container should", () => {
         const resolved = Container.resolve<typeof FooFunction>("Foo");
 
         expect(resolved).toBe(FooFunction);
-        expect(resolved()).toBe("HI")
-    })
+        expect(resolved()).toBe("HI");
+    });
+
+    test("Register with specific function as a dependency", () => {
+        const Implementation = () => {
+            return {
+                doSomething(): string {
+                    return "HI";
+                },
+            };
+        };
+
+        Container.register([
+            register(ClassWithInterfaceDependency)
+                .withDependency(Implementation)
+                .build(),
+        ]);
+
+        const resolved = Container.resolve(ClassWithInterfaceDependency);
+
+        expect(resolved).toBeInstanceOf(ClassWithInterfaceDependency);
+        expect(resolved.doSomething()).toBe("HI");
+    });
 });

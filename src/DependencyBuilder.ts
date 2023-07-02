@@ -1,4 +1,10 @@
-import { DependencyArg, ImplementationArg, Mode, RegisterType, Registration } from "./types";
+import {
+    DependencyArg,
+    ImplementationArg,
+    Mode,
+    RegisterType,
+    Registration,
+} from "./types";
 
 export const register = <R>(type: R) => {
     const dependencies: any[] = [];
@@ -32,7 +38,13 @@ export const register = <R>(type: R) => {
         return buildDependency(mode, type, dependencies);
     };
 
-    return { build, withImplementation, withDynamic, asASingleton, withDependency } as unknown as RegisterType<R>;
+    return {
+        build,
+        withImplementation,
+        withDynamic,
+        asASingleton,
+        withDependency,
+    } as unknown as RegisterType<R>;
 };
 
 const buildDependency = (

@@ -67,11 +67,8 @@ export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
    * @param resolvers - named dependency object
    */
   public add<N extends NonStrictNamedResolvers>(
-    this: DIContainer<ContainerResolvers>,
     resolvers: N
-  ): asserts this is DIContainer<
-    ContainerResolvers & ConvertToDefinedDependencies<N>
-  > {
+  ): asserts this is this & DIContainer<ConvertToDefinedDependencies<N>> {
     Object.keys(resolvers).forEach((name: string) => {
       this.addResolver(name, resolvers[name]);
     });
@@ -90,7 +87,7 @@ export default class DIContainer<ContainerResolvers extends NamedResolvers = {}>
   }
 
   public __(): ContainerResolvers {
-    throw new Error("Method not implemented.")
+    throw new Error("Method not implemented.");
   }
 }
 

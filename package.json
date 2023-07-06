@@ -1,6 +1,6 @@
 {
   "name": "rsdi",
-  "version": "2.3.0",
+  "version": "2.4.1",
   "description": "Simple dependency injection container for JavaScript/TypeScript",
   "scripts": {
     "test": "jest",

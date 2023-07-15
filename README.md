@@ -12,6 +12,31 @@
 -   Does not requires decorators
 -   Works great with both javascript and typescript
 -   Auto register dependencies class.
+-   Well typed for your dependencies
+
+## New version 🚀
+
+Now we are supporting the constructor parameters
+
+```typescript
+// Now in your IDE you can see the withDependencies, this function is automatically generated only when your class has more than one argument.
+class Root {
+    constructor(public innerA: InnerRoot, public innerB: InnerRootB) {}
+}
+register(Root).withDependencies(InnerRoot, InnerRootB).build();
+
+---
+// If your class has just one parameter you can see this method
+class InnerRoot {
+    constructor(public inner: InnerDep) {}
+}
+register(InnerRootB).withDependency(InnerDep).build();
+
+---
+// If your class doesn't have any dependency you can't invoke the withDependency.
+class NoDeps {}
+register(NoDeps).build();
+```
 
 ## Motivation
 
@@ -29,7 +54,7 @@ Disadvantages of other solutions
 
 ```typescript
 export class A {
-    constructor(private b: B) { }
+    constructor(private b: B) {}
 
     public sum(x: number, y: number) {
         return this.b.sum(x, y);
@@ -42,9 +67,7 @@ export class B {
     }
 }
 
-const dependencies = [
-  register(A).withDependency(B).build(),
-];
+const dependencies = [register(A).withDependency(B).build()];
 
 Container.register(dependencies);
 
@@ -67,22 +90,20 @@ export class InterfaceImplementation implements Interface {
 }
 
 export class ClassWithInterfaceDependency {
-    constructor(private readonly dependency: Interface) {
-
-    }
+    constructor(private readonly dependency: Interface) {}
     doSomething(): string {
         return this.dependency.doSomething();
     }
 }
 
 Container.register([
-  register("Interface").withImplementation(InterfaceImplementation).build(),
-  register(ClassWithInterfaceDependency).withDependency("Interface").build(),
+    register("Interface").withImplementation(InterfaceImplementation).build(),
+    register(ClassWithInterfaceDependency).withDependency("Interface").build(),
 ]);
 
 const resolved = Container.resolve(ClassWithInterfaceDependency);
 
-expect(resolved.doSomething()).toBe("HI")
+expect(resolved.doSomething()).toBe("HI");
 ```
 
 ### Register objects or functions as reference without any manipulation from container
@@ -111,6 +132,10 @@ register("Interface").withImplementation(implementation: Function | Class | obje
 //if you want register classes 👇
 // Singleton registration
 register(YourClass).asASingleton().build();
+
+register(YourClass).asASingleton().withDependency(dependency: string | Function | Class).build();
+
+register(YourClass).asASingleton().withImplementation(implementation: Function | Class | object).build();
 
 // Transient registration without dependencies
 register(YourClass).build();

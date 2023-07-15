@@ -154,7 +154,7 @@ describe("Container should", () => {
         Container.register([
             register(InnerRoot).withDependency(InnerDep).build(),
             register(InnerRootB).withDependency(InnerDep).build(),
-            register(Root).withDependency(InnerRoot).and(InnerRootB).build(),
+            register(Root).withDependencies(InnerRoot, InnerRootB).build(),
         ]);
 
         const resolved = Container.resolve(Root);
@@ -167,7 +167,7 @@ describe("Container should", () => {
             register(InnerDep).asASingleton().build(),
             register(InnerRoot).withDependency(InnerDep).build(),
             register(InnerRootB).withDependency(InnerDep).build(),
-            register(Root).withDependency(InnerRoot).and(InnerRootB).build(),
+            register(Root).withDependencies(InnerRoot, InnerRootB).build(),
         ]);
 
         const resolved = Container.resolve(Root);
@@ -183,7 +183,7 @@ describe("Container should", () => {
         Container.register([
             register(InnerRoot).withDependency(InnerDep).build(),
             register(InnerRootB).withDependency(InnerDep).build(),
-            register(Root).withDependency(InnerRoot).and(InnerRootB).build(),
+            register(Root).withDependencies(InnerRoot, InnerRootB).build(),
         ]);
 
         const resolved = Container.resolve(Root);

@@ -1,4 +1,5 @@
 import {
+    Class,
     DependencyArg,
     ImplementationArg,
     Mode,
@@ -6,14 +7,22 @@ import {
     Registration,
 } from "./types";
 
-export const register = <R>(type: R) => {
+export const register = <R extends string | Class>(type: R) => {
     const dependencies: any[] = [];
     let mode: Mode = Mode.TRANSIENT;
+
+    const withDependencies = (...parameters: unknown[]) => {
+        parameters.forEach((parameter) => {
+            dependencies.push(parameter);
+        });
+
+        return { build };
+    };
 
     const withDependency = <D>(parameter: DependencyArg<R, D>) => {
         dependencies.push(parameter);
 
-        return { and: withDependency, build };
+        return { build };
     };
 
     const withImplementation = (parameter: ImplementationArg<R>) => {
@@ -44,6 +53,7 @@ export const register = <R>(type: R) => {
         withDynamic,
         asASingleton,
         withDependency,
+        withDependencies,
     } as unknown as RegisterType<R>;
 };
 

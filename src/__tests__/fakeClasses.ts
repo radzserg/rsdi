@@ -105,4 +105,6 @@ export class InnerRootB {
     constructor(public inner: InnerDep) {}
 }
 
-export class InnerDep {}
+export class InnerDep {
+    public value: string = "";
+}

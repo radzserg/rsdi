@@ -1,11 +1,11 @@
-import { Class, Mode } from "../types";
+import { Ref, Mode } from "../types";
 
 import ObjectDefinition from "./ObjectDefinition";
 import ValueDefinition from "./ValueDefinition";
 import ExistingDefinition from "./ExistingDefinition";
 import FactoryDefinition, { Factory } from "./FactoryDefinition";
 
-export const object = (ctor: Class<any>, mode?: Mode) => {
+export const object = (ctor: Ref<any>, mode?: Mode) => {
     return new ObjectDefinition(ctor, mode);
 };
 

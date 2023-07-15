@@ -1,14 +1,20 @@
 {
     "name": "ts-injecty",
-    "version": "0.0.13",
+    "version": "0.0.15",
     "description": "dependency injection container",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
     "scripts": {
         "test": "jest",
         "format": "prettier 'src/**/*.ts' --write",
         "build": "tsc",
-        "release": "rm -Rf ./dist/* && NODE_ENV=production tsc --build tsconfig.json && cp README.md package.json dist/",
-        "minify": "minify-all-js ./dist",
-        "deploy": "cd ./dist && npm publish --access public"
+        "prerelease": "rm -rf ./dist",
+        "release": "NODE_ENV=production tsc --build tsconfig.json",
+        "postrelease": "minify-all-js ./dist",
+        "deploy": "npm publish --access public"
     },
     "keywords": [
         "dependency injection",

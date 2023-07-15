@@ -6,6 +6,7 @@ import ValueDefinition from "../definitions/ValueDefinition";
 
 import DependencyIsMissingError from "../errors/DependencyIsMissingError";
 import CircularDependencyError from "../errors/CircularDependencyError";
+import ObjectDefinition from "../definitions/ObjectDefinition";
 
 interface INamedDefinitions {
     [x: string]: IDefinition | any;
@@ -21,11 +22,10 @@ export default class DIContainer implements IDIContainer {
         if (!(name in this.definitions)) {
             throw new DependencyIsMissingError(name);
         }
-        if (parentDeps.includes(name)) {
-            throw new CircularDependencyError(name, parentDeps);
-        }
 
         const definition: IDefinition = this.definitions[name];
+
+        this.validateCircularResolution(parentDeps, name, definition);
 
         if (definition.isSingleton() && !!this.resolved[name]) {
             return this.resolved[name];
@@ -34,6 +34,24 @@ export default class DIContainer implements IDIContainer {
         parentDeps.push(name);
         this.resolved[name] = definition.resolve<T>(this, parentDeps);
         return this.resolved[name];
+    }
+
+    validateCircularResolution(
+        parentDeps: string[],
+        name: string,
+        definition: IDefinition
+    ) {
+        if (!parentDeps.includes(name)) return;
+
+        if (!(definition instanceof ObjectDefinition)) return;
+
+        if (
+            definition.dependencies.some((dependency) =>
+                parentDeps.includes(dependency)
+            )
+        ) {
+            throw new CircularDependencyError(name, parentDeps);
+        }
     }
 
     public addDefinition(name: string, definition: IDefinition | any) {

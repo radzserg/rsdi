@@ -6,6 +6,10 @@ import {
     B,
     C,
     ClassWithInterfaceDependency,
+    Root,
+    InnerDep,
+    InnerRoot,
+    InnerRootB,
     InterfaceImplementation,
 } from "./fakeClasses";
 
@@ -144,5 +148,50 @@ describe("Container should", () => {
 
         expect(resolved).toBeInstanceOf(ClassWithInterfaceDependency);
         expect(resolved.doSomething()).toBe("HI");
+    });
+
+    test("Resolve root instance with all repeated dependency", () => {
+        Container.register([
+            register(InnerRoot).withDependency(InnerDep).build(),
+            register(InnerRootB).withDependency(InnerDep).build(),
+            register(Root).withDependency(InnerRoot).and(InnerRootB).build(),
+        ]);
+
+        const resolved = Container.resolve(Root);
+
+        expect(resolved).toBeInstanceOf(Root);
+    });
+
+    test("Resolve root instance with all repeated dependency singleton", () => {
+        Container.register([
+            register(InnerDep).asASingleton().build(),
+            register(InnerRoot).withDependency(InnerDep).build(),
+            register(InnerRootB).withDependency(InnerDep).build(),
+            register(Root).withDependency(InnerRoot).and(InnerRootB).build(),
+        ]);
+
+        const resolved = Container.resolve(Root);
+
+        expect(resolved.innerA.inner).toBeInstanceOf(InnerDep);
+
+        const resolved2 = Container.resolve(Root);
+
+        expect(resolved.innerA.inner).toBe(resolved2.innerA.inner);
+    });
+
+    test("Resolve root instance with all repeated no singleton dependency", () => {
+        Container.register([
+            register(InnerRoot).withDependency(InnerDep).build(),
+            register(InnerRootB).withDependency(InnerDep).build(),
+            register(Root).withDependency(InnerRoot).and(InnerRootB).build(),
+        ]);
+
+        const resolved = Container.resolve(Root);
+
+        expect(resolved.innerA.inner).toBeInstanceOf(InnerDep);
+
+        const resolved2 = Container.resolve(Root);
+
+        expect(resolved.innerA.inner).not.toBe(resolved2.innerA.inner);
     });
 });

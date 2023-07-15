@@ -92,3 +92,17 @@ export class ClassWithInterfaceDependency implements Interface {
         return this.dependency.doSomething();
     }
 }
+
+export class Root {
+    constructor(public innerA: InnerRoot, public innerB: InnerRootB) {}
+}
+
+export class InnerRoot {
+    constructor(public inner: InnerDep) {}
+}
+
+export class InnerRootB {
+    constructor(public inner: InnerDep) {}
+}
+
+export class InnerDep {}

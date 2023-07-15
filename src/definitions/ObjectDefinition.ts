@@ -3,6 +3,7 @@ import BaseDefinition from "./BaseDefinition";
 import { IDIContainer } from "../container/IDIContainer";
 import MethodIsMissingError from "../errors/MethodIsMissingError";
 import InvalidConstructorError from "../errors/InvalidConstructorError";
+import ExistingDefinition from "./ExistingDefinition";
 
 interface IExtraMethods {
     methodName: string;
@@ -64,6 +65,12 @@ export default class ObjectDefinition extends BaseDefinition {
         });
 
         return object;
+    }
+
+    get dependencies(): string[] {
+        return this.deps
+            .filter((dep) => dep instanceof ExistingDefinition)
+            .map((dep: ExistingDefinition) => dep.name);
     }
 
     private createObject = (deps: Array<BaseDefinition | any>) => {

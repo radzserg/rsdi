@@ -50,6 +50,30 @@ type Dep<R, N> = N extends number
           | TypedFunction<Typed<Ref<ConstructorTypes<R>[N]>>> // Function return instance
     : never;
 
+interface SevenDepParams<R> {
+    withDependencies: (
+        ...dep: Length<ConstructorTypes<R>> extends 7
+            ? [
+                  Dep<R, 0>,
+                  Dep<R, 1>,
+                  Dep<R, 2>,
+                  Dep<R, 3>,
+                  Dep<R, 4>,
+                  Dep<R, 5>,
+                  Dep<R, 6>
+              ]
+            : never
+    ) => Build;
+}
+
+interface SixDepParams<R> {
+    withDependencies: (
+        ...dep: Length<ConstructorTypes<R>> extends 6
+            ? [Dep<R, 0>, Dep<R, 1>, Dep<R, 2>, Dep<R, 3>, Dep<R, 4>, Dep<R, 5>]
+            : never
+    ) => Build;
+}
+
 interface FiveDepParams<R> {
     withDependencies: (
         ...dep: Length<ConstructorTypes<R>> extends 5
@@ -113,6 +137,10 @@ type Dependency<R> = Length<ConstructorTypes<R>> extends 1
     ? FourDepParams<R>
     : Length<ConstructorTypes<R>> extends 5
     ? FiveDepParams<R>
+    : Length<ConstructorTypes<R>> extends 6
+    ? SixDepParams<R>
+    : Length<ConstructorTypes<R>> extends 7
+    ? SevenDepParams<R>
     : Scope<R>;
 type ClassRegisterType<R> = Dependency<R> & Scope<R> & ClassImplementation<R>;
 

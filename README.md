@@ -1,5 +1,8 @@
 # Dependency Injection Container
 
+<a href="https://pkg-size.dev/ts-injecty"><img src="https://pkg-size.dev/badge/install/50938" title="Install size for ts-injecty"></a>
+<a href="https://pkg-size.dev/ts-injecty"><img src="https://pkg-size.dev/badge/bundle/7905" title="Bundle size for ts-injecty"></a>
+
 # Getting Started
 
 -   [Features](#features)
@@ -8,6 +11,7 @@
 
 ## Features
 
+-   No dependencies
 -   Simple but powerful
 -   Does not requires decorators
 -   Works great with both javascript and typescript

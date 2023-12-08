@@ -30,10 +30,7 @@ describe("DIContainer", () => {
     test("it always returns singleton", () => {
         const container = new DIContainer();
         const definitions = {
-            foo: new ObjectDefinition(Foo, Mode.SINGLETON).construct(
-                "name1",
-                undefined
-            ),
+            foo: new ObjectDefinition(Foo, Mode.SINGLETON).construct("name1"),
         };
         container.addDefinitions(definitions);
 
@@ -47,7 +44,7 @@ describe("DIContainer", () => {
     test("it always returns transient", () => {
         const container = new DIContainer();
         const definitions = {
-            foo: new ObjectDefinition(Foo).construct("name1", undefined),
+            foo: new ObjectDefinition(Foo).construct("name1"),
         };
         container.addDefinitions(definitions);
 

@@ -2,8 +2,13 @@ import { Registration, ResolveArg } from "./types";
 
 import DIContainer from "./container/DIContainer";
 import BaseDefinition from "./definitions/BaseDefinition";
-import { get, object, value } from "./definitions/DefinitionBuilders";
 import ImplementationIsMissingError from "./errors/ImplementationIsMissingError";
+import { object, value, get, factory } from "./definitions/definitionBuilders";
+import { Resolver } from "./container/IDIContainer";
+
+export abstract class Factory {
+    constructor(protected readonly resolver: Resolver) {}
+}
 
 export class Container {
     private readonly container: DIContainer = new DIContainer();
@@ -40,24 +45,33 @@ export class Container {
     }
 
     public resolve<T>(type: ResolveArg<T>): T {
-        if (typeof type === "string") return this.container.get<T>(type);
-
-        return this.container.get<T>(type.name);
+        return this.container.resolve(type);
     }
 
     private registerParent(
         registration: Registration,
         dependencies: BaseDefinition[]
     ) {
-        if (typeof registration.type === "string") {
+        if (this.isInterface(registration)) {
             if (!registration.implementation)
                 throw new ImplementationIsMissingError(registration.type);
 
             this.container.addDefinition(
                 registration.type,
-                !!registration.implementation.prototype?.constructor
+                registration.implementation.prototype?.constructor
                     ? object(registration.implementation, registration.mode)
                     : value(registration.implementation)
+            );
+
+            return;
+        }
+
+        if (this.isFactory(registration)) {
+            this.container.addDefinition(
+                registration.type.name,
+                factory((resolver: Resolver) => {
+                    return new registration.type(resolver);
+                })
             );
 
             return;
@@ -70,6 +84,14 @@ export class Container {
                 registration.mode
             ).construct(...dependencies)
         );
+    }
+
+    private isFactory(registration: Registration) {
+        return registration.type.prototype instanceof Factory;
+    }
+
+    private isInterface(registration: Registration) {
+        return typeof registration.type === "string";
     }
 
     private registerDependencies(registration: Registration) {

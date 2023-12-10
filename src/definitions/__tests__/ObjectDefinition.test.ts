@@ -39,7 +39,7 @@ describe("ObjectDefinition", () => {
         const instance = definition.resolve<Foo>(container);
         expect(instance).toBeInstanceOf(Foo);
         expect(instance.name).toEqual(fakeName);
-        expect(instance.service.buzz()).toEqual("buzz");
+        expect(instance.service.bar()).toEqual("bar");
     });
 
     test("it calls methods after object have been initiated", () => {

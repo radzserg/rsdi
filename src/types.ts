@@ -1,3 +1,5 @@
+import { Resolver } from "./container/IDIContainer";
+
 export enum Mode {
     SINGLETON,
     TRANSIENT,
@@ -142,7 +144,11 @@ type Dependency<R> = Length<ConstructorTypes<R>> extends 1
     : Length<ConstructorTypes<R>> extends 7
     ? SevenDepParams<R>
     : Scope<R>;
-type ClassRegisterType<R> = Dependency<R> & Scope<R> & ClassImplementation<R>;
+
+type Factory<R> = ConstructorTypes<R>[0] extends Resolver ? Build : never;
+type ClassRegisterType<R> =
+    | Factory<R>
+    | (Dependency<R> & Scope<R> & ClassImplementation<R>);
 
 export type RegisterType<R> = R extends string
     ? StringRegisterType<R>

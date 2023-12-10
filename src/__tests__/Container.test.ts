@@ -11,6 +11,9 @@ import {
     InnerRoot,
     InnerRootB,
     InterfaceImplementation,
+    Bar,
+    Buzz,
+    FactoryImplementation,
 } from "./fakeClasses";
 
 describe("Container should", () => {
@@ -193,5 +196,18 @@ describe("Container should", () => {
         const resolved2 = Container.resolve(Root);
 
         expect(resolved.innerA.inner).not.toBe(resolved2.innerA.inner);
+    });
+
+    test("Resolve as a factory dependency", () => {
+        Container.register([
+            register(Bar).build(),
+            register(Buzz).build(),
+            register(FactoryImplementation).build(),
+        ]);
+
+        const resolved = Container.resolve(FactoryImplementation);
+
+        expect(resolved.create("Bar")).toBeInstanceOf(Bar);
+        expect(resolved.create("Buzz")).toBeInstanceOf(Buzz);
     });
 });

@@ -1,12 +1,12 @@
 import BaseDefinition from "./BaseDefinition";
-import { IDIContainer } from "../container/IDIContainer";
+import { IDIContainer, Resolver } from "../container/IDIContainer";
 import { Mode } from "../types";
 
-export type Factory = (container: IDIContainer) => any;
+export type FactoryType = (container: Resolver) => any;
 
 export default class FactoryDefinition extends BaseDefinition {
-    constructor(private readonly factory: Factory) {
-        super(Mode.SINGLETON);
+    constructor(private readonly factory: FactoryType) {
+        super(Mode.TRANSIENT);
     }
 
     resolve<T>(container: IDIContainer): T {

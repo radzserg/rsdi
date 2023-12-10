@@ -119,7 +119,7 @@ describe("DIContainer", () => {
             factory((container) => {
                 return new Promise((resolve) =>
                     setTimeout(() => {
-                        resolve(container.get("dsn"));
+                        resolve(container.resolve("dsn"));
                     })
                 );
             })

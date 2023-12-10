@@ -20,7 +20,36 @@
 
 ## New version 🚀
 
-Now we are supporting the constructor parameters
+Now we are supporting factories
+
+```typescript
+// You must extends your custom factories from Factory, and we will inject automatically the resolver in your factory.
+
+export class FactoryImplementation extends Factory {
+    public create(type: "Bar" | "Buzz") {
+        if (type === "Bar") {
+            return this.resolver.resolve(Bar);
+        }
+
+        return this.resolver.resolve(Buzz);
+    }
+}
+
+Container.register([
+    register(Bar).build(),
+    register(Buzz).build(),
+    register(FactoryImplementation).build(),
+]);
+
+const resolved = Container.resolve(FactoryImplementation);
+
+expect(resolved.create("Bar")).toBeInstanceOf(Bar);
+expect(resolved.create("Buzz")).toBeInstanceOf(Buzz);
+```
+
+## Version: 0.0.17
+
+Support the constructor parameters fully typed
 
 ```typescript
 // Now in your IDE you can see the withDependencies, this function is automatically generated only when your class has more than one argument.

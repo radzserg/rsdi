@@ -1,3 +1,5 @@
+import { Factory } from "../Container";
+
 export class Foo {
     public name: string;
     public service: Bar;
@@ -14,12 +16,16 @@ export class Foo {
 }
 
 export class Bar {
+    public bar() {
+        return "bar";
+    }
+}
+
+export class Buzz {
     public buzz() {
         return "buzz";
     }
 }
-
-export class Buzz {}
 
 export abstract class AbstractFoo {
     public name: string;
@@ -107,4 +113,14 @@ export class InnerRootB {
 
 export class InnerDep {
     public value: string = "";
+}
+
+export class FactoryImplementation extends Factory {
+    public create(type: "Bar" | "Buzz") {
+        if (type === "Bar") {
+            return this.resolver.resolve(Bar);
+        }
+
+        return this.resolver.resolve(Buzz);
+    }
 }

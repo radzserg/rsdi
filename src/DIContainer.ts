@@ -220,9 +220,9 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    * nothing but dependencies and the public methods: `deps.resolvers` is an unknown name like any
    * other, and `Object.getOwnPropertySymbols(deps)` is empty. Symbol *reads* still forward — the
    * container's own methods reach their state through `this`, which is the proxy when a factory
-   * calls `deps.has('a')`. Omitting configurable keys from `ownKeys` is within the proxy
-   * invariants; the dependency getters are the only non-configurable own properties, and they
-   * are strings.
+   * calls `deps.has('a')`. The trap hides the symbol only while it may: once the container is
+   * frozen, sealed or made non-extensible, the proxy invariants require every own key to be
+   * listed, and the symbol shows.
    */
   private static createState<CR extends ResolvedDependencies>(
     container: DIContainer<CR>,
@@ -245,7 +245,24 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
         return value;
       },
       ownKeys(target) {
-        return Reflect.ownKeys(target).filter((key) => typeof key === 'string');
+        const keys = Reflect.ownKeys(target);
+
+        // Omitting a configurable key is within the proxy invariants only while the target is
+        // extensible. A consumer who freezes, seals or `preventExtensions` the container itself
+        // makes every own key mandatory in this list — and freeze/seal make the symbol
+        // non-configurable besides — so `Object.keys(deps)`, `{ ...deps }` and rest-destructuring
+        // inside a factory died with `trap result did not include Symbol(rsdi.internalState)`.
+        // On a locked container the symbol is therefore listed; it was never a boundary.
+        if (!Object.isExtensible(target)) {
+          return keys;
+        }
+
+        const descriptor = Object.getOwnPropertyDescriptor(target, INTERNAL_STATE);
+        if (descriptor !== undefined && !descriptor.configurable) {
+          return keys;
+        }
+
+        return keys.filter((key) => typeof key === 'string');
       },
       // The structural mutations have no property to name. Without these two traps they fell
       // straight through to the container: `Object.freeze(deps)` made it non-extensible before

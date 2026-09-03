@@ -177,6 +177,44 @@ describe('the dependencies object a factory receives is read-only', () => {
     });
   });
 
+  // A consumer may lock the container itself. A non-extensible proxy target must have every own
+  // key listed by `ownKeys`, and freeze/seal make the state symbol non-configurable, so hiding it
+  // then broke the invariant: enumerating the deps object inside a factory threw
+  // `trap result did not include Symbol(rsdi.internalState)`.
+  describe('enumerating the deps object still works on a locked container', () => {
+    const lockers: Array<[string, (container: object) => void]> = [
+      ['Object.preventExtensions', (container) => void Object.preventExtensions(container)],
+      ['Object.seal', (container) => void Object.seal(container)],
+      ['Object.freeze', (container) => void Object.freeze(container)],
+    ];
+
+    test.each(lockers)('%s', (_, lock) => {
+      const container = new DIContainer()
+        .add('a', () => 1)
+        .add('probe', (deps) => {
+          const { ...rest } = deps as Record<string, unknown>;
+
+          return {
+            a: (deps as { a: number }).a,
+            keys: Object.keys(deps),
+            restKeys: Object.keys(rest),
+            spreadSymbols: Object.getOwnPropertySymbols({ ...deps }).length,
+          };
+        });
+      lock(container);
+
+      expect(container.probe).toEqual({ a: 1, keys: [], restKeys: [], spreadSymbols: 1 });
+    });
+
+    test('while the container is extensible, the symbol stays hidden', () => {
+      const container = new DIContainer().add('probe', (deps) =>
+        Object.getOwnPropertySymbols(deps),
+      );
+
+      expect(container.probe).toEqual([]);
+    });
+  });
+
   test('reads are unaffected', () => {
     const container = new DIContainer()
       .add('a', () => 1)

@@ -3,15 +3,21 @@ import {
   DenyOverrideDependencyError,
   DependencyIsMissingError,
   ForbiddenNameError,
-  InvalidResolverError,
 } from './errors.js';
+import {
+  assertResolver,
+  describeValue,
+  FOREIGN_OWN_PROPERTY,
+  isContainer,
+  readOnlyContext,
+} from './helpers.js';
+import { INTERNAL_STATE, type InternalState } from './internalState.js';
 import {
   type ContainerLike,
   type ContainerSnapshot,
   type DenyInputKeys,
   type Factory,
   type IDIContainer,
-  type InternalState,
   type MergedResolvers,
   type ReservedName,
   type ResolvedDependencies,
@@ -21,27 +27,6 @@ import {
   type StringLiteral,
   type UpdatedResolvers,
 } from './types.js';
-
-// All of the container's state lives behind this one symbol, in a plain object; the helpers that
-// work on it are `static`. Two things follow, and both are the point. A dependency can never
-// collide with an internal — `resolvers` and `setResolver` are ordinary dependency names — so
-// nothing non-public has to be reserved, and `ReservedName` in types.ts is simply
-// `keyof DIContainer<{}>` with no hand-kept list to drift. And a factory cannot reach the state by
-// accident through the deps object: `deps.resolvers` used to hand back the live map, a back door
-// under every check `add` performs — a resolver injected there had no name check, no function check
-// and no getter — and the proxy's `ownKeys` trap hides the symbol, so it is not enumerable either.
-//
-// `Symbol.for`, not `Symbol()`: `merge` and `compose` read another container's state by this key,
-// and two copies of rsdi in one dependency tree must still be able to compose each other's
-// containers, as they could when the fields were string-keyed. A registry symbol is the same
-// symbol in every copy. The price is that `Symbol.for('rsdi.internalState')` is a known key — so
-// this is not a security boundary, and was never meant as one; TypeScript's `protected` says who
-// may use it, and nothing in JavaScript short of `#private` fields, which break `this` through the
-// proxy, hides state from a caller who is determined to reach it.
-//
-// Exported for the tests, which need the maps to assert identity across writes. It is not
-// re-exported from index.ts, and the `exports` map blocks the deep import.
-export const INTERNAL_STATE: unique symbol = Symbol.for('rsdi.internalState');
 
 /**
  * Dependency injection container
@@ -92,9 +77,8 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   }
 
   /**
-   * Seeds a fresh container with copies of another's maps — what `clone()` does through
-   * `ClonedDiContainer`. `protected` so a subclass constructor can call it; a consumer's
-   * subclass may want to as well.
+   * Seeds a fresh container with copies of another's maps — what `clone()` does. `protected` so a
+   * consumer's subclass constructor can call it too.
    */
   protected static seedResolvers<CR extends ResolvedDependencies>(
     container: DIContainer<CR>,
@@ -332,9 +316,12 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    */
   public clone(): IDIContainer<ContainerResolvers> {
     // Handed the live maps on purpose — `seedResolvers` is what copies them, and routing this
-    // through `export()` would only allocate a second copy to throw away.
+    // through `export()` would only allocate a second copy to throw away. A plain `DIContainer`,
+    // not a subclass of this instance's class: a subclass constructor may take arguments this
+    // method cannot know, so the clone carries the resolvers and nothing else.
     const { resolvedDependencies, resolvers } = this[INTERNAL_STATE];
-    const newContainer = new ClonedDiContainer(resolvers, resolvedDependencies);
+    const newContainer = new DIContainer<ContainerResolvers>();
+    DIContainer.seedResolvers(newContainer, resolvers, resolvedDependencies);
 
     return newContainer as unknown as IDIContainer<ContainerResolvers>;
   }
@@ -502,7 +489,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       // when the fields were string-keyed.
       if (!isContainer(otherContainer)) {
         throw new TypeError(
-          `merge expects containers; argument ${index + 1} is ${describe(otherContainer)}`,
+          `merge expects containers; argument ${index + 1} is ${describeValue(otherContainer)}`,
         );
       }
 
@@ -591,68 +578,6 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   }
 }
 
-// The types already reject a non-function resolver; this is for JavaScript consumers and `any`
-// casts, who otherwise found out at first `get` — `TypeError: resolver is not a function`, far
-// from the registration and naming no dependency — or, for `null`, got a `DependencyIsMissingError`
-// for a name they had registered. Registration-time only, so the resolve path pays nothing.
-// `merge` runs it too, since a duck-typed input bypasses `add`.
-function assertResolver(
-  name: string,
-  resolver: unknown,
-): asserts resolver is Factory<ResolvedDependencies> {
-  if (typeof resolver !== 'function') {
-    throw new InvalidResolverError(name, resolver);
-  }
-}
-
-function describe(value: unknown): string {
-  if (value === null) {
-    return 'null';
-  }
-
-  if (typeof value === 'function') {
-    return 'a function';
-  }
-
-  if (typeof value !== 'object') {
-    return `a ${typeof value}`;
-  }
-
-  const name = (value as object).constructor?.name;
-
-  return name && name !== 'Object' ? `an instance of ${name}` : 'a plain object';
-}
-
-// Structural, not `instanceof`: a container from another copy of rsdi is still a container, and the
-// registry symbol above is what makes that true.
-//
-// `boolean`, not a `value is DIContainer<…>` type guard, on purpose. The guard read better, and
-// cost 2,097 type instantiations in every `bench-types` scenario — narrowing the argument makes the
-// compiler relate the whole class type inside `merge`, and on the smallest scenario that was 11% of
-// the budget. `merge` already casts, so the narrowing bought nothing.
-function isContainer(value: unknown): boolean {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as Record<symbol, unknown>)[INTERNAL_STATE] === 'object'
-  );
-}
-
-const FOREIGN_OWN_PROPERTY =
-  'the container already has an own property with this name that is not a dependency';
-
-// A built-in `TypeError` rather than an exported class, as for writing to a frozen object: this is a
-// bug in a factory, not a runtime condition a consumer catches. The types do not say `Readonly`;
-// `Factory` in types.ts explains what that measured.
-function readOnlyContext(property: string | symbol, resolving: ReadonlySet<string>): TypeError {
-  const key = typeof property === 'symbol' ? property.toString() : property;
-  const where = resolving.size === 0 ? '' : ` while resolving ${[...resolving].join(' -> ')}`;
-
-  return new TypeError(
-    `The dependencies object passed to a factory is read-only; cannot write ${key}${where}`,
-  );
-}
-
 // Derived from the class rather than hand-listed: the list is only correct if it is exactly the
 // class's own members, and a missing entry is not a compile error anywhere — `export` was absent
 // until a dependency of that name was found to break every `merge`.
@@ -665,8 +590,8 @@ function readOnlyContext(property: string | symbol, resolving: ReadonlySet<strin
 // names, and the type-level `ReservedName` is `keyof DIContainer<{}>` plus `constructor` with no
 // hand-kept list.
 //
-// `DIContainer.prototype` explicitly, not `Object.getPrototypeOf(this)` — a subclass's own members
-// must not change which names are reserved, since the types describe `DIContainer` only. The chain
+// `DIContainer.prototype` explicitly, not `Object.getPrototypeOf(this)` — a consumer subclass's own
+// members must not change which names are reserved, since the types describe `DIContainer` only. The chain
 // is not walked either: inherited `Object.prototype` names need no reserving now that both maps
 // are null-prototype.
 //
@@ -674,15 +599,3 @@ function readOnlyContext(property: string | symbol, resolving: ReadonlySet<strin
 // are deliberately absent. `constructor` itself is present, since it is on every prototype, and
 // stays reserved: `ReservedName` in types.ts lists it by hand because `keyof` never does.
 const containerMembers = new Set(Object.getOwnPropertyNames(DIContainer.prototype));
-
-class ClonedDiContainer<
-  ContainerResolvers extends ResolvedDependencies = {},
-> extends DIContainer<ContainerResolvers> {
-  public constructor(
-    resolvers: Resolvers<ContainerResolvers>,
-    resolvedDependencies: ResolvedValues<ContainerResolvers>,
-  ) {
-    super();
-    DIContainer.seedResolvers(this, resolvers, resolvedDependencies);
-  }
-}

@@ -1,5 +1,6 @@
-import { DIContainer, INTERNAL_STATE } from '../DIContainer.js';
+import { DIContainer } from '../DIContainer.js';
 import { ForbiddenNameError, InvalidResolverError } from '../errors.js';
+import { INTERNAL_STATE } from '../internalState.js';
 import { describe, expect, test } from 'vitest';
 
 // `merge` used to check and write one name at a time. When a later name was refused, the earlier

@@ -1,4 +1,5 @@
-import { DIContainer, INTERNAL_STATE } from '../DIContainer.js';
+import { DIContainer } from '../DIContainer.js';
+import { INTERNAL_STATE } from '../internalState.js';
 import { describe, expect, test } from 'vitest';
 
 /**

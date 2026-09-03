@@ -1,5 +1,6 @@
-import { DIContainer, INTERNAL_STATE } from '../DIContainer.js';
+import { DIContainer } from '../DIContainer.js';
 import { InvalidResolverError } from '../errors.js';
+import { INTERNAL_STATE } from '../internalState.js';
 import { Bar } from './__helpers__/fakeClasses.js';
 import { describe, expect, test } from 'vitest';
 

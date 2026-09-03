@@ -61,8 +61,8 @@ describe('DIContainer merge containers', () => {
 });
 
 describe('seedResolvers', () => {
-  // Protected, so only a subclass constructor can reach it — `ClonedDiContainer` is the one in the
-  // repo. Seeding a container that already has resolvers would silently merge two maps.
+  // Protected static, so a subclass constructor can reach it — `clone()` calls it on a fresh
+  // container. Seeding a container that already has resolvers would silently merge two maps.
   test('refuses to seed a container that already has resolvers', () => {
     class SeededTwice extends DIContainer {
       public constructor() {

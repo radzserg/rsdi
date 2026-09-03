@@ -72,19 +72,6 @@ export type IDIContainer<ContainerResolvers extends ResolvedDependencies = {}> =
   };
 
 /**
- * Everything a container owns, kept in one object behind the `INTERNAL_STATE` symbol on the
- * class. `context` is the proxy factories receive; the two maps are null-prototype; `resolving`
- * is the set of names whose factory is running. Exported because a `protected` member's type
- * has to be nameable for declaration emit, not because consumers should use it.
- */
-export type InternalState<ContainerResolvers extends ResolvedDependencies> = {
-  readonly context: ContainerResolvers;
-  readonly resolvedDependencies: ResolvedValues<ContainerResolvers>;
-  readonly resolvers: Resolvers<ContainerResolvers>;
-  readonly resolving: Set<string>;
-};
-
-/**
  * Collapses the resolver maps of a tuple of containers into a single map.
  *
  * Uses a union-to-intersection fold rather than a recursive tuple walk: a

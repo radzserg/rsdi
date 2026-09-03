@@ -1,5 +1,6 @@
-import { DIContainer, INTERNAL_STATE } from '../DIContainer.js';
+import { DIContainer } from '../DIContainer.js';
 import { ForbiddenNameError } from '../errors.js';
+import { INTERNAL_STATE } from '../internalState.js';
 import { RESERVED_NAMES } from './__helpers__/reservedNames.js';
 import { describe, expect, test } from 'vitest';
 

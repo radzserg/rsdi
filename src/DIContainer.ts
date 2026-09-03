@@ -6,6 +6,7 @@ import {
   InvalidContainerError,
 } from './errors.js';
 import {
+  assertExtensible,
   assertResolver,
   describeValue,
   FOREIGN_OWN_PROPERTY,
@@ -142,11 +143,19 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       throw new ForbiddenNameError(name, FOREIGN_OWN_PROPERTY);
     }
 
-    Object.defineProperty(container, name, {
-      get() {
-        return this.get(name);
-      },
-    });
+    try {
+      Object.defineProperty(container, name, {
+        get() {
+          return this.get(name);
+        },
+      });
+    } catch (error) {
+      // A frozen, sealed or non-extensible container is the one way this fails; say so in the words
+      // `merge` uses in its validation pass, rather than V8's `object is not extensible`. In the
+      // `catch` and not before: an `isExtensible` call per registration measured on the add chain.
+      assertExtensible(container, name);
+      throw error;
+    }
   }
 
   /**
@@ -159,13 +168,26 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   private static assertNameAvailable<CR extends ResolvedDependencies>(
     container: DIContainer<CR>,
     name: string,
+    extensible: boolean,
   ): void {
     if (containerMembers.has(name)) {
       throw new ForbiddenNameError(name);
     }
 
-    if (Object.hasOwn(container, name) && !container.has(name)) {
-      throw new ForbiddenNameError(name, FOREIGN_OWN_PROPERTY);
+    if (Object.hasOwn(container, name)) {
+      if (!container.has(name)) {
+        throw new ForbiddenNameError(name, FOREIGN_OWN_PROPERTY);
+      }
+
+      return;
+    }
+
+    // A new name needs a new getter, which a non-extensible container cannot take. Checked here,
+    // in the validation pass, so a merge that replaces an existing name and then introduces a new
+    // one on a sealed receiver is refused before the replacement is written. The caller asks
+    // `Object.isExtensible` once per merge; asking per name cost the compose rows a fifth.
+    if (!extensible) {
+      assertExtensible(container, name);
     }
   }
 
@@ -517,6 +539,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     // shadow the method: `container.get` becomes a getter that calls `this.get`, and the first
     // resolution dies in a stack overflow. One Set lookup per incoming name keeps the failure a
     // `ForbiddenNameError`, and keeps merge linear.
+    const extensible = Object.isExtensible(this);
     const incoming = containers.map((otherContainer, index) => {
       // The types only admit containers; this is for JavaScript consumers and `any` casts, who
       // otherwise got `Cannot convert undefined or null to object` from deep inside the loop — for
@@ -534,7 +557,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       const names = Object.keys(newResolvers);
 
       for (const name of names) {
-        DIContainer.assertNameAvailable(this, name);
+        DIContainer.assertNameAvailable(this, name, extensible);
         assertResolver(name, (newResolvers as Record<string, unknown>)[name]);
       }
 

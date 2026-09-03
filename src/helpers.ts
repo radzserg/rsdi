@@ -10,6 +10,22 @@ export const FOREIGN_OWN_PROPERTY =
   'the container already has an own property with this name that is not a dependency';
 
 /**
+ * A dependency is an own getter on the container, so a container that has been frozen, sealed or
+ * passed to `Object.preventExtensions` can take no new names. V8 says `Cannot define property x,
+ * object is not extensible`, which names neither the container nor the cause; this does. `merge`
+ * runs it in its validation pass for every incoming name that would need a new getter, so a
+ * non-extensible receiver is refused before any existing name is replaced — otherwise the write
+ * pass installed the replacements and then died on the first new getter.
+ */
+export function assertExtensible(container: object, name: string): void {
+  if (!Object.isExtensible(container)) {
+    throw new TypeError(
+      `Cannot add dependency ${name}: the container is not extensible — was it frozen, sealed or passed to Object.preventExtensions?`,
+    );
+  }
+}
+
+/**
  * The types already reject a non-function resolver; this is for JavaScript consumers and `any`
  * casts, who otherwise found out at first `get` — `TypeError: resolver is not a function`, far from
  * the registration and naming no dependency — or, for `null`, got a `DependencyIsMissingError` for

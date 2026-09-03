@@ -131,3 +131,49 @@ describe('merge and compose refuse a non-container argument', () => {
     expect(base.has('p')).toBe(false);
   });
 });
+
+// A dependency is an own getter, so a container that was frozen, sealed or passed to
+// `Object.preventExtensions` can take no new names. The write pass used to find that out on the
+// first new getter — after it had already replaced the existing names in the same merge.
+describe('a non-extensible receiver', () => {
+  const lockers: Array<[string, (container: object) => void]> = [
+    ['Object.preventExtensions', (container) => void Object.preventExtensions(container)],
+    ['Object.seal', (container) => void Object.seal(container)],
+    ['Object.freeze', (container) => void Object.freeze(container)],
+  ];
+
+  test.each(lockers)(
+    '%s: a merge that would add a name is refused before it replaces one',
+    (_, lock) => {
+      const base = new DIContainer().add('x', () => 'original');
+      lock(base);
+      const other = new DIContainer().add('x', () => 'replacement').add('y', () => 'y');
+
+      expect(() => base.merge(other)).toThrow(TypeError);
+      expect(() => base.merge(other)).toThrow(
+        'Cannot add dependency y: the container is not extensible — was it frozen, sealed or passed to Object.preventExtensions?',
+      );
+      expect(base.x).toEqual('original');
+      expect(base.has('y')).toBe(false);
+    },
+  );
+
+  test.each(lockers)('%s: a merge that only replaces existing names still works', (_, lock) => {
+    const base = new DIContainer().add('x', () => 'original');
+    lock(base);
+    const other = new DIContainer().add('x', () => 'replacement');
+
+    expect(base.merge(other).x).toEqual('replacement');
+  });
+
+  test.each(lockers)('%s: add() fails with the same message and writes nothing', (_, lock) => {
+    const base = new DIContainer().add('x', () => 'x');
+    lock(base);
+
+    expect(() => base.add('y', () => 'y')).toThrow(
+      'Cannot add dependency y: the container is not extensible — was it frozen, sealed or passed to Object.preventExtensions?',
+    );
+    expect(base.has('y')).toBe(false);
+    expect(base.x).toEqual('x');
+  });
+});

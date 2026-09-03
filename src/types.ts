@@ -40,7 +40,7 @@ export type Factory<
 export type IDIContainer<ContainerResolvers extends ResolvedDependencies = {}> =
   ContainerResolvers & {
     add: <N extends string, V>(
-      name: StringLiteral<DenyInputKeys<N, keyof ContainerResolvers>>,
+      name: StringLiteral<DenyInputKeys<N, keyof ContainerResolvers | ReservedName>>,
       resolver: Factory<ContainerResolvers, V>,
     ) => IDIContainer<ContainerResolvers & { [n in N]: V }>;
     clone: () => IDIContainer<ContainerResolvers>;
@@ -73,6 +73,28 @@ export type MergedResolvers<T extends readonly unknown[]> =
       ? Merged
       : {}
     : {};
+
+export type NonPublicMemberName =
+  | 'addContainerProperty'
+  | 'context'
+  | 'resolvedDependencies'
+  | 'resolvers'
+  | 'resolving'
+  | 'setResolver'
+  | 'setResolvers';
+
+/**
+ * Every name a dependency cannot take, so that `add` rejects it at compile time and not only at
+ * runtime. The runtime list is derived from the class itself (`containerMembers` in
+ * `DIContainer.ts`); this is its type-level twin.
+ *
+ * The public members come from `keyof DIContainer<{}>` and cannot drift. TypeScript's `keyof`
+ * leaves out `private` and `protected` members, and those names are reserved too — a dependency
+ * called `setResolver` shadows the method the class calls through `this` — so they are listed by
+ * hand in `NonPublicMemberName`. `reservedNames.test.ts` asserts that list against the runtime set
+ * and fails the moment a member is added to the class without being added here.
+ */
+export type ReservedName = keyof DIContainer<{}> | NonPublicMemberName;
 
 export type ResolvedDependencies = {
   [k: string]: ResolvedDependencyValue;

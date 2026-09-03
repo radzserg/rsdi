@@ -12,6 +12,7 @@ import {
   type Factory,
   type IDIContainer,
   type MergedResolvers,
+  type ReservedName,
   type ResolvedDependencies,
   type ResolvedDependencyValue,
   type ResolvedValues,
@@ -125,14 +126,15 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    *
    * Throws `DenyOverrideDependencyError` if the name is already registered — use `update` to
    * replace on purpose — `ForbiddenNameError` if the name is a container member, and
-   * `InvalidResolverError` if `resolver` is not a function.
+   * `InvalidResolverError` if `resolver` is not a function. The first two are also compile
+   * errors: a registered or reserved name types the parameter as `never`.
    *
    * Returns the same container with `name` added to its type, so the calls chain.
    * @param name an inline string literal; a widened `string` is rejected at compile time
    * @param resolver a function of the container's dependencies to the value
    */
   public add<N extends string, V>(
-    name: StringLiteral<DenyInputKeys<N, keyof ContainerResolvers>>,
+    name: StringLiteral<DenyInputKeys<N, keyof ContainerResolvers | ReservedName>>,
     resolver: Factory<ContainerResolvers, V>,
   ): IDIContainer<ContainerResolvers & { [n in N]: V }> {
     if (containerMembers.has(name)) {

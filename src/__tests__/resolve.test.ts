@@ -105,6 +105,7 @@ describe('DIContainer typescript type resolution', () => {
 
   test('cannot not add method "add" to the container', () => {
     expect(() => {
+      // @ts-expect-error - reserved name; a compile error as well as a runtime one
       new DIContainer().add('add', () => 213);
     }).toThrow(ForbiddenNameError);
   });

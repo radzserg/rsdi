@@ -1,5 +1,6 @@
 import { DIContainer } from '../DIContainer.js';
 import { ForbiddenNameError } from '../errors.js';
+import { RESERVED_NAMES } from './__helpers__/reservedNames.js';
 import { describe, expect, test } from 'vitest';
 
 describe('reserved dependency names', () => {
@@ -20,6 +21,18 @@ describe('reserved dependency names', () => {
         ForbiddenNameError,
       );
     }
+  });
+
+  // The compile-time list is kept by hand for the non-public members, since `keyof` cannot see
+  // them. This is what makes forgetting one a test failure rather than a silent gap.
+  test('the type-level reserved names are exactly the names derived from the class', () => {
+    const derived = new Set([
+      ...Object.getOwnPropertyNames(DIContainer.prototype),
+      ...Object.getOwnPropertyNames(new DIContainer()),
+    ]);
+    derived.delete('constructor');
+
+    expect(derived).toEqual(new Set(RESERVED_NAMES));
   });
 
   // Why non-public members are reserved too: `addContainerProperty` defines the dependency as an

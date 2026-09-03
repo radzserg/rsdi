@@ -71,7 +71,7 @@ Each chained call widens the type parameter: `add('foo', …)` returns `IDIConta
 
 Because of that intersection, a dependency called `get` would shadow the `get` method. Two mechanisms guard this:
 
-- **Compile time** — `DenyInputKeys` / `StringLiteral` in `types.ts` reject non-literal and colliding names.
+- **Compile time** — `DenyInputKeys` / `StringLiteral` in `types.ts` reject non-literal, colliding and reserved names. `ReservedName` is the runtime Set's type-level twin: public members derive from `keyof DIContainer<{}>`, but `keyof` cannot see `private`/`protected` members, so those are hand-listed in `NonPublicMemberName`. Adding a non-public member to the class without adding it there fails `reservedNames.test.ts`, which compares the list with the derived Set, and the type test that asserts the union equals the list. Until 3.4.0 the compile-time check covered registered names only, and `add('get', …)` type-checked.
 - **Runtime** — the `containerMembers` `Set` below the class in `DIContainer.ts` throws `ForbiddenNameError`.
 
 That `Set` is **derived**, built once at module load from the class itself:

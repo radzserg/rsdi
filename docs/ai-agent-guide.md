@@ -84,7 +84,8 @@ rather than casting.
 `add`, `clone`, `export`, `extend`, `get`, `has`, `hasResolvedDependency`, `merge`, `update`.
 
 A dependency named after a container method would shadow it, so it throws `ForbiddenNameError` at
-runtime and is rejected at compile time. `compose` is _not_ reserved — it is a static method, so it
+runtime and is rejected at compile time (the `name` parameter becomes `never`). The container's
+internal member names are reserved the same way. `compose` is _not_ reserved — it is a static method, so it
 never collides with an instance property.
 
 ### 4. `add` refuses to overwrite; `update` requires an existing name
@@ -330,7 +331,7 @@ import { CircularDependencyError, DependencyIsMissingError, DIContainer } from '
 
 | Symptom                                                                 | Cause                                                                                                                           | Fix                                                                                                       |
 | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `Argument of type '"x"' is not assignable to parameter of type 'never'` | Name already registered, or not a literal                                                                                       | Use `update`, or make the name a literal                                                                  |
+| `Argument of type '"x"' is not assignable to parameter of type 'never'` | Name already registered, reserved, or not a literal                                                                             | Use `update`, rename, or make the name a literal                                                          |
 | `Property 'x' does not exist on type 'IDIContainer<…>'`                 | Not registered, or module not composed in                                                                                       | Register it, or add its module to `compose`                                                               |
 | `Argument of type '{…}' is not assignable to … 'Factory<…>'`            | Passed a value instead of a factory                                                                                             | Wrap it: `() => value`                                                                                    |
 | `ForbiddenNameError`                                                    | Used a reserved method name                                                                                                     | Rename the dependency                                                                                     |

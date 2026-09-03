@@ -1,6 +1,12 @@
 import { DIContainer } from '../../DIContainer.js';
-import { type ContainerSnapshot, type ResolversOf, type SealedContainer } from '../../types.js';
+import {
+  type ContainerSnapshot,
+  type ReservedName,
+  type ResolversOf,
+  type SealedContainer,
+} from '../../types.js';
 import { Bar, Foo } from '../__helpers__/fakeClasses.js';
+import type { RESERVED_NAMES } from '../__helpers__/reservedNames.js';
 import { describe, expectTypeOf, test } from 'vitest';
 
 describe('DIContainer typescript type resolution', () => {
@@ -221,6 +227,38 @@ describe('DIContainer typescript type resolution', () => {
 
     expectTypeOf(DIContainer.compose(module, other).a).toEqualTypeOf<string>();
     expectTypeOf(new DIContainer().merge(module, other).bar).toEqualTypeOf<Bar>();
+  });
+
+  // The agent guide promises a reserved name is "rejected at compile time". Until this test, it was
+  // not: `DenyInputKeys` excluded registered names only, and `add('get', …)` type-checked.
+  test('every reserved name is a compile-time error for add', () => {
+    const container = new DIContainer();
+
+    // @ts-expect-error - reserved: public method
+    container.add('get', () => 1);
+    // @ts-expect-error - reserved: public method
+    container.add('merge', () => 1);
+    // @ts-expect-error - reserved: public method
+    container.add('export', () => 1);
+    // @ts-expect-error - reserved: instance field
+    container.add('resolvers', () => 1);
+    // @ts-expect-error - reserved: instance field
+    container.add('resolving', () => 1);
+    // @ts-expect-error - reserved: private method
+    container.add('setResolver', () => 1);
+    // @ts-expect-error - reserved: protected method
+    container.add('setResolvers', () => 1);
+
+    // Not reserved: a static, and Object.prototype names, both by design.
+    expectTypeOf(container.add('compose', () => 1).compose).toEqualTypeOf<number>();
+    expectTypeOf(container.add('toString', () => 1).toString).toEqualTypeOf<number>();
+  });
+
+  // The hand-kept half of `ReservedName` is pinned from both sides: `satisfies` on the helper says
+  // every listed name is reserved, this says nothing reserved is unlisted, and reservedNames.test.ts
+  // compares the list with the class at runtime.
+  test('ReservedName is exactly the pinned list', () => {
+    expectTypeOf<ReservedName>().toEqualTypeOf<(typeof RESERVED_NAMES)[number]>();
   });
 
   test('extend function', () => {

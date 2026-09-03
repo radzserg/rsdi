@@ -320,6 +320,12 @@ type in the file, which is most of what the container is for.
 
 ## Decoding errors
 
+The runtime error classes are exported from `rsdi`, so catch them by class rather than by message:
+
+```ts
+import { CircularDependencyError, DependencyIsMissingError, DIContainer } from 'rsdi';
+```
+
 | Symptom                                                                 | Cause                                                        | Fix                                                                                                       |
 | ----------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
 | `Argument of type '"x"' is not assignable to parameter of type 'never'` | Name already registered, or not a literal                    | Use `update`, or make the name a literal                                                                  |

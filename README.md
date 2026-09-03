@@ -437,6 +437,31 @@ container.get('bar');
 container.hasResolvedDependency('bar'); // true — now cached
 ```
 
+### Errors
+
+Every error the container throws is a class exported from the package, so it can be caught by type:
+
+```typescript
+import { DependencyIsMissingError, DIContainer } from 'rsdi';
+
+try {
+  container.get('nope');
+} catch (error) {
+  if (error instanceof DependencyIsMissingError) {
+    // register it, or fall back
+  }
+}
+```
+
+| Class                         | Thrown by                                                        |
+| ----------------------------- | ---------------------------------------------------------------- |
+| `DependencyIsMissingError`    | `get` or `update` on a name that isn't registered                |
+| `DenyOverrideDependencyError` | `add` on a name that already exists — use `update`               |
+| `ForbiddenNameError`          | `add` or `update` with a reserved name such as `get` or `merge`  |
+| `CircularDependencyError`     | Resolving a dependency that leads back to itself; names the path |
+
+Each sets `error.name` to its class, so logs read `DependencyIsMissingError: …` rather than `Error: …`.
+
 ---
 
 ## Further reading

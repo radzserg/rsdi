@@ -31,6 +31,14 @@ export const INTERNAL_STATE: unique symbol = Symbol.for('rsdi.internalState');
  */
 export type InternalState<ContainerResolvers extends ResolvedDependencies> = {
   readonly context: ContainerResolvers;
+  /**
+   * Bumped on every resolver write — `add`, `update`, `merge`, seeding a clone. `get` reads it
+   * before running a factory and caches the result only if it is unchanged after, so a resolver
+   * replaced mid-flight never has the old factory's value cached under it. A counter rather than
+   * comparing function identity: `update(name, sameFactory)` and a `merge` carrying the same
+   * function object are replacements too, and identity cannot see them.
+   */
+  registrations: number;
   readonly resolvedDependencies: ResolvedValues<ContainerResolvers>;
   readonly resolvers: Resolvers<ContainerResolvers>;
   readonly resolving: Set<string>;

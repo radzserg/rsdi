@@ -110,6 +110,8 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       ownResolvers[name] = source[name];
     }
 
+    state.registrations++;
+
     const ownResolvedDependencies = state.resolvedDependencies as Record<
       string,
       ResolvedDependencyValue
@@ -257,6 +259,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     // touches it — a hit returns before it is consulted — so cached resolution costs what it did.
     return {
       context,
+      registrations: 0,
       resolvedDependencies: Object.create(null) as ResolvedValues<CR>,
       resolvers: Object.create(null) as Resolvers<CR>,
       resolving: new Set<string>(),
@@ -282,7 +285,9 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     // Writing into the map rather than rebuilding it is what makes a chain of `add` calls linear
     // instead of quadratic. It is safe only because no two containers ever share a resolver map —
     // `seedResolvers` copies what `clone()` hands it, which `clone.test.ts` pins.
-    (container[INTERNAL_STATE].resolvers as Record<string, Factory<CR>>)[name] = resolver;
+    const state = container[INTERNAL_STATE];
+    (state.resolvers as Record<string, Factory<CR>>)[name] = resolver;
+    state.registrations++;
   }
 
   /**
@@ -428,6 +433,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       throw new CircularDependencyError([...state.resolving, name]);
     }
 
+    const { registrations } = state;
     state.resolving.add(name);
     let value: ResolvedDependencyValue;
     try {
@@ -437,13 +443,16 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       state.resolving.delete(name);
     }
 
-    // Cache only if the resolver that ran is still the one registered. An `update` or `merge` that
-    // replaced it while the factory was running has already evicted the cache and installed the new
-    // resolver; caching this value would silently undo that — every later request returned the old
-    // factory's value from under the new resolver. The value is still returned to the caller that
-    // asked for it, since that is what actually ran; the next request runs the replacement. One
-    // identity comparison, on the miss path only.
-    if (state.resolvers[dependencyName] === resolver) {
+    // Cache only if nothing was registered while the factory ran. An `update` or `merge` that
+    // replaced this name mid-flight has already evicted the cache — or copied in the merged
+    // container's own resolved value — and installed the new resolver; caching this result would
+    // silently undo that, and every later request would serve the old factory's value. Comparing the
+    // resolver's identity was not enough: `update(name, sameFactory)` asks for a fresh instance from
+    // the same function, and a merge can carry the same function object with a value already
+    // resolved. The value is still returned to the caller that asked for it, since that is what
+    // actually ran; the next request runs whatever is registered then. One integer comparison, on
+    // the miss path only; a registration of some unrelated name mid-flight costs one re-run.
+    if (state.registrations === registrations) {
       state.resolvedDependencies[dependencyName] = value;
     }
 
@@ -557,6 +566,8 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
         // `compose(...modules)` linear in total dependencies instead of quadratic.
         ownResolvers[name] = (newResolvers as Record<string, Factory<ContainerResolvers>>)[name];
       }
+
+      own.registrations++;
 
       for (const name of Object.keys(newResolvedDependencies)) {
         ownResolvedDependencies[name] = newResolvedDependencies[name];

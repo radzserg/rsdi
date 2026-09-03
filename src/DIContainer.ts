@@ -17,7 +17,7 @@ import {
   keyName,
   readOnlyContext,
 } from './helpers.js';
-import { INTERNAL_STATE, type InternalState } from './internalState.js';
+import { type ForeignContainerState, INTERNAL_STATE, type InternalState } from './internalState.js';
 import {
   type ContainerLike,
   type ContainerSnapshot,
@@ -383,9 +383,11 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       }
 
       // The state directly, not `export()`: that copies now, and every name is copied again into
-      // our own maps below — one throwaway map per merged container, for nothing.
+      // our own maps below — one throwaway map per merged container, for nothing. Typed as the
+      // foreign shape, not as our own `InternalState`: the other container may come from another
+      // installed version of rsdi, and the two maps are all this version may assume it has.
       const { resolvedDependencies: newResolvedDependencies, resolvers: newResolvers } = (
-        otherContainer as DIContainer<ResolvedDependencies>
+        otherContainer as unknown as { readonly [INTERNAL_STATE]: ForeignContainerState }
       )[INTERNAL_STATE];
       const names = Object.keys(newResolvers);
       const resolvedNames = Object.keys(newResolvedDependencies);

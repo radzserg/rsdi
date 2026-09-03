@@ -24,6 +24,23 @@ import { type ResolvedDependencies, type ResolvedValues, type Resolvers } from '
 export const INTERNAL_STATE: unique symbol = Symbol.for('rsdi.internalState');
 
 /**
+ * What `merge` and `compose` may read from *another* container's state — and nothing else.
+ *
+ * `INTERNAL_STATE` is a `Symbol.for` key so that two installed copies of rsdi can compose each
+ * other's containers, and those two copies can be different versions. That makes the shape of the
+ * state object a cross-version contract: the incoming side may have fields this version has never
+ * heard of, and may lack any field this version added after the two maps. `mergeInto` therefore
+ * types the foreign state as this `Pick`, so reading a third field from it is a compile error rather
+ * than a runtime failure in someone's dependency tree — and `isContainer` checks exactly these two.
+ * Adding fields to `InternalState` is safe; renaming or removing `resolvers` or
+ * `resolvedDependencies` is a break with every other version.
+ */
+export type ForeignContainerState = Pick<
+  InternalState<ResolvedDependencies>,
+  'resolvedDependencies' | 'resolvers'
+>;
+
+/**
  * Everything a container owns, kept in one object behind `INTERNAL_STATE` on the class.
  * `context` is the proxy factories receive; the two maps are null-prototype; `resolving` is the
  * set of names whose factory is running. Exported because a `protected` member's type has to be

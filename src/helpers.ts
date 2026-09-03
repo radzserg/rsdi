@@ -76,7 +76,9 @@ export function describeValue(value: unknown): string {
 
 /**
  * Structural, not `instanceof`: a container from another copy of rsdi is still a container, and the
- * registry symbol is what makes that true.
+ * registry symbol is what makes that true. It asks for exactly the two maps `ForeignContainerState`
+ * names, and must never ask for more — a container from another version may lack whatever this one
+ * added later.
  *
  * `boolean`, not a `value is DIContainer<…>` type guard, on purpose. The guard read better, and
  * cost 2,097 type instantiations in every `bench-types` scenario — narrowing the argument makes the

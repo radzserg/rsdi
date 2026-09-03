@@ -151,6 +151,31 @@ describe('merge and compose refuse a non-container argument', () => {
     expect(() => base.get('ghost' as never)).toThrow(DependencyIsMissingError);
   });
 
+  // The registry symbol lets two installed copies of rsdi compose each other's containers, and
+  // those copies may be different versions. Only the two maps are a contract: a foreign state may
+  // carry fields this version has never seen and lack any it added after them.
+  test('a state from another version of rsdi is accepted when it carries the two maps', () => {
+    const fromAnotherVersion = {
+      [INTERNAL_STATE]: {
+        aFieldFromTheFuture: 42,
+        resolvedDependencies: { b: 'resolved elsewhere' },
+        resolvers: { a: () => 'a', b: () => 'never runs' },
+        // no `registrations`, no `resolving`, no `context`
+      },
+    } as unknown as DIContainer;
+
+    const composed = DIContainer.compose(fromAnotherVersion);
+
+    expect(composed.get('a' as never)).toEqual('a');
+    expect(composed.get('b' as never)).toEqual('resolved elsewhere');
+    expect(
+      new DIContainer()
+        .add('c', () => 'c')
+        .merge(fromAnotherVersion)
+        .get('a' as never),
+    ).toEqual('a');
+  });
+
   test('names the position of the offending argument and writes nothing', () => {
     const base = new DIContainer();
     const good = new DIContainer().add('p', () => 'p');

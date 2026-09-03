@@ -571,6 +571,8 @@ function readOnlyContext(property: string | symbol, resolving: ReadonlySet<strin
 // are null-prototype.
 //
 // Statics (`compose`) live on the constructor, never the instance, and are deliberately absent.
+// `constructor` itself is present, since it is on every prototype, and stays reserved: `ReservedName`
+// in types.ts lists it by hand because `keyof` never does.
 const containerMembers = new Set([
   ...Object.getOwnPropertyNames(DIContainer.prototype),
   ...Object.getOwnPropertyNames(new DIContainer()),

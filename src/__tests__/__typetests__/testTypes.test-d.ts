@@ -248,6 +248,8 @@ describe('DIContainer typescript type resolution', () => {
     container.add('setResolver', () => 1);
     // @ts-expect-error - reserved: protected method
     container.add('setResolvers', () => 1);
+    // @ts-expect-error - reserved: on every prototype, and never in keyof
+    container.add('constructor', () => 1);
 
     // Not reserved: a static, and Object.prototype names, both by design.
     expectTypeOf(container.add('compose', () => 1).compose).toEqualTypeOf<number>();

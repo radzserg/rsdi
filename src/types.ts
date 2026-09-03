@@ -106,7 +106,11 @@ export type NonPublicMemberName =
  * hand in `NonPublicMemberName`. `reservedNames.test.ts` asserts that list against the runtime set
  * and fails the moment a member is added to the class without being added here.
  */
-export type ReservedName = keyof DIContainer<{}> | NonPublicMemberName;
+// `constructor` is on every prototype, so the runtime Set always holds it, but `keyof` of an
+// instance type never lists it. Reserved on purpose: an own `constructor` getter would shadow the
+// inherited one, and anything reading `instance.constructor` for a class name would resolve a
+// dependency as a side effect.
+export type ReservedName = 'constructor' | keyof DIContainer<{}> | NonPublicMemberName;
 
 export type ResolvedDependencies = {
   [k: string]: ResolvedDependencyValue;

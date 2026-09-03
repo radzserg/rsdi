@@ -30,7 +30,6 @@ describe('reserved dependency names', () => {
       ...Object.getOwnPropertyNames(DIContainer.prototype),
       ...Object.getOwnPropertyNames(new DIContainer()),
     ]);
-    derived.delete('constructor');
 
     expect(derived).toEqual(new Set(RESERVED_NAMES));
   });

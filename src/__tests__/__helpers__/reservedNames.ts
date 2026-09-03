@@ -10,6 +10,7 @@ export const RESERVED_NAMES = [
   'addContainerProperty',
   'assertNameAvailable',
   'clone',
+  'constructor',
   'context',
   'export',
   'extend',

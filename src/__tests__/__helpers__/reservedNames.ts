@@ -8,6 +8,7 @@ import { type ReservedName } from '../../types.js';
 export const RESERVED_NAMES = [
   'add',
   'addContainerProperty',
+  'assertNameAvailable',
   'clone',
   'context',
   'export',

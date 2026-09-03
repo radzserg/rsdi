@@ -152,6 +152,9 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     name: StringLiteral<DenyInputKeys<N, keyof ContainerResolvers | ReservedName>>,
     resolver: Factory<ContainerResolvers, V>,
   ): IDIContainer<ContainerResolvers & { [n in N]: V }> {
+    // Only the reserved half of `assertNameAvailable` here: the foreign-own-property half is what
+    // `addContainerProperty` checks anyway, before anything is written, and doing it twice cost the
+    // `wiring.bench.ts` add chain a measurable slice for nothing.
     if (containerMembers.has(name)) {
       throw new ForbiddenNameError(name);
     }
@@ -314,7 +317,8 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    * two different types resolves to `never` rather than the later type.
    *
    * This mutates and returns `this`; use `clone()` or the static `DIContainer.compose()`
-   * when a separate instance is required.
+   * when a separate instance is required. Every incoming name is checked before anything is
+   * written, so a merge that throws leaves this container exactly as it was.
    * @param containers
    */
   public merge<T extends readonly ContainerLike[]>(
@@ -326,25 +330,33 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       ResolvedDependencyValue
     >;
 
-    for (const otherContainer of containers) {
+    // Two passes, so that a merge is all-or-nothing like `add`. Checking and writing one name at a
+    // time left the earlier containers, and the earlier names of the failing one, merged into
+    // `this` when a later name was refused — including a cache eviction that could not be undone.
+    // The key arrays are read once and reused, so the second pass costs no extra allocation.
+    //
+    // `add` and `update` refuse these names, so a real container never carries one — but `merge`
+    // accepts anything shaped like a container at runtime, and an own property named `get` would
+    // shadow the method: `container.get` becomes a getter that calls `this.get`, and the first
+    // resolution dies in a stack overflow. One Set lookup per incoming name keeps the failure a
+    // `ForbiddenNameError`, and keeps merge linear.
+    const incoming = containers.map((otherContainer) => {
       // The protected maps directly, not `export()`: that copies now, and every name is copied
       // again into our own maps below — one throwaway map per merged container, for nothing.
       const { resolvedDependencies: newResolvedDependencies, resolvers: newResolvers } =
         otherContainer as DIContainer<ResolvedDependencies>;
+      const names = Object.keys(newResolvers);
 
-      for (const name of Object.keys(newResolvers)) {
-        // `add` and `update` refuse these names, so a real container never carries one — but
-        // `merge` accepts anything shaped like a container at runtime, and an own property named
-        // `get` would shadow the method: `container.get` becomes a getter that calls `this.get`,
-        // and the first resolution dies in a stack overflow. One Set lookup per incoming name
-        // keeps the failure a `ForbiddenNameError`, and keeps merge linear.
-        if (containerMembers.has(name)) {
-          throw new ForbiddenNameError(name);
-        }
+      for (const name of names) {
+        this.assertNameAvailable(name);
+        assertResolver(name, (newResolvers as Record<string, unknown>)[name]);
+      }
 
-        const resolver = (newResolvers as Record<string, unknown>)[name];
-        assertResolver(name, resolver);
+      return { names, newResolvedDependencies, newResolvers };
+    });
 
+    for (const { names, newResolvedDependencies, newResolvers } of incoming) {
+      for (const name of names) {
         // A replaced resolver must not keep the value the previous one produced — the same
         // eviction `update()` performs. Only the overriding container's own cache may survive,
         // so a name it re-registers without having resolved yet has to lose the old value;
@@ -366,7 +378,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
 
         // Writing into the map rather than rebuilding it per container is what keeps
         // `compose(...modules)` linear in total dependencies instead of quadratic.
-        ownResolvers[name] = resolver;
+        ownResolvers[name] = (newResolvers as Record<string, Factory<ContainerResolvers>>)[name];
       }
 
       for (const name of Object.keys(newResolvedDependencies)) {
@@ -460,10 +472,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
         return;
       }
 
-      throw new ForbiddenNameError(
-        name,
-        'the container already has an own property with this name that is not a dependency',
-      );
+      throw new ForbiddenNameError(name, FOREIGN_OWN_PROPERTY);
     }
 
     Object.defineProperty(this, name, {
@@ -471,6 +480,23 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
         return this.get(name);
       },
     });
+  }
+
+  /**
+   * The checks a name has to pass before it can be registered, apart from whether it already is
+   * one: not a container member, and not already an own property that something else put on the
+   * container. `merge` runs it for every incoming name of every container before writing anything,
+   * which is what makes it all-or-nothing. `add` and `update` check the reserved half inline and
+   * leave the other to `addContainerProperty`, which has to look at the own property regardless.
+   */
+  private assertNameAvailable(name: string): void {
+    if (containerMembers.has(name)) {
+      throw new ForbiddenNameError(name);
+    }
+
+    if (Object.hasOwn(this, name) && !this.has(name)) {
+      throw new ForbiddenNameError(name, FOREIGN_OWN_PROPERTY);
+    }
   }
 
   /**
@@ -505,6 +531,9 @@ function assertResolver(
     throw new InvalidResolverError(name, resolver);
   }
 }
+
+const FOREIGN_OWN_PROPERTY =
+  'the container already has an own property with this name that is not a dependency';
 
 // A built-in `TypeError` rather than an exported class, as for writing to a frozen object: this is a
 // bug in a factory, not a runtime condition a consumer catches. The types do not say `Readonly`;

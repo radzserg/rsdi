@@ -105,7 +105,7 @@ Guarding each lookup with `Object.hasOwn` would fix it and tax every cache hit; 
 
 ### Mutation is real; immutability is only in the types
 
-`add`, `update`, and `merge` all mutate `this` and return it re-cast — `merge` writes into `this.resolvers` and returns `this`. `clone()` and the static `DIContainer.compose()` are the only ways to get a genuinely separate instance; `compose` builds a fresh container and merges each input into it, leaving the inputs untouched.
+`add`, `update`, and `merge` all mutate `this` and return it re-cast — `merge` writes into `this.resolvers` and returns `this`. All three check before they write: `merge` validates every incoming name of every container in a first pass — reserved, foreign own property, non-function resolver — and writes in a second, so a refused name leaves `this` untouched instead of half-merged with an eviction that cannot be undone. The key arrays are read once and reused, so it is still linear; `mergeAtomicity.test.ts` pins it. `clone()` and the static `DIContainer.compose()` are the only ways to get a genuinely separate instance; `compose` builds a fresh container and merges each input into it, leaving the inputs untouched.
 
 `clone()` works through `ClonedDiContainer`, a non-exported subclass at the bottom of `DIContainer.ts`. It exists purely to provide a constructor that seeds resolvers, because the public `DIContainer` constructor deliberately takes no arguments. `setResolvers` is `protected` for the same reason and throws if resolvers already exist.
 

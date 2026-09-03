@@ -342,6 +342,8 @@ the container it is called on.
   replaced resolver had already produced is evicted). Types intersect, so a key defined twice with
   different types becomes `never`.
 - Already resolved values are reused — not re-created.
+- All-or-nothing: every incoming name is checked before anything is written, so a `merge` that throws leaves the
+  container exactly as it was.
 
 ```ts
 const containerA = new DIContainer().add('a', () => '1').add('bar', () => new Bar());

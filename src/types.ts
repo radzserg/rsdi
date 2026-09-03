@@ -87,6 +87,7 @@ export type MergedResolvers<T extends readonly unknown[]> =
 
 export type NonPublicMemberName =
   | 'addContainerProperty'
+  | 'assertNameAvailable'
   | 'context'
   | 'resolvedDependencies'
   | 'resolvers'

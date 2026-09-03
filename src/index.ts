@@ -4,6 +4,7 @@ export {
   DenyOverrideDependencyError,
   DependencyIsMissingError,
   ForbiddenNameError,
+  InvalidContainerError,
   InvalidResolverError,
 } from './errors.js';
 export {

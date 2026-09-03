@@ -3,6 +3,7 @@ import {
   DenyOverrideDependencyError,
   DependencyIsMissingError,
   ForbiddenNameError,
+  InvalidContainerError,
 } from './errors.js';
 import {
   assertResolver,
@@ -505,9 +506,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       // an `undefined` from a mistyped import, or a plain object that used to pass as a container
       // when the fields were string-keyed.
       if (!isContainer(otherContainer)) {
-        throw new TypeError(
-          `merge expects containers; argument ${index + 1} is ${describeValue(otherContainer)}`,
-        );
+        throw new InvalidContainerError(index + 1, describeValue(otherContainer));
       }
 
       // The state directly, not `export()`: that copies now, and every name is copied again into

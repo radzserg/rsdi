@@ -42,6 +42,17 @@ export class ForbiddenNameError extends Error {
   }
 }
 
+export class InvalidContainerError extends Error {
+  /**
+   * @param position the 1-based argument position in the `merge`/`compose` call
+   * @param received a description of what was passed instead — see `describeValue`
+   */
+  constructor(position: number, received: string) {
+    super(`merge expects containers; argument ${position} is ${received}`);
+    this.name = new.target.name;
+  }
+}
+
 export class InvalidResolverError extends Error {
   constructor(name: string, received: unknown) {
     // `typeof null` is 'object', which would point at the wrong mistake.

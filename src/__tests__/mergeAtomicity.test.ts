@@ -1,5 +1,5 @@
 import { DIContainer } from '../DIContainer.js';
-import { ForbiddenNameError, InvalidResolverError } from '../errors.js';
+import { ForbiddenNameError, InvalidContainerError, InvalidResolverError } from '../errors.js';
 import { INTERNAL_STATE } from '../internalState.js';
 import { describe, expect, test } from 'vitest';
 
@@ -86,7 +86,7 @@ describe('merge is all-or-nothing', () => {
 // import — used to get `Cannot convert undefined or null to object` from deep inside the loop.
 describe('merge and compose refuse a non-container argument', () => {
   const cases: Array<[string, unknown, string]> = [
-    ['undefined', undefined, 'argument 1 is a undefined'],
+    ['undefined', undefined, 'argument 1 is undefined'],
     ['null', null, 'argument 1 is null'],
     ['a plain object', { resolvers: {} }, 'argument 1 is a plain object'],
     ['a string', 'services', 'argument 1 is a string'],
@@ -95,7 +95,7 @@ describe('merge and compose refuse a non-container argument', () => {
   ];
 
   test.each(cases)('%s', (_, value, message) => {
-    expect(() => DIContainer.compose(value as DIContainer)).toThrow(TypeError);
+    expect(() => DIContainer.compose(value as DIContainer)).toThrow(InvalidContainerError);
     expect(() => DIContainer.compose(value as DIContainer)).toThrow(message);
   });
 
@@ -104,7 +104,7 @@ describe('merge and compose refuse a non-container argument', () => {
     const good = new DIContainer().add('p', () => 'p');
 
     expect(() => base.merge(good, undefined as unknown as DIContainer)).toThrow(
-      'merge expects containers; argument 2 is a undefined',
+      'merge expects containers; argument 2 is undefined',
     );
     expect(base.has('p')).toBe(false);
   });

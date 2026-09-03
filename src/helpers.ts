@@ -27,8 +27,8 @@ export function assertResolver(
 
 /** What `merge` says it was handed when the argument is not a container. */
 export function describeValue(value: unknown): string {
-  if (value === null) {
-    return 'null';
+  if (value === null || value === undefined) {
+    return String(value);
   }
 
   if (typeof value === 'function') {

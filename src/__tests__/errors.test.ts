@@ -7,6 +7,7 @@ import {
   DependencyIsMissingError,
   DIContainer,
   ForbiddenNameError,
+  InvalidContainerError,
   InvalidResolverError,
 } from '../index.js';
 import { describe, expect, test } from 'vitest';
@@ -44,6 +45,11 @@ describe('error classes', () => {
       'add() with a value instead of a factory',
       () => new DIContainer().add('a', 42 as never),
       InvalidResolverError,
+    ],
+    [
+      'compose() with something that is not a container',
+      () => DIContainer.compose(undefined as never),
+      InvalidContainerError,
     ],
     [
       'a cycle',

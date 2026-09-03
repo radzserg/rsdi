@@ -467,6 +467,7 @@ try {
 | `ForbiddenNameError`          | a reserved name such as `get` or `merge`, or a name the container already has as an own property |
 | `CircularDependencyError`     | Resolving a dependency that leads back to itself; names the path                                 |
 | `InvalidResolverError`        | `add` or `update` given a value instead of a factory                                             |
+| `InvalidContainerError`       | `merge` or `compose` given something that is not a container                                     |
 
 Each sets `error.name` to its class, so logs read `DependencyIsMissingError: …` rather than `Error: …`.
 

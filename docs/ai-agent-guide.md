@@ -26,18 +26,19 @@ container.userRepository; // UserRepository — resolved on first access, then c
 container.get('userRepository'); // identical
 ```
 
-| Call                           | Returns                     | Notes                                                        |
-| ------------------------------ | --------------------------- | ------------------------------------------------------------ |
-| `new DIContainer()`            | empty container             | Constructor takes **no** arguments                           |
-| `.add(name, factory)`          | container + that name       | **Throws** if `name` already exists                          |
-| `.get(name)`                   | the dependency              | Same as property access; throws if not registered            |
-| `.update(name, factory)`       | container, name retyped     | **Throws** if `name` does not exist; evicts the cached value |
-| `.has(name)`                   | `boolean`                   | Is a resolver registered?                                    |
-| `.hasResolvedDependency(name)` | `boolean`                   | Has it been _resolved_ yet?                                  |
-| `.merge(...containers)`        | **mutated** `this`          | Later containers win on duplicate names                      |
-| `DIContainer.compose(...cs)`   | a **new** container         | Static; inputs untouched                                     |
-| `.clone()`                     | a new, independent instance | Copies resolvers and already-resolved values                 |
-| `.extend(fn)`                  | whatever `fn` returns       | For layered modules that need earlier types                  |
+| Call                           | Returns                               | Notes                                                                |
+| ------------------------------ | ------------------------------------- | -------------------------------------------------------------------- |
+| `new DIContainer()`            | empty container                       | Constructor takes **no** arguments                                   |
+| `.add(name, factory)`          | container + that name                 | **Throws** if `name` already exists                                  |
+| `.get(name)`                   | the dependency                        | Same as property access; throws if not registered                    |
+| `.update(name, factory)`       | container, name retyped               | **Throws** if `name` does not exist; evicts the cached value         |
+| `.has(name)`                   | `boolean`                             | Is a resolver registered?                                            |
+| `.hasResolvedDependency(name)` | `boolean`                             | Has it been _resolved_ yet?                                          |
+| `.merge(...containers)`        | **mutated** `this`                    | Later containers win on duplicate names                              |
+| `DIContainer.compose(...cs)`   | a **new** container                   | Static; inputs untouched                                             |
+| `.clone()`                     | a new, independent instance           | Copies resolvers and already-resolved values                         |
+| `.extend(fn)`                  | whatever `fn` returns                 | For layered modules that need earlier types                          |
+| `.export()`                    | `{ resolvers, resolvedDependencies }` | Copies, typed to the container's names; for inspection and debugging |
 
 Install: `npm install rsdi` (or `pnpm add rsdi`). The package is **ESM-only**; `engines.node` is
 `>=16.9.0`. A CommonJS project needs Node 20.19+/22.12+ to `require()` it, and TypeScript consumers
@@ -79,7 +80,7 @@ rather than casting.
 
 ### 3. These names are reserved
 
-`add`, `clone`, `extend`, `get`, `has`, `hasResolvedDependency`, `merge`, `update`.
+`add`, `clone`, `export`, `extend`, `get`, `has`, `hasResolvedDependency`, `merge`, `update`.
 
 A dependency named after a container method would shadow it, so it throws `ForbiddenNameError` at
 runtime and is rejected at compile time. `compose` is _not_ reserved — it is a static method, so it

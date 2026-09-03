@@ -426,6 +426,9 @@ for it when your error messages get unreadable, not to speed up compilation — 
 - **`.hasResolvedDependency(name)`** — returns `true` only if the dependency has already been resolved and cached.
 - **`.update(name, resolver)`** — replace an existing dependency's resolver (see [How to use](#how-to-use)). Unlike
   `.add()`, it expects the name to already exist.
+- **`.export()`** — returns `{ resolvers, resolvedDependencies }`, both copies, typed to the container's names.
+  `resolvedDependencies` holds only what has been resolved so far. Useful for inspecting a container in a test or a
+  debugger; writing into the copies does not affect the container.
 
 ```typescript
 const container = new DIContainer().add('bar', () => new Bar());

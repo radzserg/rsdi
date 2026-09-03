@@ -5,4 +5,9 @@ export {
   DependencyIsMissingError,
   ForbiddenNameError,
 } from './errors.js';
-export { type IDIContainer, type ResolversOf, type SealedContainer } from './types.js';
+export {
+  type ContainerSnapshot,
+  type IDIContainer,
+  type ResolversOf,
+  type SealedContainer,
+} from './types.js';

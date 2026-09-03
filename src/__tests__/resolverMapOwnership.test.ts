@@ -81,11 +81,8 @@ describe('the container writes into its maps in place', () => {
  * protected maps directly, so no internal path pays for the copy.
  */
 describe('export hands out copies, not the live maps', () => {
-  // `export` is declared on the class but not on `IDIContainer`, which is what `add` returns — so
-  // these hold the instance reference and use the widened one only to read values off it.
   test('a later registration is not visible through an earlier export', () => {
-    const container = new DIContainer();
-    container.add('a', () => 'a');
+    const container = new DIContainer().add('a', () => 'a');
     const exported = container.export();
 
     container.add('b', () => 'b');
@@ -95,23 +92,22 @@ describe('export hands out copies, not the live maps', () => {
   });
 
   test('writing into an exported map does not reach the container', () => {
-    const container = new DIContainer();
-    const typed = container.add('a', () => 'a');
+    const container = new DIContainer().add('a', () => 'a');
     const exported = container.export();
 
-    exported.resolvers.injected = () => 'injected';
+    // The snapshot is typed to the container's names, so the tampering has to go around the types.
+    (exported.resolvers as Record<string, unknown>).injected = () => 'injected';
     exported.resolvedDependencies.a = 'tampered';
 
     expect(container.has('injected')).toBe(false);
-    expect(typed.a).toEqual('a');
+    expect(container.a).toEqual('a');
   });
 
   test('a later resolution is not visible through an earlier export', () => {
-    const container = new DIContainer();
-    const typed = container.add('a', () => 'a');
+    const container = new DIContainer().add('a', () => 'a');
     const exported = container.export();
 
-    expect(typed.a).toEqual('a');
+    expect(container.a).toEqual('a');
 
     expect('a' in exported.resolvedDependencies).toBe(false);
     expect(container.hasResolvedDependency('a')).toBe(true);

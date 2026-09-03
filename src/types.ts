@@ -8,6 +8,28 @@ export type ContainerLike<R extends ResolvedDependencies = ResolvedDependencies>
   | DIContainer<R>
   | IDIContainer<R>;
 
+/**
+ * What `export()` returns: copies of the container's resolver map and of the values it has
+ * resolved so far. `resolvedDependencies` is partial because resolution is lazy — a name is
+ * present only once something has asked for it.
+ *
+ * The factories are typed through `SnapshotFactory`, not `Factory`, and the difference is
+ * load-bearing. This type sits in a *return* position on `IDIContainer`, so a plain
+ * `(resolvers: CR) => V` there puts the resolver map in a contravariant slot. Assigning
+ * `IDIContainer<{ b: Date }>` to `ContainerLike` — which every `merge` and `compose` argument
+ * does — then needs `Record<string, any>` assignable to `{ b: Date }`, and it is not: with `Factory`
+ * here, every widened container stopped being a `ContainerLike` and every `merge`/`compose` call
+ * site broke. The method-shorthand indirection makes the parameter bivariant, as method parameters
+ * always are, so the check passes in both directions and the hover still shows the real parameter
+ * type. The type tests pin both the shape and the assignability.
+ */
+export type ContainerSnapshot<ContainerResolvers extends ResolvedDependencies> = {
+  resolvedDependencies: Partial<ContainerResolvers>;
+  resolvers: {
+    [K in keyof ContainerResolvers]?: SnapshotFactory<ContainerResolvers, ContainerResolvers[K]>;
+  };
+};
+
 export type DenyInputKeys<T, Disallowed> = T & (T extends Disallowed ? never : T);
 
 export type Factory<
@@ -22,6 +44,7 @@ export type IDIContainer<ContainerResolvers extends ResolvedDependencies = {}> =
       resolver: Factory<ContainerResolvers, V>,
     ) => IDIContainer<ContainerResolvers & { [n in N]: V }>;
     clone: () => IDIContainer<ContainerResolvers>;
+    export: () => ContainerSnapshot<ContainerResolvers>;
     extend: <E extends (container: IDIContainer<ContainerResolvers>) => IDIContainer>(
       f: E,
     ) => ReturnType<E>;
@@ -101,6 +124,10 @@ export type RewrittenResolvers<CR extends ResolvedDependencies, N extends keyof 
  * The dependency types themselves are unchanged.
  */
 export type SealedContainer<C> = IDIContainer<ResolversOf<C>>;
+
+export type SnapshotFactory<ContainerResolvers extends ResolvedDependencies, Value> = {
+  bivarianceHack(resolvers: ContainerResolvers): Value;
+}['bivarianceHack'];
 
 export type StringLiteral<T> = T extends string ? (string extends T ? never : T) : never;
 

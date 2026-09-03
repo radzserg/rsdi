@@ -6,6 +6,7 @@ import {
 } from './errors.js';
 import {
   type ContainerLike,
+  type ContainerSnapshot,
   type DenyInputKeys,
   type Factory,
   type IDIContainer,
@@ -128,8 +129,12 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    * then clone it to create separate DI configurations for different bounded contexts.
    *
    * The cloned container is a new instance but retains all the original resolvers.
+   *
+   * Typed as `IDIContainer`, like every other method that hands the container back, so property
+   * access stays typed on the result. `DIContainer<R>` alone does not intersect the resolver map —
+   * on a subclass instance `clone().foo` was a `TS2339` while `IDIContainer` said it existed.
    */
-  public clone(): DIContainer<ContainerResolvers> {
+  public clone(): IDIContainer<ContainerResolvers> {
     // Handed the live maps on purpose — `setResolvers` is what copies them, and routing this
     // through `export()` would only allocate a second copy to throw away.
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -138,7 +143,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       this.resolvedDependencies as { [name in keyof ContainerResolvers]: ResolvedDependencyValue },
     );
 
-    return newContainer as DIContainer<ContainerResolvers>;
+    return newContainer as unknown as IDIContainer<ContainerResolvers>;
   }
 
   /**
@@ -149,8 +154,10 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    * call and mutate the container by writing into what they were given. Nothing inside the class
    * goes through here — `clone` and `merge` read the protected maps directly — so the copy is
    * paid only by a consumer that asks for it.
+   *
+   * Declared on `IDIContainer` as well, so it stays reachable after `add` has widened the type.
    */
-  public export(): ResolvedDependencies {
+  public export(): ContainerSnapshot<ContainerResolvers> {
     return {
       resolvedDependencies: { ...this.resolvedDependencies },
       resolvers: { ...this.resolvers },

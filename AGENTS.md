@@ -40,7 +40,7 @@ src/
   DIContainer.ts   # the container class (add/get/update/merge/clone/extend/has/…)
   types.ts         # public + internal type machinery (IDIContainer, Factory, …)
   errors.ts        # typed error classes (exported from index.ts; each sets `name` via new.target)
-  index.ts         # public entry point — DIContainer, the four error classes, IDIContainer, ResolversOf, SealedContainer
+  index.ts         # public entry point — DIContainer, the four error classes, ContainerSnapshot, IDIContainer, ResolversOf, SealedContainer
   __tests__/
     *.test.ts                     # runtime tests (vitest)
     __typetests__/*.test-d.ts     # TYPE tests (vitest expectTypeOf, needs --typecheck)
@@ -58,6 +58,8 @@ Four small files, but the design is not obvious from any one of them.
 `DIContainer` (in `DIContainer.ts`) is the runtime class. `IDIContainer<R>` (in `types.ts`) is a hand-maintained type describing the same surface. They are not derived from each other.
 
 **Every signature change to a public method must be made in both files.** The class methods return `this as unknown as IDIContainer<…>` — a cast, not a real conversion — so a mismatch does not produce a compile error anywhere in this repo. It silently ships wrong types to consumers, and only a `*.test-d.ts` assertion will catch it.
+
+**A member added to `IDIContainer` must keep `R` out of contravariant positions.** `ContainerLike` accepts `IDIContainer<ResolvedDependencies>`, so every `merge`/`compose` argument has to pass `IDIContainer<{ b: Date }>` → `IDIContainer<Record<string, any>>`. That holds only while `R` appears covariantly (return types, `R[K]`) or inside a parameter of a method, where the double flip makes it covariant again. `export()` returning factories typed `(resolvers: R) => R[K]` put `R` in a parameter of a _returned_ function — one flip — and every widened container silently stopped being a `ContainerLike`: all `merge` and `compose` call sites failed, and `bench-types`' compose scenarios with them. `SnapshotFactory` in `types.ts` uses the method-shorthand bivariance hack for exactly this; `testTypes.test-d.ts` pins that a widened container is still accepted by `merge` and `compose`.
 
 ### Types are the product; the runtime is a thin map
 
@@ -107,7 +109,7 @@ Guarding each lookup with `Object.hasOwn` would fix it and tax every cache hit; 
 
 Those writes cost a chain of 1600 dependencies 196 ms before and 0.6 ms after, so **treat a rebuild of either map as a performance bug, not a style choice.** Wall clock can't guard that in CI, so `resolverMapOwnership.test.ts` asserts the maps keep their identity across `add`, `update`, `merge` and a cached `get` — the same invariant, stated deterministically. A `{ ...this.resolvers }` anywhere on those paths fails there.
 
-**`export()` is the one place that copies on purpose.** Before the in-place writes, `add` replaced `this.resolvers` outright, so what `export()` returned was a de-facto snapshot; handing out the live map now would let a caller watch the container change under them and mutate it by writing into what they were given. Nothing inside the class calls it — `clone()` and `merge()` read the protected maps directly, cross-instance — so no internal path pays for the copy. Note `export` is declared on the class but **not** on `IDIContainer`, so it is unreachable once a chain has widened the type; if that is ever fixed, fix it in both files.
+**`export()` is the one place that copies on purpose.** Before the in-place writes, `add` replaced `this.resolvers` outright, so what `export()` returned was a de-facto snapshot; handing out the live map now would let a caller watch the container change under them and mutate it by writing into what they were given. Nothing inside the class calls it — `clone()` and `merge()` read the protected maps directly, cross-instance — so no internal path pays for the copy. It returns `ContainerSnapshot<R>` and is declared on both the class and `IDIContainer` — it used to be missing from the interface, which made it unreachable once a chain had widened the type, and typed as `Record<string, any>` when it was reached.
 
 ### Resolution: lazy, cached, via two access paths
 

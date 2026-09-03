@@ -1,4 +1,5 @@
 import { DIContainer } from '../DIContainer.js';
+import { type IDIContainer } from '../types.js';
 import { describe, expect, test } from 'vitest';
 
 // `update` evicts the cache and installs the new resolver at once. When it ran while the name's own
@@ -102,6 +103,28 @@ describe('replacing a resolver while its factory is running', () => {
     expect(container.get('a')).toEqual('run 2');
     expect(container.get('a')).toEqual('run 1');
     expect(runs).toEqual(2);
+  });
+
+  // The counter must move only for a registration. A merge of an empty container registered
+  // nothing, but bumped it anyway, so a factory that merged one mid-flight was never cached.
+  test('merging an empty container during resolution does not prevent caching', () => {
+    const empty = new DIContainer();
+    let container: IDIContainer<{ service: { run: number } }>;
+    let runs = 0;
+
+    container = new DIContainer().add('service', () => {
+      runs++;
+      container.merge(empty);
+
+      return { run: runs };
+    });
+
+    const first = container.service;
+    const second = container.service;
+
+    expect(second).toBe(first);
+    expect(runs).toBe(1);
+    expect(container.hasResolvedDependency('service')).toBe(true);
   });
 
   test('an unreplaced resolver is still cached', () => {

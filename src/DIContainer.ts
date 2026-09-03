@@ -423,7 +423,12 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
         ownResolvers[name] = (newResolvers as Record<string, Factory<CR>>)[name];
       }
 
-      own.registrations++;
+      // Only if something was registered. A merge of an empty container is not a registration, and
+      // counting it made a factory that merged one mid-flight — through a closure — never cache:
+      // every later access re-ran it and `hasResolvedDependency` stayed false.
+      if (names.length > 0) {
+        own.registrations++;
+      }
 
       for (const name of Object.keys(newResolvedDependencies)) {
         ownResolvedDependencies[name] = newResolvedDependencies[name];

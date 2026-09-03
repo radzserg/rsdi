@@ -32,6 +32,17 @@ export type ContainerSnapshot<ContainerResolvers extends ResolvedDependencies> =
 
 export type DenyInputKeys<T, Disallowed> = T & (T extends Disallowed ? never : T);
 
+/**
+ * A dependency's factory. It receives the container's dependencies — the container itself behind a
+ * proxy whose `set`, `deleteProperty` and `defineProperty` traps throw, so the object is read-only
+ * at runtime.
+ *
+ * Not `Readonly<ContainerResolvers>` here, although that is the honest type. Measured with
+ * `bench-types`, the mapped type costs a fresh instantiation over the whole resolver map at every
+ * `add` link: the flat 200-chain scenario went from 81% to 94% of its budget and the module-seeded
+ * one from 77% to 90%, for a compile error on a write the runtime already refuses with a clear
+ * message. Type-check cost is what this library sells, so the runtime check stands alone.
+ */
 export type Factory<
   ContainerResolvers extends ResolvedDependencies,
   Value = ResolvedDependencyValue,

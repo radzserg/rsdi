@@ -468,6 +468,10 @@ try {
 
 Each sets `error.name` to its class, so logs read `DependencyIsMissingError: …` rather than `Error: …`.
 
+The object a factory receives is read-only. Assigning to it, deleting from it, or defining a property on it throws a
+`TypeError` that names the key and the factory that was running. That includes registering through it: call `add`,
+`update` and `merge` on the container, not on the `deps` argument.
+
 ---
 
 ## Further reading

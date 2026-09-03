@@ -30,19 +30,8 @@ describe('a name already used by a foreign own property', () => {
     expect(app.has('logger')).toBe(false);
   });
 
-  test('a property a factory wrote through the deps object is refused on a later add', () => {
-    const container = new DIContainer()
-      .add('a', () => 1)
-      .add('writer', (deps) => {
-        (deps as Record<string, unknown>).scratch = 42;
-
-        return 'ok';
-      });
-    expect(container.writer).toEqual('ok');
-
-    expect(() => container.add('scratch', () => 'from factory')).toThrow(ForbiddenNameError);
-    expect(container.has('scratch')).toBe(false);
-  });
+  // A factory writing through the deps object is refused at the write itself now — see
+  // readOnlyContext.test.ts — so it can no longer leave a stray property for a later add to find.
 
   test('merge refuses it too', () => {
     const container = new DIContainer() as DIContainer & { cache?: string };

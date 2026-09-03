@@ -67,7 +67,19 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     // container's own methods are all reachable through the context, as they are on the container.
     // Anything that probes a protocol key the container lacks — `then` from `await deps`,
     // `toJSON` from `JSON.stringify(deps)` — throws; neither is a supported use of the context.
+    //
+    // Writes are refused outright. The proxy's target is the container, so `deps.scratch = 42`
+    // inside a factory used to land as an own property on the container itself — invisible until a
+    // later `add('scratch', …)` was refused for colliding with it — and `deps.a = 2` on a dependency
+    // name failed with V8's own message about a getter-only property. A `TypeError`, as for a frozen
+    // object, naming the key and the factory that was running. Only a write pays for the traps.
     this.context = new Proxy(this, {
+      defineProperty(target, property) {
+        throw readOnlyContext(property, target.resolving);
+      },
+      deleteProperty(target, property) {
+        throw readOnlyContext(property, target.resolving);
+      },
       get(target, property) {
         // Indexing with the key as given: `toString()` here cost a call on every dependency a
         // factory destructures, and turned a symbol lookup into a miss under its description.
@@ -77,6 +89,9 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
         }
 
         return value;
+      },
+      set(target, property) {
+        throw readOnlyContext(property, target.resolving);
       },
     }) as unknown as ContainerResolvers;
   }
@@ -489,6 +504,18 @@ function assertResolver(
   if (typeof resolver !== 'function') {
     throw new InvalidResolverError(name, resolver);
   }
+}
+
+// A built-in `TypeError` rather than an exported class, as for writing to a frozen object: this is a
+// bug in a factory, not a runtime condition a consumer catches. The types do not say `Readonly`;
+// `Factory` in types.ts explains what that measured.
+function readOnlyContext(property: string | symbol, resolving: ReadonlySet<string>): TypeError {
+  const key = typeof property === 'symbol' ? property.toString() : property;
+  const where = resolving.size === 0 ? '' : ` while resolving ${[...resolving].join(' -> ')}`;
+
+  return new TypeError(
+    `The dependencies object passed to a factory is read-only; cannot write ${key}${where}`,
+  );
 }
 
 // Derived from the class rather than hand-listed: the list is only correct if it is exactly the

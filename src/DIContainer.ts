@@ -437,7 +437,15 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       state.resolving.delete(name);
     }
 
-    state.resolvedDependencies[dependencyName] = value;
+    // Cache only if the resolver that ran is still the one registered. An `update` or `merge` that
+    // replaced it while the factory was running has already evicted the cache and installed the new
+    // resolver; caching this value would silently undo that — every later request returned the old
+    // factory's value from under the new resolver. The value is still returned to the caller that
+    // asked for it, since that is what actually ran; the next request runs the replacement. One
+    // identity comparison, on the miss path only.
+    if (state.resolvers[dependencyName] === resolver) {
+      state.resolvedDependencies[dependencyName] = value;
+    }
 
     return value;
   }
@@ -563,6 +571,9 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    * runs the new factory. Throws `DependencyIsMissingError` if the name is not registered — `add`
    * is for new names, and keeping the two apart is what stops a dependency being redefined by
    * accident. The usual reason to call this is a test double.
+   *
+   * Safe to call while the name's own factory is running: the value that factory produces is
+   * handed to whoever asked for it but not cached, so the next request runs the replacement.
    *
    * Chaining overrides off a built container is a supported shape and stays cheap: when
    * the replacement has the same type as the dependency it replaces — a test double for

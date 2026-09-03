@@ -11,6 +11,7 @@ import {
   describeValue,
   FOREIGN_OWN_PROPERTY,
   isContainer,
+  isObjectLike,
   keyName,
   readOnlyContext,
 } from './helpers.js';
@@ -81,7 +82,12 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
 
   /**
    * Seeds a fresh container with copies of another's maps — what `clone()` does. `protected` so a
-   * consumer's subclass constructor can call it too.
+   * consumer's subclass constructor can call it too — which makes it an entry point for input the
+   * types never saw, and so it runs the same checks `merge` runs, before writing anything: reserved
+   * names, foreign own properties, non-function resolvers, and that every resolved value has a
+   * resolver. Without them a seeded `get` shadowed the method and the first resolution overflowed
+   * the stack, a seeded `42` failed at first `get` with V8's message, and a resolved value with no
+   * resolver was a phantom dependency `has()` denied and `get()` returned.
    */
   protected static seedResolvers<CR extends ResolvedDependencies>(
     container: DIContainer<CR>,
@@ -90,12 +96,33 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   ): void {
     const state = container[INTERNAL_STATE];
 
-    // A plain `Error` on purpose, where every other throw in this file is a typed class. Those are
-    // conditions a consumer can reach through the public API and may want to catch; this one is
-    // reachable only from a subclass constructor and is a programming error at wiring time, not a
-    // runtime state. Exporting a class for it would widen the public surface for nothing.
+    // Plain `Error`s on purpose, where every other throw in this file is a typed class. Those are
+    // conditions a consumer can reach through the public API and may want to catch; these are
+    // reachable only from a subclass constructor and are programming errors at wiring time, not a
+    // runtime state. Exporting a class for them would widen the public surface for nothing.
     if (Object.keys(state.resolvers).length !== 0) {
       throw new Error('Cannot set resolvers on a container that already has resolvers');
+    }
+
+    if (!isObjectLike(resolvers) || !isObjectLike(resolvedDependencies)) {
+      throw new Error('seedResolvers expects a resolver map and a resolved-values map');
+    }
+
+    const source = resolvers as Record<string, Factory<CR>>;
+    const names = Object.keys(source);
+    const resolvedNames = Object.keys(resolvedDependencies);
+
+    // Validate everything, then write, as `merge` does.
+    const extensible = Object.isExtensible(container);
+    for (const name of names) {
+      DIContainer.assertNameAvailable(container, name, extensible);
+      assertResolver(name, source[name]);
+    }
+
+    for (const name of resolvedNames) {
+      if (!Object.hasOwn(source, name)) {
+        throw new Error(`Cannot seed a resolved value for ${name}: it has no resolver`);
+      }
     }
 
     // Both maps are copied, not adopted. `add` and `merge` write into them in place, so a clone
@@ -104,8 +131,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     // Entry by entry rather than by spread: these maps are built a key at a time, which leaves
     // them in V8's dictionary mode, and spreading one of those costs over twice what the loop does.
     const ownResolvers = state.resolvers as Record<string, Factory<CR>>;
-    const source = resolvers as Record<string, Factory<CR>>;
-    for (const name of Object.keys(source)) {
+    for (const name of names) {
       // Getter before resolver, as in `setResolver`; see `addContainerProperty`.
       DIContainer.addContainerProperty(container, name);
       ownResolvers[name] = source[name];
@@ -117,7 +143,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       string,
       ResolvedDependencyValue
     >;
-    for (const name of Object.keys(resolvedDependencies)) {
+    for (const name of resolvedNames) {
       ownResolvedDependencies[name] = resolvedDependencies[name];
     }
   }

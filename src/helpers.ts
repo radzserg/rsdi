@@ -70,7 +70,7 @@ export function describeValue(value: unknown): string {
  * the budget. `merge` already casts, so the narrowing bought nothing.
  */
 export function isContainer(value: unknown): boolean {
-  if (!isObject(value)) {
+  if (!isObjectLike(value)) {
     return false;
   }
 
@@ -80,10 +80,15 @@ export function isContainer(value: unknown): boolean {
   const state = (value as Record<symbol, unknown>)[INTERNAL_STATE];
 
   return (
-    isObject(state) &&
-    isObject((state as Record<string, unknown>).resolvers) &&
-    isObject((state as Record<string, unknown>).resolvedDependencies)
+    isObjectLike(state) &&
+    isObjectLike((state as Record<string, unknown>).resolvers) &&
+    isObjectLike((state as Record<string, unknown>).resolvedDependencies)
   );
+}
+
+/** A non-null object — `typeof null` is `'object'`, which is the whole reason this exists. */
+export function isObjectLike(value: unknown): value is object {
+  return typeof value === 'object' && value !== null;
 }
 
 /** A property key as it should read in a message: symbols by their description. */
@@ -104,8 +109,4 @@ export function readOnlyContext(action: string, resolving: ReadonlySet<string>):
   return new TypeError(
     `The dependencies object passed to a factory is read-only; cannot ${action}${where}`,
   );
-}
-
-function isObject(value: unknown): value is object {
-  return typeof value === 'object' && value !== null;
 }

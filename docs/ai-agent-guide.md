@@ -56,12 +56,13 @@ or fail at runtime.
 ```ts
 const connection = await createConnection();
 
-container.add('db', connection); // ✗ TS2345, and at runtime: "resolver is not a function"
+container.add('db', connection); // ✗ TS2345, and at runtime: InvalidResolverError
 container.add('db', () => connection); // ✓
 ```
 
 Registering a value directly is the single most common mistake. `add` stores the argument as a
-resolver and calls it on first access.
+resolver and calls it on first access. Without types to stop it, `add` and `update` throw
+`InvalidResolverError` at the registration site, naming the dependency and what was received.
 
 ### 2. Names must be inline string literals
 
@@ -336,7 +337,7 @@ import { CircularDependencyError, DependencyIsMissingError, DIContainer } from '
 | `DenyOverrideDependencyError`                                           | `add` on an existing name                                                                                                       | Use `update`                                                                                              |
 | `DependencyIsMissingError`                                              | `get`/`update` on an unknown name, or a factory destructured a name no composed module provides — the message names the factory | Register it, or add its module to `compose`                                                               |
 | `CircularDependencyError: … a -> b -> a`                                | A factory reads a dependency whose factory reads it back                                                                        | Break the cycle — pass one side in lazily, or split the shared part into its own dependency               |
-| `TypeError: resolver is not a function`                                 | Registered a value, not a factory                                                                                               | Wrap it: `() => value`                                                                                    |
+| `InvalidResolverError`                                                  | Registered a value, not a factory — thrown at `add`/`update`                                                                    | Wrap it: `() => value`                                                                                    |
 | Editor sluggish in the container file                                   | One long `.add()` chain (O(N²))                                                                                                 | Split into modules and `compose`                                                                          |
 | `TS2589: Type instantiation is excessively deep`                        | Depth accumulated across a long chain                                                                                           | Give modules explicit named return types; stop chaining `ReturnType<typeof previousModule>`               |
 | `TS2589` on a chain of `update()` calls                                 | Overrides that change a dependency's type rewrite the map                                                                       | Give the fake the same type as the real dependency (`as` the interface); never reach for `container: any` |

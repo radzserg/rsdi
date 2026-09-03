@@ -40,7 +40,7 @@ src/
   DIContainer.ts   # the container class (add/get/update/merge/clone/extend/has/…)
   types.ts         # public + internal type machinery (IDIContainer, Factory, …)
   errors.ts        # typed error classes (exported from index.ts; each sets `name` via new.target)
-  index.ts         # public entry point — DIContainer, the four error classes, ContainerSnapshot, IDIContainer, ResolversOf, SealedContainer
+  index.ts         # public entry point — DIContainer, the five error classes, ContainerSnapshot, IDIContainer, ResolversOf, SealedContainer
   __tests__/
     *.test.ts                     # runtime tests (vitest)
     __typetests__/*.test-d.ts     # TYPE tests (vitest expectTypeOf, needs --typecheck)

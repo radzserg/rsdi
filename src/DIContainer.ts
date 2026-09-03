@@ -3,6 +3,7 @@ import {
   DenyOverrideDependencyError,
   DependencyIsMissingError,
   ForbiddenNameError,
+  InvalidResolverError,
 } from './errors.js';
 import {
   type ContainerLike,
@@ -308,6 +309,9 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
           throw new ForbiddenNameError(name);
         }
 
+        const resolver = (newResolvers as Record<string, unknown>)[name];
+        assertResolver(name, resolver);
+
         // A replaced resolver must not keep the value the previous one produced — the same
         // eviction `update()` performs. Only the overriding container's own cache may survive,
         // so a name it re-registers without having resolved yet has to lose the old value;
@@ -329,7 +333,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
 
         // Writing into the map rather than rebuilding it per container is what keeps
         // `compose(...modules)` linear in total dependencies instead of quadratic.
-        ownResolvers[name] = (newResolvers as Record<string, Factory<ContainerResolvers>>)[name];
+        ownResolvers[name] = resolver;
       }
 
       for (const name of Object.keys(newResolvedDependencies)) {
@@ -426,12 +430,28 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    * Sets value to the container
    */
   private setValue(name: string, resolver: Factory<ContainerResolvers>): void {
+    assertResolver(name, resolver);
+
     // Writing into the map rather than rebuilding it is what makes a chain of `add` calls linear
     // instead of quadratic. It is safe only because no two containers ever share a resolver map —
     // `setResolvers` copies what `clone()` hands it, which `clone.test.ts` pins.
     (this.resolvers as Record<string, Factory<ContainerResolvers>>)[name] = resolver;
 
     this.addContainerProperty(name);
+  }
+}
+
+// The types already reject a non-function resolver; this is for JavaScript consumers and `any`
+// casts, who otherwise found out at first `get` — `TypeError: resolver is not a function`, far
+// from the registration and naming no dependency — or, for `null`, got a `DependencyIsMissingError`
+// for a name they had registered. Registration-time only, so the resolve path pays nothing.
+// `merge` runs it too, since a duck-typed input bypasses `add`.
+function assertResolver(
+  name: string,
+  resolver: unknown,
+): asserts resolver is Factory<ResolvedDependencies> {
+  if (typeof resolver !== 'function') {
+    throw new InvalidResolverError(name, resolver);
   }
 }
 

@@ -37,3 +37,14 @@ export class ForbiddenNameError extends Error {
     this.name = new.target.name;
   }
 }
+
+export class InvalidResolverError extends Error {
+  constructor(name: string, received: unknown) {
+    // `typeof null` is 'object', which would point at the wrong mistake.
+    const kind = received === null ? 'null' : typeof received;
+    super(
+      `Dependency resolver with name ${name} must be a function, received ${kind}; wrap a value as () => value`,
+    );
+    this.name = new.target.name;
+  }
+}

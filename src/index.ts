@@ -4,6 +4,7 @@ export {
   DenyOverrideDependencyError,
   DependencyIsMissingError,
   ForbiddenNameError,
+  InvalidResolverError,
 } from './errors.js';
 export {
   type ContainerSnapshot,

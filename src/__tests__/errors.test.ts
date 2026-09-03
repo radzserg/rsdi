@@ -7,6 +7,7 @@ import {
   DependencyIsMissingError,
   DIContainer,
   ForbiddenNameError,
+  InvalidResolverError,
 } from '../index.js';
 import { describe, expect, test } from 'vitest';
 
@@ -38,6 +39,11 @@ describe('error classes', () => {
       'add() on a reserved name',
       () => new DIContainer().add('get' as never, () => 1),
       ForbiddenNameError,
+    ],
+    [
+      'add() with a value instead of a factory',
+      () => new DIContainer().add('a', 42 as never),
+      InvalidResolverError,
     ],
     [
       'a cycle',

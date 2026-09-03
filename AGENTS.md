@@ -83,9 +83,9 @@ const containerMembers = new Set([
 ]);
 ```
 
-so adding a member reserves its name automatically. It was a hand-written list until 3.4.0, and the list was wrong three ways: `export` was missing until a dependency of that name was found to break every `merge`; `setValue`/`addContainerProperty` were explicitly (and wrongly) permitted; and instance fields were never considered at all. Don't put it back. Three things it encodes:
+so adding a member reserves its name automatically. It was a hand-written list until 3.4.0, and the list was wrong three ways: `export` was missing until a dependency of that name was found to break every `merge`; `setValue` (now `setResolver`) and `addContainerProperty` were explicitly (and wrongly) permitted; and instance fields were never considered at all. Don't put it back. Three things it encodes:
 
-- **Non-public prototype members are reserved too, and must be.** `addContainerProperty` defines dependencies as _own_ properties, which shadow the prototype methods the class calls through `this` — a dependency named `setValue` registers fine and makes the _next_ `add` throw `TypeError: this.setValue is not a function`.
+- **Non-public prototype members are reserved too, and must be.** `addContainerProperty` defines dependencies as _own_ properties, which shadow the prototype methods the class calls through `this` — a dependency named `setResolver` registers fine and makes the _next_ `add` throw `TypeError: this.setResolver is not a function`.
 - **The throwaway instance is not decoration.** Fields (`resolvers`, `resolvedDependencies`, `context`, `resolving`) exist nowhere until one is constructed, and they are own properties before any dependency is registered — so `addContainerProperty`'s `Object.hasOwn(this, name)` early-return skipped wiring the getter entirely. `add('resolvers', …)` used to half-work: `get('resolvers')` resolved, while `container.resolvers` handed back the container's own internal map.
 - **Read `DIContainer.prototype`, never `Object.getPrototypeOf(this)`.** A subclass (`ClonedDiContainer`, or a consumer's) must not change which names are reserved, because the types describe `DIContainer` alone.
 
@@ -133,7 +133,7 @@ Factories receive `this.context`, a `Proxy` built in the constructor that forwar
 
 `UpdatedResolvers` in `types.ts` avoids the rewrite in the case that actually chains: when the replacement's type is _mutually assignable_ with the one already registered — a test double for the real service — the container type passes through unchanged. The check has to be mutual, not one-way; one-way would also swallow the subtype case, which is supposed to narrow the container type. `bench-types.mjs`'s `update-chain-80` scenario fails with `TS2589` if the shortcut is removed.
 
-Note this is a _type_-level cost only. The runtime `update()` path is the same in-place `setValue` write `add` uses, and `resolverMapOwnership.test.ts` covers it.
+Note this is a _type_-level cost only. The runtime `update()` path is the same in-place `setResolver` write `add` uses, and `resolverMapOwnership.test.ts` covers it.
 
 ## Runtime benchmarks
 

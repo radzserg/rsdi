@@ -14,6 +14,7 @@ import {
   type MergedResolvers,
   type ResolvedDependencies,
   type ResolvedDependencyValue,
+  type ResolvedValues,
   type Resolvers,
   type StringLiteral,
   type UpdatedResolvers,
@@ -32,15 +33,16 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   // live in V8's dictionary mode either way, which is why the change is free.
   //
   // `export()` still hands out ordinary objects — its copies are for consumers, not for lookup.
-  protected resolvedDependencies: {
-    [name in keyof ContainerResolvers]?: ResolvedDependencyValue;
-  } = Object.create(null) as { [name in keyof ContainerResolvers]?: ResolvedDependencyValue };
+  protected resolvedDependencies: ResolvedValues<ContainerResolvers> = Object.create(
+    null,
+  ) as ResolvedValues<ContainerResolvers>;
 
   protected resolvers: Resolvers<ContainerResolvers> = Object.create(
     null,
   ) as Resolvers<ContainerResolvers>;
 
-  private readonly context: ContainerResolvers = {} as ContainerResolvers;
+  // Assigned in the constructor; an initializer here would allocate an object only to drop it.
+  private readonly context: ContainerResolvers;
 
   // Names whose factory is running right now, in call order, so a factory that reaches back to a
   // name above it in the chain is reported as `a -> b -> a` instead of dying in
@@ -117,10 +119,17 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   }
 
   /**
-   * Adds new dependency resolver to the container. If dependency with given name already exists it will throw an error.
-   * Use update method instead. It will override existing dependency.
-   * @param name
-   * @param resolver
+   * Registers a factory under `name`. The factory runs once, on the first `get(name)` or
+   * `container.name`, and its result is cached; it receives the container, so it can destructure
+   * the dependencies it needs and they resolve lazily at that point.
+   *
+   * Throws `DenyOverrideDependencyError` if the name is already registered — use `update` to
+   * replace on purpose — `ForbiddenNameError` if the name is a container member, and
+   * `InvalidResolverError` if `resolver` is not a function.
+   *
+   * Returns the same container with `name` added to its type, so the calls chain.
+   * @param name an inline string literal; a widened `string` is rejected at compile time
+   * @param resolver a function of the container's dependencies to the value
    */
   public add<N extends string, V>(
     name: StringLiteral<DenyInputKeys<N, keyof ContainerResolvers>>,
@@ -134,7 +143,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       throw new DenyOverrideDependencyError(name);
     }
 
-    this.setValue(name, resolver);
+    this.setResolver(name, resolver);
 
     return this as unknown as IDIContainer<ContainerResolvers & { [n in N]: V }>;
   }
@@ -155,10 +164,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   public clone(): IDIContainer<ContainerResolvers> {
     // Handed the live maps on purpose — `setResolvers` is what copies them, and routing this
     // through `export()` would only allocate a second copy to throw away.
-    const newContainer = new ClonedDiContainer(
-      this.resolvers,
-      this.resolvedDependencies as { [name in keyof ContainerResolvers]: ResolvedDependencyValue },
-    );
+    const newContainer = new ClonedDiContainer(this.resolvers, this.resolvedDependencies);
 
     return newContainer as unknown as IDIContainer<ContainerResolvers>;
   }
@@ -182,24 +188,23 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   }
 
   /**
-   * Extends container with given function. It will pass container as an argument to the function.
-   * Function should return new container with extended resolvers.
-   * It is useful when you want to split your container into multiple files.
-   * You can create a file with resolvers and extend container with it.
-   * You can also use it to create multiple containers with different resolvers.
+   * Passes the container to `diConfigurationFactory` and returns whatever it returns. This is how
+   * a module layers on top of an earlier one when its factories need the earlier dependencies to
+   * be visible at compile time — `compose` combines modules but keeps each module's types to
+   * itself.
    *
-   * For example:
+   * // validators.ts
+   * export const addValidators = (container: DIWithDataAccessors) =>
+   *   container
+   *     .add('validatorA', ({ a, b }) => new ValidatorA(a, b))
+   *     .add('validatorB', ({ a, c }) => new ValidatorB(a, c));
    *
-   * const container = new DIContainer()
-   * .extend(addValidators)
+   * // container.ts
+   * const container = dataAccessors.extend(addValidators);
    *
-   * export type DIWithValidators = ReturnType<typeof addValidators>;
-   * export const addValidators = (container: DIWithDataAccessors) => {
-   * return container
-   * .add('myValidatorA', ({ a, b, c }) => new MyValidatorA(a, b, c))
-   * .add('myValidatorB', ({ a, b, c }) => new MyValidatorB(a, b, c));
-   * };
-   * @param diConfigurationFactory
+   * Give module functions an explicit return type when chaining several; `docs/ai-agent-guide.md`
+   * explains why `ReturnType<typeof previousModule>` accumulates depth.
+   * @param diConfigurationFactory receives this container, typed with its current dependencies
    */
   public extend<E extends (container: IDIContainer<ContainerResolvers>) => IDIContainer>(
     diConfigurationFactory: E,
@@ -210,9 +215,14 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   }
 
   /**
-   * Resolve dependency by name. Alternatively you can use property access to resolve dependency.
-   * For example: const { a, b } = container;
-   * @param dependencyName
+   * Resolves a dependency by name. `container.name` and destructuring the container are the same
+   * call. The factory runs on the first request and the value is cached; a cache hit is one map
+   * lookup.
+   *
+   * Throws `DependencyIsMissingError` if nothing is registered under the name and
+   * `CircularDependencyError` if resolving it leads back to itself; both messages carry the
+   * resolution path when the request came from inside a factory.
+   * @param dependencyName a registered name
    */
   public get<Name extends keyof ContainerResolvers>(
     dependencyName: Name,
@@ -254,13 +264,19 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   }
 
   /**
-   * Checks if dependency with given name exists
+   * Whether a resolver is registered under `name`, resolved or not. Takes any string, so it can
+   * probe a name the type does not know about.
    * @param name
    */
   public has(name: string): boolean {
     return Object.hasOwn(this.resolvers, name);
   }
 
+  /**
+   * Whether `name` has been resolved and cached. `false` for a registered name nothing has asked
+   * for yet, and again after `update` replaces its resolver. Takes any string, like `has`.
+   * @param name
+   */
   public hasResolvedDependency(name: string): boolean {
     return Object.hasOwn(this.resolvedDependencies, name);
   }
@@ -345,11 +361,10 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   }
 
   /**
-   * Updates existing dependency resolver. If dependency with given name does not exist it will throw an error.
-   * In most cases you don't need to override dependencies and should use add method instead. This approach will
-   * help you to avoid overriding dependencies by mistake.
-   *
-   * You may want to override dependency if you want to mock it in tests.
+   * Replaces the resolver registered under `name` and evicts its cached value, so the next request
+   * runs the new factory. Throws `DependencyIsMissingError` if the name is not registered — `add`
+   * is for new names, and keeping the two apart is what stops a dependency being redefined by
+   * accident. The usual reason to call this is a test double.
    *
    * Chaining overrides off a built container is a supported shape and stays cheap: when
    * the replacement has the same type as the dependency it replaces — a test double for
@@ -370,7 +385,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       throw new DependencyIsMissingError(name);
     }
 
-    this.setValue(name, resolver);
+    this.setResolver(name, resolver);
     if (Object.hasOwn(this.resolvedDependencies, name)) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete this.resolvedDependencies[name];
@@ -381,9 +396,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
 
   protected setResolvers<CR extends ResolvedDependencies>(
     resolvers: Resolvers<CR>,
-    resolvedDependencies: {
-      [name in keyof CR]: ResolvedDependencyValue;
-    },
+    resolvedDependencies: ResolvedValues<CR>,
   ) {
     // A plain `Error` on purpose, where every other throw in this file is a typed class. Those are
     // conditions a consumer can reach through the public API and may want to catch; this one is
@@ -427,9 +440,10 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   }
 
   /**
-   * Sets value to the container
+   * Stores a resolver under `name` and wires the property getter for it. Shared by `add` and
+   * `update`; the name checks belong to the callers.
    */
-  private setValue(name: string, resolver: Factory<ContainerResolvers>): void {
+  private setResolver(name: string, resolver: Factory<ContainerResolvers>): void {
     assertResolver(name, resolver);
 
     // Writing into the map rather than rebuilding it is what makes a chain of `add` calls linear
@@ -463,8 +477,8 @@ function assertResolver(
 //
 //   - Prototype — `addContainerProperty` defines dependencies as *own* properties, which shadow
 //     the methods the class calls through `this`. Non-public members are at stake too: a
-//     dependency named `setValue` registers fine and makes the *next* `add` throw
-//     `TypeError: this.setValue is not a function`.
+//     dependency named `setResolver` registers fine and makes the *next* `add` throw
+//     `TypeError: this.setResolver is not a function`.
 //   - Fields (`resolvers`, `resolvedDependencies`, `context`, `resolving`) — already own
 //     properties when the constructor returns, so `addContainerProperty`'s `Object.hasOwn`
 //     early-return skipped wiring the getter. `add('resolvers', …)` half-worked: `get('resolvers')`
@@ -488,9 +502,7 @@ class ClonedDiContainer<
 > extends DIContainer<ContainerResolvers> {
   public constructor(
     resolvers: Resolvers<ContainerResolvers>,
-    resolvedDependencies: {
-      [name in keyof ContainerResolvers]: ResolvedDependencyValue;
-    },
+    resolvedDependencies: ResolvedValues<ContainerResolvers>,
   ) {
     super();
     this.setResolvers(resolvers, resolvedDependencies);

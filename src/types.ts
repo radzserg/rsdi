@@ -80,6 +80,14 @@ export type ResolvedDependencies = {
 
 export type ResolvedDependencyValue = any;
 
+/**
+ * The container's cache of resolved values, keyed like the resolver map. Optional throughout:
+ * resolution is lazy, so a name is present only once something has asked for it.
+ */
+export type ResolvedValues<ContainerResolvers extends ResolvedDependencies> = {
+  [name in keyof ContainerResolvers]?: ResolvedDependencyValue;
+};
+
 export type Resolvers<CR extends ResolvedDependencies> = {
   [k in keyof CR]?: Factory<CR>;
 };

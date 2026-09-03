@@ -24,9 +24,9 @@ describe('reserved dependency names', () => {
 
   // Why non-public members are reserved too: `addContainerProperty` defines the dependency as an
   // *own* property, which shadows the prototype method the class itself calls through `this`. The
-  // registration succeeds and the *next* `add` dies with `TypeError: this.setValue is not a
+  // registration succeeds and the *next* `add` dies with `TypeError: this.setResolver is not a
   // function`. The hand-maintained list explicitly permitted both of these names.
-  test.each(['setValue', 'addContainerProperty'])(
+  test.each(['setResolver', 'addContainerProperty'])(
     'a dependency named %s cannot break the next add',
     (name) => {
       expect(() => new DIContainer().add(name as 'notAMethod', () => 1)).toThrow(

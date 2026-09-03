@@ -21,6 +21,33 @@ import {
   type UpdatedResolvers,
 } from './types.js';
 
+// The container's internals are keyed by symbols, not names. Two things follow, and both are the
+// point. A dependency can never collide with them — `resolvers` and `setResolver` are ordinary
+// dependency names now — so nothing non-public has to be reserved, and `ReservedName` in types.ts
+// is simply `keyof DIContainer<{}>` with no hand-kept list to drift. And a factory cannot reach them
+// by accident through the deps object: `deps.resolvers` used to hand back the live map, a back door
+// under every check `add` performs — a resolver injected there had no name check, no function check
+// and no getter — and the proxy's `ownKeys` trap hides the symbols, so they are not enumerable either.
+//
+// `Symbol.for`, not `Symbol()`: `merge` and `compose` read another container's maps by these keys,
+// and two copies of rsdi in one dependency tree must still be able to compose each other's
+// containers, as they could when the keys were strings. Registry symbols are the same symbol in
+// every copy. The price is that `Symbol.for('rsdi.resolvers')` is a known key — so this is not a
+// security boundary, and was never meant as one; TypeScript's `protected`/`private` say who may use
+// these, and nothing in JavaScript short of `#private` fields, which break `this` through the proxy,
+// hides state from a caller who is determined to reach it.
+//
+// Exported for the tests, which need the maps to assert identity across writes. They are not
+// re-exported from index.ts, and the `exports` map blocks the deep import.
+export const RESOLVERS: unique symbol = Symbol.for('rsdi.resolvers');
+export const RESOLVED_DEPENDENCIES: unique symbol = Symbol.for('rsdi.resolvedDependencies');
+export const CONTEXT: unique symbol = Symbol.for('rsdi.context');
+export const RESOLVING: unique symbol = Symbol.for('rsdi.resolving');
+export const SET_RESOLVERS: unique symbol = Symbol.for('rsdi.setResolvers');
+export const SET_RESOLVER: unique symbol = Symbol.for('rsdi.setResolver');
+export const ADD_CONTAINER_PROPERTY: unique symbol = Symbol.for('rsdi.addContainerProperty');
+export const ASSERT_NAME_AVAILABLE: unique symbol = Symbol.for('rsdi.assertNameAvailable');
+
 /**
  * Dependency injection container
  */
@@ -28,32 +55,32 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   // Both maps are null-prototype. `get()` reads them with plain property lookups — the cheapest
   // thing on the hot path — so with an ordinary `{}` a dependency named after an `Object.prototype`
   // member resolved to the inherited function: `add('toString', () => 'a value')` registered fine
-  // and then handed back `[Function: toString]`, because `'toString' in this.resolvedDependencies`
+  // and then handed back `[Function: toString]`, because `'toString' in this[RESOLVED_DEPENDENCIES]`
   // was true. Guarding each lookup with `Object.hasOwn` would fix it and tax every cache hit;
   // removing the prototype fixes it and taxes nothing. These maps are built a key at a time and so
   // live in V8's dictionary mode either way, which is why the change is free.
   //
   // `export()` still hands out ordinary objects — its copies are for consumers, not for lookup.
-  protected resolvedDependencies: ResolvedValues<ContainerResolvers> = Object.create(
+  protected [RESOLVED_DEPENDENCIES]: ResolvedValues<ContainerResolvers> = Object.create(
     null,
   ) as ResolvedValues<ContainerResolvers>;
 
-  protected resolvers: Resolvers<ContainerResolvers> = Object.create(
+  protected [RESOLVERS]: Resolvers<ContainerResolvers> = Object.create(
     null,
   ) as Resolvers<ContainerResolvers>;
 
   // Assigned in the constructor; an initializer here would allocate an object only to drop it.
-  private readonly context: ContainerResolvers;
+  private readonly [CONTEXT]: ContainerResolvers;
 
   // Names whose factory is running right now, in call order, so a factory that reaches back to a
   // name above it in the chain is reported as `a -> b -> a` instead of dying in
   // `RangeError: Maximum call stack size exceeded` with nothing named. Only a cache miss touches
   // this — a hit returns before it is consulted — so cached resolution costs what it did.
   //
-  // An ordinary field rather than a `#private` one on purpose. The name is reserved automatically
-  // by `containerMembers`, and a factory that receives the context proxy and calls `get` on it
-  // still works: `proxy.resolving` forwards to the target, where `proxy.#resolving` would throw.
-  private readonly resolving = new Set<string>();
+  // A symbol-keyed field rather than a `#private` one on purpose: a factory that receives the
+  // context proxy and calls `get` on it still works, because `proxy[RESOLVING]` forwards to the
+  // target where `proxy.#resolving` would throw.
+  private readonly [RESOLVING] = new Set<string>();
 
   public constructor() {
     // What factories receive. Reads forward to the container, whose dependency getters do the
@@ -73,25 +100,36 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     // later `add('scratch', …)` was refused for colliding with it — and `deps.a = 2` on a dependency
     // name failed with V8's own message about a getter-only property. A `TypeError`, as for a frozen
     // object, naming the key and the factory that was running. Only a write pays for the traps.
-    this.context = new Proxy(this, {
+    //
+    // The internals are symbol-keyed and `ownKeys` leaves symbols out, so the deps object shows a
+    // factory nothing but dependencies and the public methods: `deps.resolvers` is an unknown name
+    // like any other, and `Object.getOwnPropertySymbols(deps)` is empty. Symbol *reads* still
+    // forward — the container's own methods reach their state through `this`, which is the proxy
+    // when a factory calls `deps.has('a')`. Omitting configurable keys from `ownKeys` is within the
+    // proxy invariants; the dependency getters are the only non-configurable own properties, and
+    // they are strings.
+    this[CONTEXT] = new Proxy(this, {
       defineProperty(target, property) {
-        throw readOnlyContext(property, target.resolving);
+        throw readOnlyContext(property, target[RESOLVING]);
       },
       deleteProperty(target, property) {
-        throw readOnlyContext(property, target.resolving);
+        throw readOnlyContext(property, target[RESOLVING]);
       },
       get(target, property) {
         // Indexing with the key as given: `toString()` here cost a call on every dependency a
         // factory destructures, and turned a symbol lookup into a miss under its description.
         const value = target[property as keyof DIContainer<ContainerResolvers>];
         if (value === undefined && typeof property === 'string' && !(property in target)) {
-          throw new DependencyIsMissingError(property, [...target.resolving]);
+          throw new DependencyIsMissingError(property, [...target[RESOLVING]]);
         }
 
         return value;
       },
+      ownKeys(target) {
+        return Reflect.ownKeys(target).filter((key) => typeof key === 'string');
+      },
       set(target, property) {
-        throw readOnlyContext(property, target.resolving);
+        throw readOnlyContext(property, target[RESOLVING]);
       },
     }) as unknown as ContainerResolvers;
   }
@@ -152,9 +190,9 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     name: StringLiteral<DenyInputKeys<N, keyof ContainerResolvers | ReservedName>>,
     resolver: Factory<ContainerResolvers, V>,
   ): IDIContainer<ContainerResolvers & { [n in N]: V }> {
-    // Only the reserved half of `assertNameAvailable` here: the foreign-own-property half is what
-    // `addContainerProperty` checks anyway, before anything is written, and doing it twice cost the
-    // `wiring.bench.ts` add chain a measurable slice for nothing.
+    // Only the reserved half of `[ASSERT_NAME_AVAILABLE]` here: the foreign-own-property half is
+    // what `[ADD_CONTAINER_PROPERTY]` checks anyway, before anything is written, and doing it twice
+    // cost the `wiring.bench.ts` add chain a measurable slice for nothing.
     if (containerMembers.has(name)) {
       throw new ForbiddenNameError(name);
     }
@@ -163,7 +201,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       throw new DenyOverrideDependencyError(name);
     }
 
-    this.setResolver(name, resolver);
+    this[SET_RESOLVER](name, resolver);
 
     return this as unknown as IDIContainer<ContainerResolvers & { [n in N]: V }>;
   }
@@ -182,9 +220,9 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    * on a subclass instance `clone().foo` was a `TS2339` while `IDIContainer` said it existed.
    */
   public clone(): IDIContainer<ContainerResolvers> {
-    // Handed the live maps on purpose — `setResolvers` is what copies them, and routing this
+    // Handed the live maps on purpose — `[SET_RESOLVERS]` is what copies them, and routing this
     // through `export()` would only allocate a second copy to throw away.
-    const newContainer = new ClonedDiContainer(this.resolvers, this.resolvedDependencies);
+    const newContainer = new ClonedDiContainer(this[RESOLVERS], this[RESOLVED_DEPENDENCIES]);
 
     return newContainer as unknown as IDIContainer<ContainerResolvers>;
   }
@@ -202,8 +240,8 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    */
   public export(): ContainerSnapshot<ContainerResolvers> {
     return {
-      resolvedDependencies: { ...this.resolvedDependencies },
-      resolvers: { ...this.resolvers },
+      resolvedDependencies: { ...this[RESOLVED_DEPENDENCIES] },
+      resolvers: { ...this[RESOLVERS] },
     };
   }
 
@@ -254,31 +292,33 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     // first, for every call, made a cache hit two dictionary lookups instead of one and cost the
     // `resolve.bench.ts` cached rows a third of their throughput. A miss pays the extra test once,
     // against the factory it is about to run.
-    const resolved = this.resolvedDependencies[dependencyName];
-    if (resolved !== undefined || dependencyName in this.resolvedDependencies) {
+    const resolvedDependencies = this[RESOLVED_DEPENDENCIES];
+    const resolved = resolvedDependencies[dependencyName];
+    if (resolved !== undefined || dependencyName in resolvedDependencies) {
       return resolved;
     }
 
-    const resolver = this.resolvers[dependencyName];
+    const resolver = this[RESOLVERS][dependencyName];
     if (!resolver) {
-      throw new DependencyIsMissingError(dependencyName as string, [...this.resolving]);
+      throw new DependencyIsMissingError(dependencyName as string, [...this[RESOLVING]]);
     }
 
     const name = dependencyName as string;
-    if (this.resolving.has(name)) {
-      throw new CircularDependencyError([...this.resolving, name]);
+    const resolving = this[RESOLVING];
+    if (resolving.has(name)) {
+      throw new CircularDependencyError([...resolving, name]);
     }
 
-    this.resolving.add(name);
+    resolving.add(name);
     let value: ResolvedDependencyValue;
     try {
-      value = resolver(this.context);
+      value = resolver(this[CONTEXT]);
     } finally {
       // Released on a throw as well, or a factory that failed once would report a cycle forever.
-      this.resolving.delete(name);
+      resolving.delete(name);
     }
 
-    this.resolvedDependencies[dependencyName] = value;
+    resolvedDependencies[dependencyName] = value;
 
     return value;
   }
@@ -289,7 +329,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    * @param name
    */
   public has(name: string): boolean {
-    return Object.hasOwn(this.resolvers, name);
+    return Object.hasOwn(this[RESOLVERS], name);
   }
 
   /**
@@ -298,7 +338,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    * @param name
    */
   public hasResolvedDependency(name: string): boolean {
-    return Object.hasOwn(this.resolvedDependencies, name);
+    return Object.hasOwn(this[RESOLVED_DEPENDENCIES], name);
   }
 
   /**
@@ -324,8 +364,8 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   public merge<T extends readonly ContainerLike[]>(
     ...containers: T
   ): IDIContainer<ContainerResolvers & MergedResolvers<T>> {
-    const ownResolvers = this.resolvers as Record<string, Factory<ContainerResolvers>>;
-    const ownResolvedDependencies = this.resolvedDependencies as Record<
+    const ownResolvers = this[RESOLVERS] as Record<string, Factory<ContainerResolvers>>;
+    const ownResolvedDependencies = this[RESOLVED_DEPENDENCIES] as Record<
       string,
       ResolvedDependencyValue
     >;
@@ -340,15 +380,24 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     // shadow the method: `container.get` becomes a getter that calls `this.get`, and the first
     // resolution dies in a stack overflow. One Set lookup per incoming name keeps the failure a
     // `ForbiddenNameError`, and keeps merge linear.
-    const incoming = containers.map((otherContainer) => {
+    const incoming = containers.map((otherContainer, index) => {
+      // The types only admit containers; this is for JavaScript consumers and `any` casts, who
+      // otherwise got `Cannot convert undefined or null to object` from deep inside the loop — for
+      // an `undefined` from a mistyped import, or a plain object that used to pass as a container
+      // when the maps were string-keyed.
+      if (!isContainer(otherContainer)) {
+        throw new TypeError(
+          `merge expects containers; argument ${index + 1} is ${describe(otherContainer)}`,
+        );
+      }
       // The protected maps directly, not `export()`: that copies now, and every name is copied
       // again into our own maps below — one throwaway map per merged container, for nothing.
-      const { resolvedDependencies: newResolvedDependencies, resolvers: newResolvers } =
+      const { [RESOLVED_DEPENDENCIES]: newResolvedDependencies, [RESOLVERS]: newResolvers } =
         otherContainer as DIContainer<ResolvedDependencies>;
       const names = Object.keys(newResolvers);
 
       for (const name of names) {
-        this.assertNameAvailable(name);
+        this[ASSERT_NAME_AVAILABLE](name);
         assertResolver(name, (newResolvers as Record<string, unknown>)[name]);
       }
 
@@ -366,15 +415,15 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
         // Our own cache is tested first so that merging into a container that has resolved
         // nothing — the `compose` case — issues no deletes at all.
         if (
-          Object.hasOwn(this.resolvedDependencies, name) &&
+          Object.hasOwn(ownResolvedDependencies, name) &&
           !Object.hasOwn(newResolvedDependencies, name)
         ) {
           // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-          delete this.resolvedDependencies[name as keyof ContainerResolvers];
+          delete ownResolvedDependencies[name];
         }
 
         // Only the incoming names can be new, so this replaces a rescan of the whole merged map.
-        this.addContainerProperty(name);
+        this[ADD_CONTAINER_PROPERTY](name);
 
         // Writing into the map rather than rebuilding it per container is what keeps
         // `compose(...modules)` linear in total dependencies instead of quadratic.
@@ -414,16 +463,16 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       throw new DependencyIsMissingError(name);
     }
 
-    this.setResolver(name, resolver);
-    if (Object.hasOwn(this.resolvedDependencies, name)) {
+    this[SET_RESOLVER](name, resolver);
+    if (Object.hasOwn(this[RESOLVED_DEPENDENCIES], name)) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete this.resolvedDependencies[name];
+      delete this[RESOLVED_DEPENDENCIES][name];
     }
 
     return this as unknown as IDIContainer<UpdatedResolvers<ContainerResolvers, N, V>>;
   }
 
-  protected setResolvers<CR extends ResolvedDependencies>(
+  protected [SET_RESOLVERS]<CR extends ResolvedDependencies>(
     resolvers: Resolvers<CR>,
     resolvedDependencies: ResolvedValues<CR>,
   ) {
@@ -431,7 +480,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     // conditions a consumer can reach through the public API and may want to catch; this one is
     // reachable only from a subclass constructor and is a programming error at wiring time, not a
     // runtime state. Exporting a class for it would widen the public surface for nothing.
-    if (Object.keys(this.resolvers).length !== 0) {
+    if (Object.keys(this[RESOLVERS]).length !== 0) {
       throw new Error('Cannot set resolvers on a container that already has resolvers');
     }
 
@@ -440,15 +489,15 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     //
     // Entry by entry rather than by spread: these maps are built a key at a time, which leaves
     // them in V8's dictionary mode, and spreading one of those costs over twice what the loop does.
-    const ownResolvers = this.resolvers as Record<string, Factory<ContainerResolvers>>;
+    const ownResolvers = this[RESOLVERS] as Record<string, Factory<ContainerResolvers>>;
     const source = resolvers as unknown as Record<string, Factory<ContainerResolvers>>;
     for (const name of Object.keys(source)) {
-      // Getter before resolver, as in `setResolver`; see `addContainerProperty`.
-      this.addContainerProperty(name);
+      // Getter before resolver, as in `[SET_RESOLVER]`; see `[ADD_CONTAINER_PROPERTY]`.
+      this[ADD_CONTAINER_PROPERTY](name);
       ownResolvers[name] = source[name];
     }
 
-    const ownResolvedDependencies = this.resolvedDependencies as Record<
+    const ownResolvedDependencies = this[RESOLVED_DEPENDENCIES] as Record<
       string,
       ResolvedDependencyValue
     >;
@@ -466,7 +515,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    * carrying on used to leave the name half-working — `get(name)` ran the factory while
    * `container.name` returned the stray — so it is refused instead, before anything is written.
    */
-  private addContainerProperty(name: string): void {
+  private [ADD_CONTAINER_PROPERTY](name: string): void {
     if (Object.hasOwn(this, name)) {
       if (this.has(name)) {
         return;
@@ -487,9 +536,9 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    * one: not a container member, and not already an own property that something else put on the
    * container. `merge` runs it for every incoming name of every container before writing anything,
    * which is what makes it all-or-nothing. `add` and `update` check the reserved half inline and
-   * leave the other to `addContainerProperty`, which has to look at the own property regardless.
+   * leave the other to `[ADD_CONTAINER_PROPERTY]`, which has to look at the own property regardless.
    */
-  private assertNameAvailable(name: string): void {
+  private [ASSERT_NAME_AVAILABLE](name: string): void {
     if (containerMembers.has(name)) {
       throw new ForbiddenNameError(name);
     }
@@ -503,18 +552,18 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    * Stores a resolver under `name` and wires the property getter for it. Shared by `add` and
    * `update`; the name checks belong to the callers.
    */
-  private setResolver(name: string, resolver: Factory<ContainerResolvers>): void {
+  private [SET_RESOLVER](name: string, resolver: Factory<ContainerResolvers>): void {
     assertResolver(name, resolver);
 
     // The getter first: it decides whether an own property under `name` is ours by asking whether a
     // resolver exists, so the resolver must not exist yet for a new name. It also means a refused
     // name leaves the container exactly as it was.
-    this.addContainerProperty(name);
+    this[ADD_CONTAINER_PROPERTY](name);
 
     // Writing into the map rather than rebuilding it is what makes a chain of `add` calls linear
     // instead of quadratic. It is safe only because no two containers ever share a resolver map —
-    // `setResolvers` copies what `clone()` hands it, which `clone.test.ts` pins.
-    (this.resolvers as Record<string, Factory<ContainerResolvers>>)[name] = resolver;
+    // `[SET_RESOLVERS]` copies what `clone()` hands it, which `clone.test.ts` pins.
+    (this[RESOLVERS] as Record<string, Factory<ContainerResolvers>>)[name] = resolver;
   }
 }
 
@@ -530,6 +579,40 @@ function assertResolver(
   if (typeof resolver !== 'function') {
     throw new InvalidResolverError(name, resolver);
   }
+}
+
+function describe(value: unknown): string {
+  if (value === null) {
+    return 'null';
+  }
+
+  if (typeof value === 'function') {
+    return 'a function';
+  }
+
+  if (typeof value !== 'object') {
+    return `a ${typeof value}`;
+  }
+
+  const name = (value as object).constructor?.name;
+
+  return name && name !== 'Object' ? `an instance of ${name}` : 'a plain object';
+}
+
+// Structural, not `instanceof`: a container from another copy of rsdi is still a container, and the
+// registry symbols above are what make that true.
+//
+// `boolean`, not a `value is DIContainer<…>` type guard, on purpose. The guard read better, and
+// cost 2,097 type instantiations in every `bench-types` scenario — narrowing the argument makes the
+// compiler relate the whole class type inside `merge`, and on the smallest scenario that was 11% of
+// the budget. `merge` already casts, so the narrowing bought nothing.
+function isContainer(value: unknown): boolean {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as Record<symbol, unknown>)[RESOLVERS] === 'object' &&
+    typeof (value as Record<symbol, unknown>)[RESOLVED_DEPENDENCIES] === 'object'
+  );
 }
 
 const FOREIGN_OWN_PROPERTY =
@@ -551,19 +634,12 @@ function readOnlyContext(property: string | symbol, resolving: ReadonlySet<strin
 // class's own members, and a missing entry is not a compile error anywhere — `export` was absent
 // until a dependency of that name was found to break every `merge`.
 //
-// Prototype members and instance fields both matter, for different reasons:
-//
-//   - Prototype — `addContainerProperty` defines dependencies as *own* properties, which shadow
-//     the methods the class calls through `this`. Non-public members are at stake too: a
-//     dependency named `setResolver` registers fine and makes the *next* `add` throw
-//     `TypeError: this.setResolver is not a function`.
-//   - Fields (`resolvers`, `resolvedDependencies`, `context`, `resolving`) — already own
-//     properties when the constructor returns. Before `addContainerProperty` told a foreign own
-//     property apart from its own getter, its `Object.hasOwn` early-return skipped wiring the
-//     getter and `add('resolvers', …)` half-worked: `get('resolvers')` resolved, while
-//     `container.resolvers` handed back the container's own internal map. That check now refuses
-//     the name anyway, but with a message about a stray property; reserving the fields here gives
-//     the right message, and a throwaway instance is the only way to read them.
+// Only the prototype's string keys, which is to say the public methods and `constructor`.
+// `[ADD_CONTAINER_PROPERTY]` defines dependencies as *own* properties, which shadow the methods
+// the class calls through `this` — so those names must be reserved. Everything non-public is
+// symbol-keyed and cannot be shadowed by a string, so there is nothing else to reserve: no
+// throwaway instance for the fields, no private method names, and the type-level `ReservedName`
+// is `keyof DIContainer<{}>` plus `constructor` with no hand-kept list.
 //
 // `DIContainer.prototype` explicitly, not `Object.getPrototypeOf(this)` — a subclass's own members
 // must not change which names are reserved, since the types describe `DIContainer` only. The chain
@@ -573,10 +649,7 @@ function readOnlyContext(property: string | symbol, resolving: ReadonlySet<strin
 // Statics (`compose`) live on the constructor, never the instance, and are deliberately absent.
 // `constructor` itself is present, since it is on every prototype, and stays reserved: `ReservedName`
 // in types.ts lists it by hand because `keyof` never does.
-const containerMembers = new Set([
-  ...Object.getOwnPropertyNames(DIContainer.prototype),
-  ...Object.getOwnPropertyNames(new DIContainer()),
-]);
+const containerMembers = new Set(Object.getOwnPropertyNames(DIContainer.prototype));
 
 class ClonedDiContainer<
   ContainerResolvers extends ResolvedDependencies = {},
@@ -586,6 +659,6 @@ class ClonedDiContainer<
     resolvedDependencies: ResolvedValues<ContainerResolvers>,
   ) {
     super();
-    this.setResolvers(resolvers, resolvedDependencies);
+    this[SET_RESOLVERS](resolvers, resolvedDependencies);
   }
 }

@@ -240,14 +240,10 @@ describe('DIContainer typescript type resolution', () => {
     container.add('merge', () => 1);
     // @ts-expect-error - reserved: public method
     container.add('export', () => 1);
-    // @ts-expect-error - reserved: instance field
-    container.add('resolvers', () => 1);
-    // @ts-expect-error - reserved: instance field
-    container.add('resolving', () => 1);
-    // @ts-expect-error - reserved: private method
-    container.add('setResolver', () => 1);
-    // @ts-expect-error - reserved: protected method
-    container.add('setResolvers', () => 1);
+
+    // Not reserved: the internals are symbol-keyed, so their former names are ordinary.
+    expectTypeOf(container.add('resolvers', () => 1).resolvers).toEqualTypeOf<number>();
+    expectTypeOf(container.add('setResolver', () => 1).setResolver).toEqualTypeOf<number>();
     // @ts-expect-error - reserved: on every prototype, and never in keyof
     container.add('constructor', () => 1);
 

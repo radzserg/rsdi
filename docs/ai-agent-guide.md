@@ -84,8 +84,7 @@ rather than casting.
 `add`, `clone`, `export`, `extend`, `get`, `has`, `hasResolvedDependency`, `merge`, `update`.
 
 A dependency named after a container method would shadow it, so it throws `ForbiddenNameError` at
-runtime and is rejected at compile time (the `name` parameter becomes `never`). The container's
-internal member names are reserved the same way. `compose` is _not_ reserved — it is a static method, so it
+runtime and is rejected at compile time (the `name` parameter becomes `never`). `compose` is _not_ reserved — it is a static method, so it
 never collides with an instance property.
 
 ### 4. `add` refuses to overwrite; `update` requires an existing name

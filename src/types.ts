@@ -85,32 +85,19 @@ export type MergedResolvers<T extends readonly unknown[]> =
       : {}
     : {};
 
-export type NonPublicMemberName =
-  | 'addContainerProperty'
-  | 'assertNameAvailable'
-  | 'context'
-  | 'resolvedDependencies'
-  | 'resolvers'
-  | 'resolving'
-  | 'setResolver'
-  | 'setResolvers';
-
 /**
  * Every name a dependency cannot take, so that `add` rejects it at compile time and not only at
- * runtime. The runtime list is derived from the class itself (`containerMembers` in
- * `DIContainer.ts`); this is its type-level twin.
+ * runtime. The runtime Set is derived from `DIContainer.prototype` (`containerMembers` in
+ * `DIContainer.ts`); this is its type-level twin, and it is derived too: `keyof DIContainer<{}>`
+ * is exactly the public methods. The non-public members are symbol-keyed, so a string can never
+ * collide with them and they need no reserving on either side.
  *
- * The public members come from `keyof DIContainer<{}>` and cannot drift. TypeScript's `keyof`
- * leaves out `private` and `protected` members, and those names are reserved too — a dependency
- * called `setResolver` shadows the method the class calls through `this` — so they are listed by
- * hand in `NonPublicMemberName`. `reservedNames.test.ts` asserts that list against the runtime set
- * and fails the moment a member is added to the class without being added here.
+ * `constructor` is on every prototype, so the runtime Set always holds it, but `keyof` of an
+ * instance type never lists it. Reserved on purpose: an own `constructor` getter would shadow the
+ * inherited one, and anything reading `instance.constructor` for a class name would resolve a
+ * dependency as a side effect. `reservedNames.test.ts` asserts the two sides are equal.
  */
-// `constructor` is on every prototype, so the runtime Set always holds it, but `keyof` of an
-// instance type never lists it. Reserved on purpose: an own `constructor` getter would shadow the
-// inherited one, and anything reading `instance.constructor` for a class name would resolve a
-// dependency as a side effect.
-export type ReservedName = 'constructor' | keyof DIContainer<{}> | NonPublicMemberName;
+export type ReservedName = 'constructor' | keyof DIContainer<{}>;
 
 export type ResolvedDependencies = {
   [k: string]: ResolvedDependencyValue;

@@ -1,4 +1,4 @@
-import { DIContainer } from '../DIContainer.js';
+import { DIContainer, RESOLVED_DEPENDENCIES, RESOLVERS } from '../DIContainer.js';
 import { ForbiddenNameError } from '../errors.js';
 import { RESERVED_NAMES } from './__helpers__/reservedNames.js';
 import { describe, expect, test } from 'vitest';
@@ -9,10 +9,7 @@ describe('reserved dependency names', () => {
   // missing entry is not a compile error anywhere: `export` was absent from the old hand-written
   // list until a dependency of that name was found to break every `merge`.
   test('every member of the class is reserved', () => {
-    const members = [
-      ...Object.getOwnPropertyNames(DIContainer.prototype),
-      ...Object.getOwnPropertyNames(new DIContainer()),
-    ];
+    const members = Object.getOwnPropertyNames(DIContainer.prototype);
 
     expect(members.length).toBeGreaterThan(0);
 
@@ -26,24 +23,25 @@ describe('reserved dependency names', () => {
   // The compile-time list is kept by hand for the non-public members, since `keyof` cannot see
   // them. This is what makes forgetting one a test failure rather than a silent gap.
   test('the type-level reserved names are exactly the names derived from the class', () => {
-    const derived = new Set([
-      ...Object.getOwnPropertyNames(DIContainer.prototype),
-      ...Object.getOwnPropertyNames(new DIContainer()),
-    ]);
+    const derived = new Set(Object.getOwnPropertyNames(DIContainer.prototype));
 
     expect(derived).toEqual(new Set(RESERVED_NAMES));
   });
 
-  // Why non-public members are reserved too: `addContainerProperty` defines the dependency as an
-  // *own* property, which shadows the prototype method the class itself calls through `this`. The
-  // registration succeeds and the *next* `add` dies with `TypeError: this.setResolver is not a
-  // function`. The hand-maintained list explicitly permitted both of these names.
-  test.each(['setResolver', 'addContainerProperty'])(
-    'a dependency named %s cannot break the next add',
+  // The class's non-public methods are symbol-keyed, so a dependency cannot shadow them and their
+  // former names are ordinary. When they were string-keyed, `setResolver` as a dependency name
+  // registered fine and made the *next* `add` die with `TypeError: this.setResolver is not a
+  // function`, which is why they had to be reserved then.
+  test.each(['setResolver', 'setResolvers', 'addContainerProperty', 'assertNameAvailable'])(
+    'a dependency named %s is ordinary and does not break the next add',
     (name) => {
-      expect(() => new DIContainer().add(name as 'notAMethod', () => 1)).toThrow(
-        ForbiddenNameError,
-      );
+      const container = new DIContainer()
+        .add(name as 'notAMethod', () => 'a value')
+        .add('next', () => 'next');
+
+      expect(container.get(name as 'notAMethod')).toEqual('a value');
+      expect(container[name as 'notAMethod']).toEqual('a value');
+      expect(container.next).toEqual('next');
     },
   );
 
@@ -56,17 +54,16 @@ describe('reserved dependency names', () => {
     );
   });
 
-  // Instance fields are own properties before any dependency is registered, so
-  // `addContainerProperty`'s `Object.hasOwn(this, name)` early-return skipped wiring the getter.
-  // The name registered, `get()` resolved it, and property access handed back the container's own
-  // internal map instead. Only a constructed instance reveals these, which is why the guard builds
-  // one; a prototype-only check misses all three.
+  // The fields are symbol-keyed too, so their former names are ordinary — and the property getter
+  // is wired, where a string-keyed field used to make `[ADD_CONTAINER_PROPERTY]` skip it and
+  // `container.resolvers` handed back the internal map while `get('resolvers')` resolved.
   test.each(['resolvers', 'resolvedDependencies', 'context', 'resolving'])(
-    'a dependency named %s cannot shadow the instance field',
+    'a dependency named %s resolves through both paths',
     (name) => {
-      expect(() => new DIContainer().add(name as 'notAMethod', () => 1)).toThrow(
-        ForbiddenNameError,
-      );
+      const container = new DIContainer().add(name as 'notAMethod', () => 'a value');
+
+      expect(container.get(name as 'notAMethod')).toEqual('a value');
+      expect(container[name as 'notAMethod']).toEqual('a value');
     },
   );
 
@@ -90,8 +87,8 @@ describe('reserved dependency names', () => {
   // died in `RangeError: Maximum call stack size exceeded`.
   test('merge refuses a reserved name from a duck-typed input', () => {
     const duckTyped = {
-      resolvedDependencies: {},
-      resolvers: { get: () => 'shadow' },
+      [RESOLVED_DEPENDENCIES]: {},
+      [RESOLVERS]: { get: () => 'shadow' },
     } as unknown as DIContainer;
 
     expect(() => new DIContainer().merge(duckTyped)).toThrow(ForbiddenNameError);

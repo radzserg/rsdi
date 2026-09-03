@@ -99,6 +99,32 @@ describe('the dependencies object a factory receives is read-only', () => {
     expect(container.has('c')).toBe(false);
   });
 
+  // The read-only traps guard writes *to the deps object*. Its internals used to be reachable past
+  // them: `deps.resolvers` handed back the live map, and a factory writing into it bypassed every
+  // check `add` performs — no name check, no function check, no getter wired. The internals are
+  // symbol-keyed now, and the proxy lists no symbols, so there is nothing to reach.
+  test('the internal maps are not reachable through the deps object', () => {
+    const container = new DIContainer()
+      .add('a', () => 1)
+      .add('probe', (deps) => ({
+        keys: Object.keys(deps),
+        resolvers: (() => {
+          try {
+            return (deps as Record<string, unknown>).resolvers;
+          } catch (error) {
+            return (error as Error).name;
+          }
+        })(),
+        symbols: Object.getOwnPropertySymbols(deps).length,
+      }));
+
+    expect(container.probe).toEqual({
+      keys: [],
+      resolvers: 'DependencyIsMissingError',
+      symbols: 0,
+    });
+  });
+
   test('reads are unaffected', () => {
     const container = new DIContainer()
       .add('a', () => 1)

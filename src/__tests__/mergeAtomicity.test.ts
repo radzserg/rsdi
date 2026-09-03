@@ -1,4 +1,4 @@
-import { DIContainer } from '../DIContainer.js';
+import { DIContainer, RESOLVED_DEPENDENCIES, RESOLVERS } from '../DIContainer.js';
 import { ForbiddenNameError, InvalidResolverError } from '../errors.js';
 import { describe, expect, test } from 'vitest';
 
@@ -8,7 +8,7 @@ import { describe, expect, test } from 'vitest';
 // writing; `merge` now does the same for every incoming name of every container.
 describe('merge is all-or-nothing', () => {
   const duckTyped = (resolvers: Record<string, unknown>) =>
-    ({ resolvedDependencies: {}, resolvers }) as unknown as DIContainer;
+    ({ [RESOLVED_DEPENDENCIES]: {}, [RESOLVERS]: resolvers }) as unknown as DIContainer;
 
   test('a non-function resolver in the last container leaves nothing from the earlier ones', () => {
     const base = new DIContainer().add('x', () => 'x');
@@ -78,5 +78,33 @@ describe('merge is all-or-nothing', () => {
     expect(merged.p).toEqual('p');
     expect(merged.q).toEqual('q');
     expect(merged.hasResolvedDependency('q')).toBe(true);
+  });
+});
+
+// The types admit only containers. A JavaScript consumer — or an `undefined` from a mistyped
+// import — used to get `Cannot convert undefined or null to object` from deep inside the loop.
+describe('merge and compose refuse a non-container argument', () => {
+  const cases: Array<[string, unknown, string]> = [
+    ['undefined', undefined, 'argument 1 is a undefined'],
+    ['null', null, 'argument 1 is null'],
+    ['a plain object', { resolvers: {} }, 'argument 1 is a plain object'],
+    ['a string', 'services', 'argument 1 is a string'],
+    ['a function', () => 1, 'argument 1 is a function'],
+    ['another class', new Date(), 'argument 1 is an instance of Date'],
+  ];
+
+  test.each(cases)('%s', (_, value, message) => {
+    expect(() => DIContainer.compose(value as DIContainer)).toThrow(TypeError);
+    expect(() => DIContainer.compose(value as DIContainer)).toThrow(message);
+  });
+
+  test('names the position of the offending argument and writes nothing', () => {
+    const base = new DIContainer();
+    const good = new DIContainer().add('p', () => 'p');
+
+    expect(() => base.merge(good, undefined as unknown as DIContainer)).toThrow(
+      'merge expects containers; argument 2 is a undefined',
+    );
+    expect(base.has('p')).toBe(false);
   });
 });

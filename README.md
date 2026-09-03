@@ -421,7 +421,9 @@ for it when your error messages get unreadable, not to speed up compilation — 
 
 - **`.get(name)`** — resolve a dependency by name. Equivalent to property access (`container.foo`). Throws
   `DependencyIsMissingError` if the name isn't registered, and `CircularDependencyError` if resolving it leads back to
-  itself — the message names the path (`a -> b -> a`) so the cycle is easy to find.
+  itself — the message names the path (`a -> b -> a`) so the cycle is easy to find. A factory that destructures a name
+  the container doesn't have throws the same `DependencyIsMissingError`, naming the factory that asked, rather than
+  receiving `undefined`.
 - **`.has(name)`** — returns `true` if a resolver is registered under `name` (whether or not it has been resolved yet).
 - **`.hasResolvedDependency(name)`** — returns `true` only if the dependency has already been resolved and cached.
 - **`.update(name, resolver)`** — replace an existing dependency's resolver (see [How to use](#how-to-use)). Unlike

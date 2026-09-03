@@ -16,8 +16,17 @@ export class DenyOverrideDependencyError extends Error {
 }
 
 export class DependencyIsMissingError extends Error {
-  constructor(name: string) {
-    super(`Dependency resolver with name ${name} is not defined`);
+  /**
+   * @param name the name that was asked for
+   * @param resolving the factories that were running at the time, outermost first — so a name a
+   * factory destructured but no module provides is reported against the factory that asked
+   */
+  constructor(name: string, resolving: readonly string[] = []) {
+    super(
+      resolving.length === 0
+        ? `Dependency resolver with name ${name} is not defined`
+        : `Dependency resolver with name ${name} is not defined; requested while resolving ${resolving.join(' -> ')}`,
+    );
     this.name = new.target.name;
   }
 }

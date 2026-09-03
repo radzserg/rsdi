@@ -52,11 +52,27 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   private readonly resolving = new Set<string>();
 
   public constructor() {
+    // What factories receive. Reads forward to the container, whose dependency getters do the
+    // resolving — and a read of a name the container does not have throws instead of yielding
+    // `undefined`. That is the whole reason the proxy exists: forwarding alone is what `this`
+    // already does, and measured the same. The case it guards is the one the types cannot see —
+    // a module's factory destructuring a name another module provides, composed without that
+    // module. Without the trap that factory silently built its service around `undefined`.
+    //
+    // The `in` test walks the prototype chain on purpose: `toString`, `constructor`, and the
+    // container's own methods are all reachable through the context, as they are on the container.
+    // Anything that probes a protocol key the container lacks — `then` from `await deps`,
+    // `toJSON` from `JSON.stringify(deps)` — throws; neither is a supported use of the context.
     this.context = new Proxy(this, {
       get(target, property) {
         // Indexing with the key as given: `toString()` here cost a call on every dependency a
         // factory destructures, and turned a symbol lookup into a miss under its description.
-        return target[property as keyof DIContainer<ContainerResolvers>];
+        const value = target[property as keyof DIContainer<ContainerResolvers>];
+        if (value === undefined && typeof property === 'string' && !(property in target)) {
+          throw new DependencyIsMissingError(property, [...target.resolving]);
+        }
+
+        return value;
       },
     }) as unknown as ContainerResolvers;
   }
@@ -80,7 +96,8 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    * happens lazily against the composed container, so cross-module dependencies work at
    * runtime. Only the *types* of a module are limited to what that module declares; when a
    * module needs another module's dependencies to be visible at compile time, layer them
-   * with `extend` instead.
+   * with `extend` instead. A name no composed module provides throws
+   * `DependencyIsMissingError` at resolution, naming the factory that asked for it.
    *
    * The inputs are left untouched: the composed container is a new instance.
    *
@@ -213,7 +230,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
 
     const resolver = this.resolvers[dependencyName];
     if (!resolver) {
-      throw new DependencyIsMissingError(dependencyName as string);
+      throw new DependencyIsMissingError(dependencyName as string, [...this.resolving]);
     }
 
     const name = dependencyName as string;

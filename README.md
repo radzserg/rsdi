@@ -475,6 +475,11 @@ The object a factory receives is read-only. Assigning to it, deleting from it, d
 sealing it, or changing its prototype throws a `TypeError` that names the operation and the factory that was running. That includes registering through it: call `add`,
 `update` and `merge` on the container, not on the `deps` argument.
 
+Locking the container itself is honoured with its platform meaning. After `Object.preventExtensions` or `Object.seal`,
+no new dependency can be added but existing ones can still be replaced with `update` or `merge`; after `Object.freeze`,
+replacements are refused too. Resolution always works, since it only fills the cache. A `clone()` is a fresh, unlocked
+container.
+
 ---
 
 ## Further reading

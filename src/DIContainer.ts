@@ -7,10 +7,12 @@ import {
 } from './errors.js';
 import {
   assertExtensible,
+  assertNotFrozen,
   assertResolver,
   describeValue,
   FOREIGN_OWN_PROPERTY,
   isContainer,
+  isFrozenContainer,
   isObjectLike,
   keyName,
   readOnlyContext,
@@ -117,8 +119,9 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
 
     // Validate everything, then write, as `merge` does.
     const extensible = Object.isExtensible(container);
+    const frozen = isFrozenContainer(container);
     for (const name of names) {
-      DIContainer.assertNameAvailable(container, name, extensible);
+      DIContainer.assertNameAvailable(container, name, extensible, frozen);
       assertResolver(name, source[name]);
     }
 
@@ -198,6 +201,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     container: DIContainer<CR>,
     name: string,
     extensible: boolean,
+    frozen: boolean,
   ): void {
     if (containerMembers.has(name)) {
       throw new ForbiddenNameError(name);
@@ -206,6 +210,13 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     if (Object.hasOwn(container, name)) {
       if (!container.has(name)) {
         throw new ForbiddenNameError(name, FOREIGN_OWN_PROPERTY);
+      }
+
+      // An existing name, so this write would replace its resolver — which a frozen container
+      // refuses, as a frozen object refuses a write to an existing property. Checked in the
+      // validation pass so a merge on a frozen receiver is refused before anything is written.
+      if (frozen) {
+        assertNotFrozen(container, name);
       }
 
       return;
@@ -361,6 +372,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     // resolution dies in a stack overflow. One Set lookup per incoming name keeps the failure a
     // `ForbiddenNameError`, and keeps merge linear.
     const extensible = Object.isExtensible(target);
+    const frozen = isFrozenContainer(target);
     const incoming = containers.map((otherContainer, index) => {
       // The types only admit containers; this is for JavaScript consumers and `any` casts, who
       // otherwise got `Cannot convert undefined or null to object` from deep inside the loop — for
@@ -378,7 +390,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       const names = Object.keys(newResolvers);
 
       for (const name of names) {
-        DIContainer.assertNameAvailable(target, name, extensible);
+        DIContainer.assertNameAvailable(target, name, extensible, frozen);
         assertResolver(name, (newResolvers as Record<string, unknown>)[name]);
       }
 
@@ -685,6 +697,10 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     if (!this.has(name)) {
       throw new DependencyIsMissingError(name);
     }
+
+    // One descriptor read; see `isFrozenContainer`. `add` needs no such check — a frozen container
+    // is also non-extensible, and `addContainerProperty` already refuses it on that ground.
+    assertNotFrozen(this, name);
 
     DIContainer.setResolver(this, name, resolver);
     const { resolvedDependencies } = this[INTERNAL_STATE];

@@ -26,6 +26,20 @@ export function assertExtensible(container: object, name: string): void {
 }
 
 /**
+ * The platform meaning of `freeze` is that existing values cannot be written; for a container
+ * that is a resolver being replaced. `seal` and `preventExtensions` only forbid new names, which
+ * `assertExtensible` covers. Resolution is never refused: it writes into the cache inside the
+ * state object, which no lock reaches.
+ */
+export function assertNotFrozen(container: object, name: string): void {
+  if (isFrozenContainer(container)) {
+    throw new TypeError(
+      `Cannot replace dependency ${name}: the container is frozen — a frozen container resolves but takes no new or replaced dependencies`,
+    );
+  }
+}
+
+/**
  * The types already reject a non-function resolver; this is for JavaScript consumers and `any`
  * casts, who otherwise found out at first `get` — `TypeError: resolver is not a function`, far from
  * the registration and naming no dependency — or, for `null`, got a `DependencyIsMissingError` for
@@ -84,6 +98,21 @@ export function isContainer(value: unknown): boolean {
     isObjectLike((state as Record<string, unknown>).resolvers) &&
     isObjectLike((state as Record<string, unknown>).resolvedDependencies)
   );
+}
+
+/**
+ * Whether a consumer has frozen the container itself. Freezing is shallow: it makes the state
+ * symbol's property non-writable and non-configurable but leaves the state object behind it
+ * mutable, which is why resolution keeps working on a frozen container and why `update` used to.
+ * `Object.freeze` is the only one of the three locks that turns `writable` off — `seal` and
+ * `preventExtensions` leave it on — so one descriptor read on that single key tells them apart.
+ * Not `Object.isFrozen`, which walks every own property and would make each `update` linear in
+ * the number of dependencies.
+ */
+export function isFrozenContainer(container: object): boolean {
+  const descriptor = Object.getOwnPropertyDescriptor(container, INTERNAL_STATE);
+
+  return descriptor !== undefined && descriptor.writable === false;
 }
 
 /** A non-null object — `typeof null` is `'object'`, which is the whole reason this exists. */

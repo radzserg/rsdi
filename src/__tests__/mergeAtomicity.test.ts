@@ -155,20 +155,64 @@ describe('a non-extensible receiver', () => {
       const other = new DIContainer().add('x', () => 'replacement').add('y', () => 'y');
 
       expect(() => base.merge(other)).toThrow(TypeError);
+      // Sealed or non-extensible: refused on the new name. Frozen: refused earlier, on the
+      // replacement, since a freeze forbids that too. Either way nothing is written.
       expect(() => base.merge(other)).toThrow(
-        'Cannot add dependency y: the container is not extensible — was it frozen, sealed or passed to Object.preventExtensions?',
+        /Cannot (add dependency y: the container is not extensible|replace dependency x: the container is frozen)/u,
       );
       expect(base.x).toEqual('original');
       expect(base.has('y')).toBe(false);
     },
   );
 
-  test.each(lockers)('%s: a merge that only replaces existing names still works', (_, lock) => {
+  // The three locks keep their platform meaning. `seal` and `preventExtensions` forbid new
+  // properties, so they forbid new names and nothing else; `freeze` also forbids writing existing
+  // ones, so it forbids replacing a resolver too. Resolution writes into the cache behind the state
+  // symbol, which no lock reaches, and is never refused.
+  test.each([
+    ['Object.seal', (container: object) => void Object.seal(container)],
+    ['Object.preventExtensions', (container: object) => void Object.preventExtensions(container)],
+  ])('%s: a merge that only replaces existing names still works', (_, lock) => {
     const base = new DIContainer().add('x', () => 'original');
     lock(base);
     const other = new DIContainer().add('x', () => 'replacement');
 
     expect(base.merge(other).x).toEqual('replacement');
+    expect(base.update('x', () => 'updated').x).toEqual('updated');
+  });
+
+  test('Object.freeze: a replacing merge is refused before anything is written', () => {
+    const base = new DIContainer().add('x', () => 'original').add('y', () => 'y');
+    expect(base.x).toEqual('original');
+    Object.freeze(base);
+    const other = new DIContainer().add('y', () => 'replacement y').add('x', () => 'replacement x');
+
+    expect(() => base.merge(other)).toThrow(TypeError);
+    expect(() => base.merge(other)).toThrow(
+      'Cannot replace dependency y: the container is frozen — a frozen container resolves but takes no new or replaced dependencies',
+    );
+    expect(base.x).toEqual('original');
+    expect(base.y).toEqual('y');
+  });
+
+  test('Object.freeze: update is refused and the cached value survives', () => {
+    const base = new DIContainer().add('x', () => ({ conn: 'real' }));
+    const real = base.x;
+    Object.freeze(base);
+
+    expect(() => base.update('x', () => ({ conn: 'fake' }))).toThrow(
+      'Cannot replace dependency x: the container is frozen',
+    );
+    expect(base.x).toBe(real);
+  });
+
+  test('Object.freeze: resolution still works, and a clone is unlocked', () => {
+    const base = new DIContainer().add('x', () => 'x').add('lazy', () => 'resolved after freeze');
+    Object.freeze(base);
+
+    expect(base.lazy).toEqual('resolved after freeze');
+    expect(base.hasResolvedDependency('lazy')).toBe(true);
+    expect(base.clone().update('x', () => 'on the clone').x).toEqual('on the clone');
   });
 
   test.each(lockers)('%s: add() fails with the same message and writes nothing', (_, lock) => {

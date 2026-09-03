@@ -99,6 +99,28 @@ describe('merge and compose refuse a non-container argument', () => {
     expect(() => DIContainer.compose(value as DIContainer)).toThrow(message);
   });
 
+  // The symbol alone is not enough. `typeof null === 'object'` let a null state through, and a
+  // state missing a map was only touched in the write pass — after earlier containers were merged.
+  const malformed: Array<[string, unknown]> = [
+    ['a null state', { [INTERNAL_STATE]: null }],
+    ['an empty state', { [INTERNAL_STATE]: {} }],
+    ['a state without resolvedDependencies', { [INTERNAL_STATE]: { resolvers: {} } }],
+    ['a state without resolvers', { [INTERNAL_STATE]: { resolvedDependencies: {} } }],
+    [
+      'a state with a null map',
+      { [INTERNAL_STATE]: { resolvedDependencies: null, resolvers: {} } },
+    ],
+  ];
+
+  test.each(malformed)('%s is refused before anything is written', (_, value) => {
+    const base = new DIContainer();
+    const good = new DIContainer().add('p', () => 'p');
+
+    expect(() => base.merge(good, value as DIContainer)).toThrow(InvalidContainerError);
+    expect(() => base.merge(good, value as DIContainer)).toThrow('argument 2 is a plain object');
+    expect(base.has('p')).toBe(false);
+  });
+
   test('names the position of the offending argument and writes nothing', () => {
     const base = new DIContainer();
     const good = new DIContainer().add('p', () => 'p');

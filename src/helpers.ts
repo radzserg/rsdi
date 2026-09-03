@@ -54,10 +54,19 @@ export function describeValue(value: unknown): string {
  * the budget. `merge` already casts, so the narrowing bought nothing.
  */
 export function isContainer(value: unknown): boolean {
+  if (!isObject(value)) {
+    return false;
+  }
+
+  // The state and both maps, not just the symbol: `typeof null` is `'object'`, and a state
+  // missing `resolvedDependencies` was only touched in `merge`'s write pass — after earlier
+  // containers had already been merged, which broke the all-or-nothing guarantee.
+  const state = (value as Record<symbol, unknown>)[INTERNAL_STATE];
+
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as Record<symbol, unknown>)[INTERNAL_STATE] === 'object'
+    isObject(state) &&
+    isObject((state as Record<string, unknown>).resolvers) &&
+    isObject((state as Record<string, unknown>).resolvedDependencies)
   );
 }
 
@@ -79,4 +88,8 @@ export function readOnlyContext(action: string, resolving: ReadonlySet<string>):
   return new TypeError(
     `The dependencies object passed to a factory is read-only; cannot ${action}${where}`,
   );
+}
+
+function isObject(value: unknown): value is object {
+  return typeof value === 'object' && value !== null;
 }

@@ -61,19 +61,22 @@ export function isContainer(value: unknown): boolean {
   );
 }
 
+/** A property key as it should read in a message: symbols by their description. */
+export function keyName(property: string | symbol): string {
+  return typeof property === 'symbol' ? property.toString() : property;
+}
+
 /**
  * A built-in `TypeError` rather than an exported class, as for writing to a frozen object: this is
  * a bug in a factory, not a runtime condition a consumer catches. The types do not say `Readonly`;
  * `Factory` in types.ts explains what that measured.
+ * @param action what was attempted, in the imperative — `write scratch`, `change its prototype`
+ * @param resolving the factories in flight, so the message names the one that did it
  */
-export function readOnlyContext(
-  property: string | symbol,
-  resolving: ReadonlySet<string>,
-): TypeError {
-  const key = typeof property === 'symbol' ? property.toString() : property;
+export function readOnlyContext(action: string, resolving: ReadonlySet<string>): TypeError {
   const where = resolving.size === 0 ? '' : ` while resolving ${[...resolving].join(' -> ')}`;
 
   return new TypeError(
-    `The dependencies object passed to a factory is read-only; cannot write ${key}${where}`,
+    `The dependencies object passed to a factory is read-only; cannot ${action}${where}`,
   );
 }

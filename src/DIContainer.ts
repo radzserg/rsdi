@@ -9,6 +9,7 @@ import {
   describeValue,
   FOREIGN_OWN_PROPERTY,
   isContainer,
+  keyName,
   readOnlyContext,
 } from './helpers.js';
 import { INTERNAL_STATE, type InternalState } from './internalState.js';
@@ -186,7 +187,9 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    * inside a factory used to land as an own property on the container itself — invisible until a
    * later `add('scratch', …)` was refused for colliding with it — and `deps.a = 2` on a dependency
    * name failed with V8's own message about a getter-only property. A `TypeError`, as for a frozen
-   * object, naming the key and the factory that was running. Only a write pays for the traps.
+   * object, naming the key and the factory that was running. `preventExtensions` and
+   * `setPrototypeOf` are refused too, or `Object.freeze(deps)` would freeze the container itself.
+   * Only a write pays for the traps.
    *
    * The state is symbol-keyed and `ownKeys` leaves symbols out, so the deps object shows a factory
    * nothing but dependencies and the public methods: `deps.resolvers` is an unknown name like any
@@ -201,10 +204,10 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   ): InternalState<CR> {
     const context = new Proxy(container, {
       defineProperty(target, property) {
-        throw readOnlyContext(property, target[INTERNAL_STATE].resolving);
+        throw readOnlyContext(`define ${keyName(property)}`, target[INTERNAL_STATE].resolving);
       },
       deleteProperty(target, property) {
-        throw readOnlyContext(property, target[INTERNAL_STATE].resolving);
+        throw readOnlyContext(`delete ${keyName(property)}`, target[INTERNAL_STATE].resolving);
       },
       get(target, property) {
         // Indexing with the key as given: `toString()` here cost a call on every dependency a
@@ -219,8 +222,22 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       ownKeys(target) {
         return Reflect.ownKeys(target).filter((key) => typeof key === 'string');
       },
+      // The structural mutations have no property to name. Without these two traps they fell
+      // straight through to the container: `Object.freeze(deps)` made it non-extensible before
+      // `defineProperty` could refuse anything — then tripped the `ownKeys` invariant, and every
+      // later `add()` died with `object is not extensible` — and `Object.setPrototypeOf(deps, null)`
+      // removed its methods.
+      preventExtensions(target) {
+        throw readOnlyContext(
+          'freeze, seal or prevent extensions on it',
+          target[INTERNAL_STATE].resolving,
+        );
+      },
       set(target, property) {
-        throw readOnlyContext(property, target[INTERNAL_STATE].resolving);
+        throw readOnlyContext(`write ${keyName(property)}`, target[INTERNAL_STATE].resolving);
+      },
+      setPrototypeOf(target) {
+        throw readOnlyContext('change its prototype', target[INTERNAL_STATE].resolving);
       },
     }) as unknown as CR;
 

@@ -48,8 +48,8 @@ describe('the dependencies object a factory receives is read-only', () => {
         return 'unreachable';
       });
 
-    expect(() => container.deleter).toThrow(/read-only; cannot write a while resolving deleter/u);
-    expect(() => container.definer).toThrow(/read-only; cannot write b while resolving definer/u);
+    expect(() => container.deleter).toThrow(/read-only; cannot delete a while resolving deleter/u);
+    expect(() => container.definer).toThrow(/read-only; cannot define b while resolving definer/u);
     expect(container.a).toEqual(1);
   });
 
@@ -94,7 +94,7 @@ describe('the dependencies object a factory receives is read-only', () => {
     });
 
     expect(() => container.registrar).toThrow(
-      /read-only; cannot write c while resolving registrar/u,
+      /read-only; cannot define c while resolving registrar/u,
     );
     expect(container.has('c')).toBe(false);
   });
@@ -122,6 +122,58 @@ describe('the dependencies object a factory receives is read-only', () => {
       keys: [],
       resolvers: 'DependencyIsMissingError',
       symbols: 0,
+    });
+  });
+
+  // The structural mutations have no property, so the property traps never saw them. They went
+  // straight to the container: `Object.freeze(deps)` made it non-extensible before anything could
+  // refuse — then tripped the proxy's `ownKeys` invariant — and every later `add()` died with
+  // `object is not extensible`; `Object.setPrototypeOf(deps, null)` removed the methods.
+  describe('structural mutations are refused and leave the container intact', () => {
+    const attempts: Array<[string, (deps: object) => unknown, RegExp]> = [
+      [
+        'Object.freeze',
+        (deps) => Object.freeze(deps),
+        /cannot freeze, seal or prevent extensions on it while resolving mutator/u,
+      ],
+      [
+        'Object.seal',
+        (deps) => Object.seal(deps),
+        /cannot freeze, seal or prevent extensions on it while resolving mutator/u,
+      ],
+      [
+        'Object.preventExtensions',
+        (deps) => Object.preventExtensions(deps),
+        /cannot freeze, seal or prevent extensions on it while resolving mutator/u,
+      ],
+      [
+        'Object.setPrototypeOf',
+        (deps) => Object.setPrototypeOf(deps, null),
+        /cannot change its prototype while resolving mutator/u,
+      ],
+      [
+        'Reflect.setPrototypeOf',
+        (deps) => Reflect.setPrototypeOf(deps, null),
+        /cannot change its prototype while resolving mutator/u,
+      ],
+    ];
+
+    test.each(attempts)('%s throws and changes nothing', (_, mutate, message) => {
+      const container = new DIContainer()
+        .add('a', () => 1)
+        .add('mutator', (deps) => {
+          mutate(deps);
+
+          return 'unreachable';
+        });
+
+      expect(() => container.mutator).toThrow(TypeError);
+      expect(() => container.mutator).toThrow(message);
+
+      expect(Object.isExtensible(container)).toBe(true);
+      expect(Object.getPrototypeOf(container)).toBe(DIContainer.prototype);
+      expect(typeof container.get).toBe('function');
+      expect(container.add('later', () => 2).later).toEqual(2);
     });
   });
 

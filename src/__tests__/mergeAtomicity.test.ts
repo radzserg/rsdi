@@ -1,5 +1,10 @@
 import { DIContainer } from '../DIContainer.js';
-import { ForbiddenNameError, InvalidContainerError, InvalidResolverError } from '../errors.js';
+import {
+  DependencyIsMissingError,
+  ForbiddenNameError,
+  InvalidContainerError,
+  InvalidResolverError,
+} from '../errors.js';
 import { INTERNAL_STATE } from '../internalState.js';
 import { describe, expect, test } from 'vitest';
 
@@ -124,6 +129,26 @@ describe('merge and compose refuse a non-container argument', () => {
     expect(() => base.merge(good, value as DIContainer)).toThrow(InvalidContainerError);
     expect(() => base.merge(good, value as DIContainer)).toThrow('argument 2 is a plain object');
     expect(base.has('p')).toBe(false);
+  });
+
+  // Both maps present, but the cache holds a name the resolver map lacks. Copied unchecked, that
+  // was a phantom dependency on the receiver: `has()` false, `hasResolvedDependency()` true and
+  // `get()` returning the value. `seedResolvers` already refused it; `merge` now does too.
+  test('a resolved value with no resolver is refused before anything is written', () => {
+    const base = new DIContainer();
+    const good = new DIContainer().add('p', () => 'p');
+    const phantom = {
+      [INTERNAL_STATE]: { resolvedDependencies: { ghost: 'value' }, resolvers: { a: () => 1 } },
+    } as unknown as DIContainer;
+
+    expect(() => base.merge(good, phantom)).toThrow(InvalidContainerError);
+    expect(() => base.merge(good, phantom)).toThrow(
+      'merge expects containers; argument 2 is a container whose resolved value ghost has no resolver',
+    );
+    expect(base.has('p')).toBe(false);
+    expect(base.has('a')).toBe(false);
+    expect(base.hasResolvedDependency('ghost')).toBe(false);
+    expect(() => base.get('ghost' as never)).toThrow(DependencyIsMissingError);
   });
 
   test('names the position of the offending argument and writes nothing', () => {

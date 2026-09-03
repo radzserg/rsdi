@@ -388,16 +388,30 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
         otherContainer as DIContainer<ResolvedDependencies>
       )[INTERNAL_STATE];
       const names = Object.keys(newResolvers);
+      const resolvedNames = Object.keys(newResolvedDependencies);
 
       for (const name of names) {
         DIContainer.assertNameAvailable(target, name, extensible, frozen);
         assertResolver(name, (newResolvers as Record<string, unknown>)[name]);
       }
 
-      return { names, newResolvedDependencies, newResolvers };
+      // A resolved value with no resolver would be a phantom dependency on the receiver: `has()`
+      // false, `hasResolvedDependency()` true, `get()` returning it. A real container cannot carry
+      // one — `seedResolvers` refuses it — so this is for a container-shaped JavaScript input.
+      for (const name of resolvedNames) {
+        if (!Object.hasOwn(newResolvers, name)) {
+          throw new InvalidContainerError(
+            method,
+            index + 1,
+            `a container whose resolved value ${name} has no resolver`,
+          );
+        }
+      }
+
+      return { names, newResolvedDependencies, newResolvers, resolvedNames };
     });
 
-    for (const { names, newResolvedDependencies, newResolvers } of incoming) {
+    for (const { names, newResolvedDependencies, newResolvers, resolvedNames } of incoming) {
       for (const name of names) {
         // A replaced resolver must not keep the value the previous one produced — the same
         // eviction `update()` performs. Only the overriding container's own cache may survive,
@@ -430,7 +444,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
         own.registrations++;
       }
 
-      for (const name of Object.keys(newResolvedDependencies)) {
+      for (const name of resolvedNames) {
         ownResolvedDependencies[name] = newResolvedDependencies[name];
       }
     }

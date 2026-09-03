@@ -91,6 +91,8 @@ so adding a member reserves its name automatically. It was a hand-written list u
 
 `merge` checks incoming names against the same Set. `add` and `update` already refuse them, so a real container never carries one — but `merge` accepts anything container-shaped at runtime, and installing a getter named `get` turned the first resolution into a stack overflow. One `Set` lookup per incoming name keeps merge linear.
 
+**`addContainerProperty` tells its own getter apart from a foreign own property.** Its `Object.hasOwn` early return is there so a re-registration — `update`, or `merge` of a name already held — does not redefine the getter. It used to fire for _any_ own property: a consumer's `container.cache = …`, a subclass field, a factory writing `deps.scratch = …` through the proxy. Each left the name half-working, `get(name)` running the factory while `container.name` returned the stray. It now asks `has(name)`: a resolver means the property is ours; none means it is foreign, and registration throws `ForbiddenNameError` with a reason before anything is written. That is why `setResolver` and `setResolvers` wire the getter _before_ writing the resolver — the order is load-bearing, not stylistic. `ownProperties.test.ts` pins it.
+
 Static members (`DIContainer.compose`) live on the constructor, never the instance, so a dependency cannot shadow them and they are correctly absent. Inherited `Object.prototype` names are absent too, and need no reserving — see the next section.
 
 ### Both internal maps are null-prototype

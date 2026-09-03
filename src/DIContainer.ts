@@ -416,8 +416,9 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     const ownResolvers = this.resolvers as Record<string, Factory<ContainerResolvers>>;
     const source = resolvers as unknown as Record<string, Factory<ContainerResolvers>>;
     for (const name of Object.keys(source)) {
-      ownResolvers[name] = source[name];
+      // Getter before resolver, as in `setResolver`; see `addContainerProperty`.
       this.addContainerProperty(name);
+      ownResolvers[name] = source[name];
     }
 
     const ownResolvedDependencies = this.resolvedDependencies as Record<
@@ -429,9 +430,25 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     }
   }
 
+  /**
+   * Wires `container[name]` to `get(name)`. Called before the resolver is written, so that an own
+   * property already under the name can be told apart: if the name has a resolver, the property is
+   * the getter this method installed earlier — `update`, or `merge` of a name already held — and
+   * there is nothing to do. If it has none, something else put that property there: a consumer
+   * assignment, a subclass field, a factory writing through the deps object. Defining nothing and
+   * carrying on used to leave the name half-working — `get(name)` ran the factory while
+   * `container.name` returned the stray — so it is refused instead, before anything is written.
+   */
   private addContainerProperty(name: string): void {
     if (Object.hasOwn(this, name)) {
-      return;
+      if (this.has(name)) {
+        return;
+      }
+
+      throw new ForbiddenNameError(
+        name,
+        'the container already has an own property with this name that is not a dependency',
+      );
     }
 
     Object.defineProperty(this, name, {
@@ -448,12 +465,15 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   private setResolver(name: string, resolver: Factory<ContainerResolvers>): void {
     assertResolver(name, resolver);
 
+    // The getter first: it decides whether an own property under `name` is ours by asking whether a
+    // resolver exists, so the resolver must not exist yet for a new name. It also means a refused
+    // name leaves the container exactly as it was.
+    this.addContainerProperty(name);
+
     // Writing into the map rather than rebuilding it is what makes a chain of `add` calls linear
     // instead of quadratic. It is safe only because no two containers ever share a resolver map —
     // `setResolvers` copies what `clone()` hands it, which `clone.test.ts` pins.
     (this.resolvers as Record<string, Factory<ContainerResolvers>>)[name] = resolver;
-
-    this.addContainerProperty(name);
   }
 }
 
@@ -482,11 +502,12 @@ function assertResolver(
 //     dependency named `setResolver` registers fine and makes the *next* `add` throw
 //     `TypeError: this.setResolver is not a function`.
 //   - Fields (`resolvers`, `resolvedDependencies`, `context`, `resolving`) — already own
-//     properties when the constructor returns, so `addContainerProperty`'s `Object.hasOwn`
-//     early-return skipped wiring the getter. `add('resolvers', …)` half-worked: `get('resolvers')`
-//     resolved, while `container.resolvers` handed back the container's own internal map. A
-//     throwaway instance is the only way to read them, since fields exist nowhere until one is
-//     constructed.
+//     properties when the constructor returns. Before `addContainerProperty` told a foreign own
+//     property apart from its own getter, its `Object.hasOwn` early-return skipped wiring the
+//     getter and `add('resolvers', …)` half-worked: `get('resolvers')` resolved, while
+//     `container.resolvers` handed back the container's own internal map. That check now refuses
+//     the name anyway, but with a message about a stray property; reserving the fields here gives
+//     the right message, and a throwaway instance is the only way to read them.
 //
 // `DIContainer.prototype` explicitly, not `Object.getPrototypeOf(this)` — a subclass's own members
 // must not change which names are reserved, since the types describe `DIContainer` only. The chain

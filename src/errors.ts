@@ -32,8 +32,12 @@ export class DependencyIsMissingError extends Error {
 }
 
 export class ForbiddenNameError extends Error {
-  constructor(name: string) {
-    super(`Dependency resolver with name ${name} is not allowed`);
+  /**
+   * @param name the rejected name
+   * @param reason why, when it is not the default case of a reserved container member
+   */
+  constructor(name: string, reason = 'it is a reserved container member') {
+    super(`Dependency resolver with name ${name} is not allowed: ${reason}`);
     this.name = new.target.name;
   }
 }

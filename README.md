@@ -458,13 +458,13 @@ try {
 }
 ```
 
-| Class                         | Thrown by                                                        |
-| ----------------------------- | ---------------------------------------------------------------- |
-| `DependencyIsMissingError`    | `get` or `update` on a name that isn't registered                |
-| `DenyOverrideDependencyError` | `add` on a name that already exists — use `update`               |
-| `ForbiddenNameError`          | `add` or `update` with a reserved name such as `get` or `merge`  |
-| `CircularDependencyError`     | Resolving a dependency that leads back to itself; names the path |
-| `InvalidResolverError`        | `add` or `update` given a value instead of a factory             |
+| Class                         | Thrown by                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| `DependencyIsMissingError`    | `get` or `update` on a name that isn't registered                                                |
+| `DenyOverrideDependencyError` | `add` on a name that already exists — use `update`                                               |
+| `ForbiddenNameError`          | a reserved name such as `get` or `merge`, or a name the container already has as an own property |
+| `CircularDependencyError`     | Resolving a dependency that leads back to itself; names the path                                 |
+| `InvalidResolverError`        | `add` or `update` given a value instead of a factory                                             |
 
 Each sets `error.name` to its class, so logs read `DependencyIsMissingError: …` rather than `Error: …`.
 

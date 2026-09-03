@@ -137,7 +137,6 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   public clone(): IDIContainer<ContainerResolvers> {
     // Handed the live maps on purpose — `setResolvers` is what copies them, and routing this
     // through `export()` would only allocate a second copy to throw away.
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     const newContainer = new ClonedDiContainer(
       this.resolvers,
       this.resolvedDependencies as { [name in keyof ContainerResolvers]: ResolvedDependencyValue },
@@ -283,6 +282,15 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
         otherContainer as DIContainer<ResolvedDependencies>;
 
       for (const name of Object.keys(newResolvers)) {
+        // `add` and `update` refuse these names, so a real container never carries one — but
+        // `merge` accepts anything shaped like a container at runtime, and an own property named
+        // `get` would shadow the method: `container.get` becomes a getter that calls `this.get`,
+        // and the first resolution dies in a stack overflow. One Set lookup per incoming name
+        // keeps the failure a `ForbiddenNameError`, and keeps merge linear.
+        if (containerMembers.has(name)) {
+          throw new ForbiddenNameError(name);
+        }
+
         // A replaced resolver must not keep the value the previous one produced — the same
         // eviction `update()` performs. Only the overriding container's own cache may survive,
         // so a name it re-registers without having resolved yet has to lose the old value;
@@ -356,8 +364,12 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       [name in keyof CR]: ResolvedDependencyValue;
     },
   ) {
+    // A plain `Error` on purpose, where every other throw in this file is a typed class. Those are
+    // conditions a consumer can reach through the public API and may want to catch; this one is
+    // reachable only from a subclass constructor and is a programming error at wiring time, not a
+    // runtime state. Exporting a class for it would widen the public surface for nothing.
     if (Object.keys(this.resolvers).length !== 0) {
-      throw new Error('Cannot set resolved dependencies after resolvers are defined');
+      throw new Error('Cannot set resolvers on a container that already has resolvers');
     }
 
     // Both maps are copied, not adopted. `add` and `merge` write into them in place, so a clone

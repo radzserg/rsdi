@@ -78,7 +78,6 @@ export type ResolvedDependencies = {
   [k: string]: ResolvedDependencyValue;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ResolvedDependencyValue = any;
 
 export type Resolvers<CR extends ResolvedDependencies> = {

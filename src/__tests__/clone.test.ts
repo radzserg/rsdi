@@ -59,3 +59,21 @@ describe('DIContainer merge containers', () => {
     expect(boundedContextB.buzz.name).toEqual('buzzB');
   });
 });
+
+describe('setResolvers', () => {
+  // Protected, so only a subclass constructor can reach it — `ClonedDiContainer` is the one in the
+  // repo. Seeding a container that already has resolvers would silently merge two maps.
+  test('refuses to seed a container that already has resolvers', () => {
+    class SeededTwice extends DIContainer {
+      public constructor() {
+        super();
+        this.setResolvers({ a: () => 'first' }, { a: 'first' });
+        this.setResolvers({ a: () => 'second' }, { a: 'second' });
+      }
+    }
+
+    expect(() => new SeededTwice()).toThrow(
+      'Cannot set resolvers on a container that already has resolvers',
+    );
+  });
+});

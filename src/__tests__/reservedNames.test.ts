@@ -72,6 +72,20 @@ describe('reserved dependency names', () => {
     },
   );
 
+  // `add` and `update` check the name, so a real container never holds a reserved one. `merge`
+  // trusts whatever is shaped like a container at runtime, and used to install the property
+  // regardless — `container.get` became a getter calling `this.get`, and the first resolution
+  // died in `RangeError: Maximum call stack size exceeded`.
+  test('merge refuses a reserved name from a duck-typed input', () => {
+    const duckTyped = {
+      resolvedDependencies: {},
+      resolvers: { get: () => 'shadow' },
+    } as unknown as DIContainer;
+
+    expect(() => new DIContainer().merge(duckTyped)).toThrow(ForbiddenNameError);
+    expect(() => DIContainer.compose(duckTyped)).toThrow(ForbiddenNameError);
+  });
+
   test('static compose is not reserved — statics never shadow an instance property', () => {
     const container = new DIContainer().add('compose', () => 'a value');
 

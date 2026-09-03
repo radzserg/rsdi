@@ -1,4 +1,3 @@
-// eslint-disable-next-line canonical/filename-match-regex
 import { DIContainer } from '../../DIContainer.js';
 import { type ContainerSnapshot, type ResolversOf, type SealedContainer } from '../../types.js';
 import { Bar, Foo } from '../__helpers__/fakeClasses.js';

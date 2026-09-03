@@ -420,7 +420,8 @@ for it when your error messages get unreadable, not to speed up compilation — 
 ### Other methods
 
 - **`.get(name)`** — resolve a dependency by name. Equivalent to property access (`container.foo`). Throws
-  `DependencyIsMissingError` if the name isn't registered.
+  `DependencyIsMissingError` if the name isn't registered, and `CircularDependencyError` if resolving it leads back to
+  itself — the message names the path (`a -> b -> a`) so the cycle is easy to find.
 - **`.has(name)`** — returns `true` if a resolver is registered under `name` (whether or not it has been resolved yet).
 - **`.hasResolvedDependency(name)`** — returns `true` only if the dependency has already been resolved and cached.
 - **`.update(name, resolver)`** — replace an existing dependency's resolver (see [How to use](#how-to-use)). Unlike

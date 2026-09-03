@@ -1,3 +1,9 @@
+export class CircularDependencyError extends Error {
+  constructor(path: readonly string[]) {
+    super(`Circular dependency detected: ${path.join(' -> ')}`);
+  }
+}
+
 export class DenyOverrideDependencyError extends Error {
   constructor(name: string) {
     super(`Dependency resolver with name ${name} is already defined, use update method instead`);

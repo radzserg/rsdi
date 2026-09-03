@@ -1,4 +1,5 @@
 import {
+  CircularDependencyError,
   DenyOverrideDependencyError,
   DependencyIsMissingError,
   ForbiddenNameError,
@@ -38,6 +39,16 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   ) as Resolvers<ContainerResolvers>;
 
   private readonly context: ContainerResolvers = {} as ContainerResolvers;
+
+  // Names whose factory is running right now, in call order, so a factory that reaches back to a
+  // name above it in the chain is reported as `a -> b -> a` instead of dying in
+  // `RangeError: Maximum call stack size exceeded` with nothing named. Only a cache miss touches
+  // this — a hit returns before it is consulted — so cached resolution costs what it did.
+  //
+  // An ordinary field rather than a `#private` one on purpose. The name is reserved automatically
+  // by `containerMembers`, and a factory that receives the context proxy and calls `get` on it
+  // still works: `proxy.resolving` forwards to the target, where `proxy.#resolving` would throw.
+  private readonly resolving = new Set<string>();
 
   public constructor() {
     this.context = new Proxy(this, {
@@ -199,7 +210,20 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       throw new DependencyIsMissingError(dependencyName as string);
     }
 
-    const value = resolver(this.context);
+    const name = dependencyName as string;
+    if (this.resolving.has(name)) {
+      throw new CircularDependencyError([...this.resolving, name]);
+    }
+
+    this.resolving.add(name);
+    let value: ResolvedDependencyValue;
+    try {
+      value = resolver(this.context);
+    } finally {
+      // Released on a throw as well, or a factory that failed once would report a cycle forever.
+      this.resolving.delete(name);
+    }
+
     this.resolvedDependencies[dependencyName] = value;
 
     return value;
@@ -385,11 +409,12 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
 //     the methods the class calls through `this`. Non-public members are at stake too: a
 //     dependency named `setValue` registers fine and makes the *next* `add` throw
 //     `TypeError: this.setValue is not a function`.
-//   - Fields (`resolvers`, `resolvedDependencies`, `context`) — already own properties when the
-//     constructor returns, so `addContainerProperty`'s `Object.hasOwn` early-return skipped wiring
-//     the getter. `add('resolvers', …)` half-worked: `get('resolvers')` resolved, while
-//     `container.resolvers` handed back the container's own internal map. A throwaway instance is
-//     the only way to read them, since fields exist nowhere until one is constructed.
+//   - Fields (`resolvers`, `resolvedDependencies`, `context`, `resolving`) — already own
+//     properties when the constructor returns, so `addContainerProperty`'s `Object.hasOwn`
+//     early-return skipped wiring the getter. `add('resolvers', …)` half-worked: `get('resolvers')`
+//     resolved, while `container.resolvers` handed back the container's own internal map. A
+//     throwaway instance is the only way to read them, since fields exist nowhere until one is
+//     constructed.
 //
 // `DIContainer.prototype` explicitly, not `Object.getPrototypeOf(this)` — a subclass's own members
 // must not change which names are reserved, since the types describe `DIContainer` only. The chain

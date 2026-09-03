@@ -49,7 +49,7 @@ describe('reserved dependency names', () => {
   // The name registered, `get()` resolved it, and property access handed back the container's own
   // internal map instead. Only a constructed instance reveals these, which is why the guard builds
   // one; a prototype-only check misses all three.
-  test.each(['resolvers', 'resolvedDependencies', 'context'])(
+  test.each(['resolvers', 'resolvedDependencies', 'context', 'resolving'])(
     'a dependency named %s cannot shadow the instance field',
     (name) => {
       expect(() => new DIContainer().add(name as 'notAMethod', () => 1)).toThrow(

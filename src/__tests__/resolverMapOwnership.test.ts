@@ -1,4 +1,4 @@
-import { DIContainer, RESOLVED_DEPENDENCIES, RESOLVERS } from '../DIContainer.js';
+import { DIContainer, INTERNAL_STATE } from '../DIContainer.js';
 import { describe, expect, test } from 'vitest';
 
 /**
@@ -7,11 +7,11 @@ import { describe, expect, test } from 'vitest';
  */
 class MapProbe extends DIContainer {
   public get resolvedMap(): unknown {
-    return this[RESOLVED_DEPENDENCIES];
+    return this[INTERNAL_STATE].resolvedDependencies;
   }
 
   public get resolverMap(): unknown {
-    return this[RESOLVERS];
+    return this[INTERNAL_STATE].resolvers;
   }
 }
 
@@ -22,7 +22,7 @@ class MapProbe extends DIContainer {
  *
  * Wall clock cannot guard that in CI: it does not transfer between machines, which is why
  * `pnpm bench` has no CI job and `bench:types` gates on instantiation counts instead. Map identity
- * states the same invariant deterministically — a `{ ...this[RESOLVERS] }` reintroduced on any of
+ * states the same invariant deterministically — a `{ ...resolvers }` reintroduced on any of
  * these paths fails here rather than silently handing every consumer quadratic wiring back.
  */
 describe('the container writes into its maps in place', () => {
@@ -74,7 +74,7 @@ describe('the container writes into its maps in place', () => {
 });
 
 /**
- * The flip side of those in-place writes: before them, `add` replaced `this[RESOLVERS]` outright,
+ * The flip side of those in-place writes: before them, `add` replaced the resolver map outright,
  * so whatever `export()` handed out was a de-facto snapshot that no later call could reach. Now
  * the live map would keep changing under the caller — and let the caller change the container —
  * so `export()` copies. Nothing inside the class goes through it; `clone` and `merge` read the

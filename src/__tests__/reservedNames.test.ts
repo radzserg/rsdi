@@ -1,4 +1,4 @@
-import { DIContainer, RESOLVED_DEPENDENCIES, RESOLVERS } from '../DIContainer.js';
+import { DIContainer, INTERNAL_STATE } from '../DIContainer.js';
 import { ForbiddenNameError } from '../errors.js';
 import { RESERVED_NAMES } from './__helpers__/reservedNames.js';
 import { describe, expect, test } from 'vitest';
@@ -87,8 +87,7 @@ describe('reserved dependency names', () => {
   // died in `RangeError: Maximum call stack size exceeded`.
   test('merge refuses a reserved name from a duck-typed input', () => {
     const duckTyped = {
-      [RESOLVED_DEPENDENCIES]: {},
-      [RESOLVERS]: { get: () => 'shadow' },
+      [INTERNAL_STATE]: { resolvedDependencies: {}, resolvers: { get: () => 'shadow' } },
     } as unknown as DIContainer;
 
     expect(() => new DIContainer().merge(duckTyped)).toThrow(ForbiddenNameError);

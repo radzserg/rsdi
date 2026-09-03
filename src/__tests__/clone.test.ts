@@ -1,4 +1,4 @@
-import { DIContainer, SET_RESOLVERS } from '../DIContainer.js';
+import { DIContainer } from '../DIContainer.js';
 import { Buzz } from './__helpers__/fakeClasses.js';
 import { describe, expect, test } from 'vitest';
 
@@ -16,7 +16,7 @@ describe('DIContainer merge containers', () => {
 
   // `add` and `merge` write into the resolver map in place, so a clone that adopted its source's
   // map rather than copying it would leak every later registration in either direction. These
-  // three pin that; without the copy in `[SET_RESOLVERS]` they fail.
+  // three pin that; without the copy in `seedResolvers` they fail.
   test('adding to a clone leaves the original untouched', () => {
     const baseContainer = new DIContainer().add('a', () => 'a');
 
@@ -60,15 +60,15 @@ describe('DIContainer merge containers', () => {
   });
 });
 
-describe('[SET_RESOLVERS]', () => {
+describe('seedResolvers', () => {
   // Protected, so only a subclass constructor can reach it — `ClonedDiContainer` is the one in the
   // repo. Seeding a container that already has resolvers would silently merge two maps.
   test('refuses to seed a container that already has resolvers', () => {
     class SeededTwice extends DIContainer {
       public constructor() {
         super();
-        this[SET_RESOLVERS]({ a: () => 'first' }, { a: 'first' });
-        this[SET_RESOLVERS]({ a: () => 'second' }, { a: 'second' });
+        SeededTwice.seedResolvers(this, { a: () => 'first' }, { a: 'first' });
+        SeededTwice.seedResolvers(this, { a: () => 'second' }, { a: 'second' });
       }
     }
 

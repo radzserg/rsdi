@@ -1,4 +1,4 @@
-import { DIContainer, RESOLVED_DEPENDENCIES, RESOLVERS } from '../DIContainer.js';
+import { DIContainer, INTERNAL_STATE } from '../DIContainer.js';
 import { ForbiddenNameError, InvalidResolverError } from '../errors.js';
 import { describe, expect, test } from 'vitest';
 
@@ -8,7 +8,7 @@ import { describe, expect, test } from 'vitest';
 // writing; `merge` now does the same for every incoming name of every container.
 describe('merge is all-or-nothing', () => {
   const duckTyped = (resolvers: Record<string, unknown>) =>
-    ({ [RESOLVED_DEPENDENCIES]: {}, [RESOLVERS]: resolvers }) as unknown as DIContainer;
+    ({ [INTERNAL_STATE]: { resolvedDependencies: {}, resolvers } }) as unknown as DIContainer;
 
   test('a non-function resolver in the last container leaves nothing from the earlier ones', () => {
     const base = new DIContainer().add('x', () => 'x');

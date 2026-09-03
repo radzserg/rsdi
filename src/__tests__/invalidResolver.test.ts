@@ -1,4 +1,4 @@
-import { DIContainer, RESOLVED_DEPENDENCIES, RESOLVERS } from '../DIContainer.js';
+import { DIContainer, INTERNAL_STATE } from '../DIContainer.js';
 import { InvalidResolverError } from '../errors.js';
 import { Bar } from './__helpers__/fakeClasses.js';
 import { describe, expect, test } from 'vitest';
@@ -42,8 +42,7 @@ describe('a resolver that is not a function', () => {
   // `merge` accepts anything shaped like a container at runtime, so it has to check as well.
   test('merge rejects a non-function resolver from a duck-typed input', () => {
     const duckTyped = {
-      [RESOLVED_DEPENDENCIES]: {},
-      [RESOLVERS]: { db: 'connection-string' },
+      [INTERNAL_STATE]: { resolvedDependencies: {}, resolvers: { db: 'connection-string' } },
     } as unknown as DIContainer;
 
     expect(() => new DIContainer().merge(duckTyped)).toThrow(InvalidResolverError);

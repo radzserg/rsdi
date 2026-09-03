@@ -23,10 +23,10 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   // Both maps are null-prototype. `get()` reads them with plain property lookups — the cheapest
   // thing on the hot path — so with an ordinary `{}` a dependency named after an `Object.prototype`
   // member resolved to the inherited function: `add('toString', () => 'a value')` registered fine
-  // and then handed back `[Function: toString]`, because `this.resolvedDependencies.toString` is
-  // not `undefined`. Guarding each lookup with `Object.hasOwn` would fix it and tax every cache
-  // hit; removing the prototype fixes it and taxes nothing. These maps are built a key at a time
-  // and so live in V8's dictionary mode either way, which is why the change is free.
+  // and then handed back `[Function: toString]`, because `'toString' in this.resolvedDependencies`
+  // was true. Guarding each lookup with `Object.hasOwn` would fix it and tax every cache hit;
+  // removing the prototype fixes it and taxes nothing. These maps are built a key at a time and so
+  // live in V8's dictionary mode either way, which is why the change is free.
   //
   // `export()` still hands out ordinary objects — its copies are for consumers, not for lookup.
   protected resolvedDependencies: {
@@ -182,8 +182,15 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   public get<Name extends keyof ContainerResolvers>(
     dependencyName: Name,
   ): ContainerResolvers[Name] {
+    // A factory is allowed to produce `undefined`, and that value has to be cached like any other,
+    // or the factory re-runs on every access while `hasResolvedDependency` reports it resolved. The
+    // `in` test is what makes that case a hit — on a null-prototype map it is an own-key check with
+    // nothing to walk — but it is reached only when the read came back `undefined`. Testing `in`
+    // first, for every call, made a cache hit two dictionary lookups instead of one and cost the
+    // `resolve.bench.ts` cached rows a third of their throughput. A miss pays the extra test once,
+    // against the factory it is about to run.
     const resolved = this.resolvedDependencies[dependencyName];
-    if (resolved !== undefined) {
+    if (resolved !== undefined || dependencyName in this.resolvedDependencies) {
       return resolved;
     }
 

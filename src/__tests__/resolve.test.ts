@@ -43,6 +43,23 @@ describe('DIContainer typescript type resolution', () => {
     expect(aConcatValue).toEqual('helloa');
   });
 
+  test('caches a factory that returns undefined', () => {
+    // `get` used to test the cache with `!== undefined`, so a factory producing `undefined` re-ran
+    // on every access while `hasResolvedDependency` reported it resolved.
+    let calls = 0;
+    const container = new DIContainer().add('nothing', () => {
+      calls++;
+      return undefined;
+    });
+
+    expect(container.get('nothing')).toBeUndefined();
+    expect(container.get('nothing')).toBeUndefined();
+    expect(container.nothing).toBeUndefined();
+
+    expect(calls).toEqual(1);
+    expect(container.hasResolvedDependency('nothing')).toBe(true);
+  });
+
   test('deny override resolvers by key with add method', () => {
     const container = new DIContainer().add('key1', () => 'value 1');
 

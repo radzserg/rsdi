@@ -77,7 +77,10 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   public static compose<T extends readonly ContainerLike[]>(
     ...containers: T
   ): IDIContainer<MergedResolvers<T>> {
-    return new DIContainer().merge(...containers) as IDIContainer<MergedResolvers<T>>;
+    const container = new DIContainer();
+    DIContainer.mergeInto(container, containers, 'compose');
+
+    return container as unknown as IDIContainer<MergedResolvers<T>>;
   }
 
   /**
@@ -332,6 +335,91 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   }
 
   /**
+   * The body of `merge`, shared with `compose` so that the error a bad argument produces can name
+   * the method the consumer actually called; the argument positions are the same in both.
+   */
+  private static mergeInto<CR extends ResolvedDependencies>(
+    target: DIContainer<CR>,
+    containers: readonly ContainerLike[],
+    method: 'compose' | 'merge',
+  ): void {
+    const own = target[INTERNAL_STATE];
+    const ownResolvers = own.resolvers as Record<string, Factory<CR>>;
+    const ownResolvedDependencies = own.resolvedDependencies as Record<
+      string,
+      ResolvedDependencyValue
+    >;
+
+    // Two passes, so that a merge is all-or-nothing like `add`. Checking and writing one name at a
+    // time left the earlier containers, and the earlier names of the failing one, merged into
+    // `this` when a later name was refused — including a cache eviction that could not be undone.
+    // The key arrays are read once and reused, so the second pass costs no extra allocation.
+    //
+    // `add` and `update` refuse these names, so a real container never carries one — but `merge`
+    // accepts anything shaped like a container at runtime, and an own property named `get` would
+    // shadow the method: `container.get` becomes a getter that calls `this.get`, and the first
+    // resolution dies in a stack overflow. One Set lookup per incoming name keeps the failure a
+    // `ForbiddenNameError`, and keeps merge linear.
+    const extensible = Object.isExtensible(target);
+    const incoming = containers.map((otherContainer, index) => {
+      // The types only admit containers; this is for JavaScript consumers and `any` casts, who
+      // otherwise got `Cannot convert undefined or null to object` from deep inside the loop — for
+      // an `undefined` from a mistyped import, or a plain object that used to pass as a container
+      // when the fields were string-keyed.
+      if (!isContainer(otherContainer)) {
+        throw new InvalidContainerError(method, index + 1, describeValue(otherContainer));
+      }
+
+      // The state directly, not `export()`: that copies now, and every name is copied again into
+      // our own maps below — one throwaway map per merged container, for nothing.
+      const { resolvedDependencies: newResolvedDependencies, resolvers: newResolvers } = (
+        otherContainer as DIContainer<ResolvedDependencies>
+      )[INTERNAL_STATE];
+      const names = Object.keys(newResolvers);
+
+      for (const name of names) {
+        DIContainer.assertNameAvailable(target, name, extensible);
+        assertResolver(name, (newResolvers as Record<string, unknown>)[name]);
+      }
+
+      return { names, newResolvedDependencies, newResolvers };
+    });
+
+    for (const { names, newResolvedDependencies, newResolvers } of incoming) {
+      for (const name of names) {
+        // A replaced resolver must not keep the value the previous one produced — the same
+        // eviction `update()` performs. Only the overriding container's own cache may survive,
+        // so a name it re-registers without having resolved yet has to lose the old value;
+        // otherwise `merge`/`compose` return the earlier container's instance from a resolver
+        // that no longer exists, silently contradicting last-writer-wins.
+        //
+        // Our own cache is tested first so that merging into a container that has resolved
+        // nothing — the `compose` case — issues no deletes at all.
+        if (
+          Object.hasOwn(ownResolvedDependencies, name) &&
+          !Object.hasOwn(newResolvedDependencies, name)
+        ) {
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete ownResolvedDependencies[name];
+        }
+
+        // Only the incoming names can be new, so this replaces a rescan of the whole merged map.
+        DIContainer.addContainerProperty(target, name);
+
+        // Writing into the map rather than rebuilding it per container is what keeps
+        // `compose(...modules)` linear in total dependencies instead of quadratic.
+        ownResolvers[name] = (newResolvers as Record<string, Factory<CR>>)[name];
+      }
+
+      own.registrations++;
+
+      for (const name of Object.keys(newResolvedDependencies)) {
+        ownResolvedDependencies[name] = newResolvedDependencies[name];
+      }
+    }
+  }
+
+  /**
    * Stores a resolver under `name` and wires the property getter for it. Shared by `add` and
    * `update`; the name checks belong to the callers.
    */
@@ -565,80 +653,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
   public merge<T extends readonly ContainerLike[]>(
     ...containers: T
   ): IDIContainer<ContainerResolvers & MergedResolvers<T>> {
-    const own = this[INTERNAL_STATE];
-    const ownResolvers = own.resolvers as Record<string, Factory<ContainerResolvers>>;
-    const ownResolvedDependencies = own.resolvedDependencies as Record<
-      string,
-      ResolvedDependencyValue
-    >;
-
-    // Two passes, so that a merge is all-or-nothing like `add`. Checking and writing one name at a
-    // time left the earlier containers, and the earlier names of the failing one, merged into
-    // `this` when a later name was refused — including a cache eviction that could not be undone.
-    // The key arrays are read once and reused, so the second pass costs no extra allocation.
-    //
-    // `add` and `update` refuse these names, so a real container never carries one — but `merge`
-    // accepts anything shaped like a container at runtime, and an own property named `get` would
-    // shadow the method: `container.get` becomes a getter that calls `this.get`, and the first
-    // resolution dies in a stack overflow. One Set lookup per incoming name keeps the failure a
-    // `ForbiddenNameError`, and keeps merge linear.
-    const extensible = Object.isExtensible(this);
-    const incoming = containers.map((otherContainer, index) => {
-      // The types only admit containers; this is for JavaScript consumers and `any` casts, who
-      // otherwise got `Cannot convert undefined or null to object` from deep inside the loop — for
-      // an `undefined` from a mistyped import, or a plain object that used to pass as a container
-      // when the fields were string-keyed.
-      if (!isContainer(otherContainer)) {
-        throw new InvalidContainerError(index + 1, describeValue(otherContainer));
-      }
-
-      // The state directly, not `export()`: that copies now, and every name is copied again into
-      // our own maps below — one throwaway map per merged container, for nothing.
-      const { resolvedDependencies: newResolvedDependencies, resolvers: newResolvers } = (
-        otherContainer as DIContainer<ResolvedDependencies>
-      )[INTERNAL_STATE];
-      const names = Object.keys(newResolvers);
-
-      for (const name of names) {
-        DIContainer.assertNameAvailable(this, name, extensible);
-        assertResolver(name, (newResolvers as Record<string, unknown>)[name]);
-      }
-
-      return { names, newResolvedDependencies, newResolvers };
-    });
-
-    for (const { names, newResolvedDependencies, newResolvers } of incoming) {
-      for (const name of names) {
-        // A replaced resolver must not keep the value the previous one produced — the same
-        // eviction `update()` performs. Only the overriding container's own cache may survive,
-        // so a name it re-registers without having resolved yet has to lose the old value;
-        // otherwise `merge`/`compose` return the earlier container's instance from a resolver
-        // that no longer exists, silently contradicting last-writer-wins.
-        //
-        // Our own cache is tested first so that merging into a container that has resolved
-        // nothing — the `compose` case — issues no deletes at all.
-        if (
-          Object.hasOwn(ownResolvedDependencies, name) &&
-          !Object.hasOwn(newResolvedDependencies, name)
-        ) {
-          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-          delete ownResolvedDependencies[name];
-        }
-
-        // Only the incoming names can be new, so this replaces a rescan of the whole merged map.
-        DIContainer.addContainerProperty(this, name);
-
-        // Writing into the map rather than rebuilding it per container is what keeps
-        // `compose(...modules)` linear in total dependencies instead of quadratic.
-        ownResolvers[name] = (newResolvers as Record<string, Factory<ContainerResolvers>>)[name];
-      }
-
-      own.registrations++;
-
-      for (const name of Object.keys(newResolvedDependencies)) {
-        ownResolvedDependencies[name] = newResolvedDependencies[name];
-      }
-    }
+    DIContainer.mergeInto(this, containers, 'merge');
 
     return this as unknown as IDIContainer<ContainerResolvers & MergedResolvers<T>>;
   }

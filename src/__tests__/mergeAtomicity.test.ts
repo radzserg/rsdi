@@ -96,7 +96,12 @@ describe('merge and compose refuse a non-container argument', () => {
 
   test.each(cases)('%s', (_, value, message) => {
     expect(() => DIContainer.compose(value as DIContainer)).toThrow(InvalidContainerError);
-    expect(() => DIContainer.compose(value as DIContainer)).toThrow(message);
+    expect(() => DIContainer.compose(value as DIContainer)).toThrow(
+      `compose expects containers; ${message}`,
+    );
+    expect(() => new DIContainer().merge(value as DIContainer)).toThrow(
+      `merge expects containers; ${message}`,
+    );
   });
 
   // The symbol alone is not enough. `typeof null === 'object'` let a null state through, and a

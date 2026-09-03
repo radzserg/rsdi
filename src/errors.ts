@@ -44,11 +44,12 @@ export class ForbiddenNameError extends Error {
 
 export class InvalidContainerError extends Error {
   /**
-   * @param position the 1-based argument position in the `merge`/`compose` call
+   * @param method which entry point was called — the argument positions are the same in both
+   * @param position the 1-based argument position in that call
    * @param received a description of what was passed instead — see `describeValue`
    */
-  constructor(position: number, received: string) {
-    super(`merge expects containers; argument ${position} is ${received}`);
+  constructor(method: 'compose' | 'merge', position: number, received: string) {
+    super(`${method} expects containers; argument ${position} is ${received}`);
     this.name = new.target.name;
   }
 }

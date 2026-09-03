@@ -16,34 +16,26 @@ import {
   type UpdatedResolvers,
 } from './types.js';
 
-// Every public *instance* member, because `addContainerProperty` defines dependencies as own
-// properties that would otherwise shadow the method of the same name. `export` belongs here even
-// though it is rarely used directly: it once broke every `merge`/`compose` with a `TypeError`,
-// because `merge` called it on the containers passed to it. `merge` reads the protected maps
-// directly now, so only a consumer's own call is at stake — still public API, so still reserved.
-// Statics (`compose`) never live on the instance and are deliberately absent.
-// `src/__tests__/reservedNames.test.ts` fails if a new public method is not listed here.
-const containerMethods = new Set([
-  'add',
-  'clone',
-  'export',
-  'extend',
-  'get',
-  'has',
-  'hasResolvedDependency',
-  'merge',
-  'update',
-]);
-
 /**
  * Dependency injection container
  */
 export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
+  // Both maps are null-prototype. `get()` reads them with plain property lookups — the cheapest
+  // thing on the hot path — so with an ordinary `{}` a dependency named after an `Object.prototype`
+  // member resolved to the inherited function: `add('toString', () => 'a value')` registered fine
+  // and then handed back `[Function: toString]`, because `this.resolvedDependencies.toString` is
+  // not `undefined`. Guarding each lookup with `Object.hasOwn` would fix it and tax every cache
+  // hit; removing the prototype fixes it and taxes nothing. These maps are built a key at a time
+  // and so live in V8's dictionary mode either way, which is why the change is free.
+  //
+  // `export()` still hands out ordinary objects — its copies are for consumers, not for lookup.
   protected resolvedDependencies: {
     [name in keyof ContainerResolvers]?: ResolvedDependencyValue;
-  } = {};
+  } = Object.create(null) as { [name in keyof ContainerResolvers]?: ResolvedDependencyValue };
 
-  protected resolvers: Resolvers<ContainerResolvers> = {};
+  protected resolvers: Resolvers<ContainerResolvers> = Object.create(
+    null,
+  ) as Resolvers<ContainerResolvers>;
 
   private readonly context: ContainerResolvers = {} as ContainerResolvers;
 
@@ -104,7 +96,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     name: StringLiteral<DenyInputKeys<N, keyof ContainerResolvers>>,
     resolver: Factory<ContainerResolvers, V>,
   ): IDIContainer<ContainerResolvers & { [n in N]: V }> {
-    if (containerMethods.has(name)) {
+    if (containerMembers.has(name)) {
       throw new ForbiddenNameError(name);
     }
 
@@ -303,7 +295,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     name: StringLiteral<N>,
     resolver: Factory<ContainerResolvers, V>,
   ): IDIContainer<UpdatedResolvers<ContainerResolvers, N, V>> {
-    if (containerMethods.has(name)) {
+    if (containerMembers.has(name)) {
       throw new ForbiddenNameError(name);
     }
 
@@ -375,6 +367,33 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     this.addContainerProperty(name);
   }
 }
+
+// Derived from the class rather than hand-listed: the list is only correct if it is exactly the
+// class's own members, and a missing entry is not a compile error anywhere — `export` was absent
+// until a dependency of that name was found to break every `merge`.
+//
+// Prototype members and instance fields both matter, for different reasons:
+//
+//   - Prototype — `addContainerProperty` defines dependencies as *own* properties, which shadow
+//     the methods the class calls through `this`. Non-public members are at stake too: a
+//     dependency named `setValue` registers fine and makes the *next* `add` throw
+//     `TypeError: this.setValue is not a function`.
+//   - Fields (`resolvers`, `resolvedDependencies`, `context`) — already own properties when the
+//     constructor returns, so `addContainerProperty`'s `Object.hasOwn` early-return skipped wiring
+//     the getter. `add('resolvers', …)` half-worked: `get('resolvers')` resolved, while
+//     `container.resolvers` handed back the container's own internal map. A throwaway instance is
+//     the only way to read them, since fields exist nowhere until one is constructed.
+//
+// `DIContainer.prototype` explicitly, not `Object.getPrototypeOf(this)` — a subclass's own members
+// must not change which names are reserved, since the types describe `DIContainer` only. The chain
+// is not walked either: inherited `Object.prototype` names need no reserving now that both maps
+// are null-prototype.
+//
+// Statics (`compose`) live on the constructor, never the instance, and are deliberately absent.
+const containerMembers = new Set([
+  ...Object.getOwnPropertyNames(DIContainer.prototype),
+  ...Object.getOwnPropertyNames(new DIContainer()),
+]);
 
 class ClonedDiContainer<
   ContainerResolvers extends ResolvedDependencies = {},

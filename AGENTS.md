@@ -67,12 +67,35 @@ Each chained call widens the type parameter: `add('foo', …)` returns `IDIConta
 
 ### Dependency names live in the same namespace as method names
 
-Because of that intersection, a dependency called `get` would shadow the `get` method. Two mechanisms guard this, and both must stay in sync with the actual method list:
+Because of that intersection, a dependency called `get` would shadow the `get` method. Two mechanisms guard this:
 
 - **Compile time** — `DenyInputKeys` / `StringLiteral` in `types.ts` reject non-literal and colliding names.
-- **Runtime** — the `containerMethods` `Set` at the top of `DIContainer.ts` throws `ForbiddenNameError`.
+- **Runtime** — the `containerMembers` `Set` below the class in `DIContainer.ts` throws `ForbiddenNameError`.
 
-Adding a public **instance** method to the class means adding its name to that `Set`. Static members (`DIContainer.compose`) are exempt — they never live on the instance, so a dependency cannot shadow them.
+That `Set` is **derived**, built once at module load from the class itself:
+
+```ts
+const containerMembers = new Set([
+  ...Object.getOwnPropertyNames(DIContainer.prototype),
+  ...Object.getOwnPropertyNames(new DIContainer()),
+]);
+```
+
+so adding a member reserves its name automatically. It was a hand-written list until 3.4.0, and the list was wrong three ways: `export` was missing until a dependency of that name was found to break every `merge`; `setValue`/`addContainerProperty` were explicitly (and wrongly) permitted; and instance fields were never considered at all. Don't put it back. Three things it encodes:
+
+- **Non-public prototype members are reserved too, and must be.** `addContainerProperty` defines dependencies as _own_ properties, which shadow the prototype methods the class calls through `this` — a dependency named `setValue` registers fine and makes the _next_ `add` throw `TypeError: this.setValue is not a function`.
+- **The throwaway instance is not decoration.** Fields (`resolvers`, `resolvedDependencies`, `context`) exist nowhere until one is constructed, and they are own properties before any dependency is registered — so `addContainerProperty`'s `Object.hasOwn(this, name)` early-return skipped wiring the getter entirely. `add('resolvers', …)` used to half-work: `get('resolvers')` resolved, while `container.resolvers` handed back the container's own internal map.
+- **Read `DIContainer.prototype`, never `Object.getPrototypeOf(this)`.** A subclass (`ClonedDiContainer`, or a consumer's) must not change which names are reserved, because the types describe `DIContainer` alone.
+
+Static members (`DIContainer.compose`) live on the constructor, never the instance, so a dependency cannot shadow them and they are correctly absent. Inherited `Object.prototype` names are absent too, and need no reserving — see the next section.
+
+### Both internal maps are null-prototype
+
+`resolvers` and `resolvedDependencies` are `Object.create(null)`, not `{}`. `get()` reads them with plain property lookups, so with an ordinary object a dependency named after an `Object.prototype` member resolved to the inherited function: `add('toString', () => 'a value')` registered fine and then returned `[Function: toString]`, because `resolvedDependencies.toString !== undefined` short-circuits the cache check.
+
+Guarding each lookup with `Object.hasOwn` would fix it and tax every cache hit; dropping the prototype fixes it and taxes nothing — these maps are built a key at a time and so sit in V8's dictionary mode either way. Measured on the `resolve.bench.ts` rows, the only ones tight enough to judge (rme ±0.15%), it came out slightly _faster_. **Don't reintroduce `{}` for either map**; `reservedNames.test.ts` pins the behaviour.
+
+`export()` is the exception and stays ordinary — its copies are handed to consumers, not used for lookup.
 
 ### Mutation is real; immutability is only in the types
 

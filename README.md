@@ -27,24 +27,6 @@ The container is the only thing that knows they fit together, and it knows their
 > the API, the mistakes that don't compile, how to structure a large container, and how to decode
 > RSDI's error messages. Every example in it is compile- and runtime-verified.
 
-- [Motivation](#motivation)
-- [Features](#features)
-- [Installation](#installation)
-- [Best Use Cases](#best-use-cases)
-- [Architecture](#architecture)
-- [How to use](#how-to-use)
-- [Testing](#testing)
-- [Strict types](#strict-types)
-- [Advanced Usage](#advanced-usage)
-  - [Compose](#compose)
-  - [Extend](#extend)
-  - [Merge](#merge)
-  - [Clone](#clone)
-  - [Naming your container type](#naming-your-container-type)
-  - [API reference](#api-reference)
-  - [Errors](#errors)
-- [Further reading](#further-reading)
-
 ## Motivation
 
 Most DI libraries rely on reflect-metadata and decorators to auto-wire dependencies. But this tightly couples
@@ -63,7 +45,7 @@ Why should your core logic even know it's injectable?
 
 RSDI avoids this by using explicit factory functions — keeping your code clean, framework-agnostic, and easy to test.
 
-[Read more](https://radzserg.medium.com/https-medium-com-radzserg-dependency-injection-in-react-part-2-995e93b3327c)
+[Read more on the reasoning behind this](https://radzserg.medium.com/https-medium-com-radzserg-dependency-injection-in-react-part-2-995e93b3327c)
 
 ## Features
 
@@ -92,32 +74,39 @@ import { DIContainer } from 'rsdi';
 from ESM; a CommonJS project needs Node 20.19+ or 22.12+ to `require()` it, and TypeScript consumers
 need `"module": "nodenext"` in `tsconfig.json` — on `"Node16"` you get `TS1479`.
 
-## Best Use Cases
+## When to use it
 
-Use `RSDI` when your app grows in complexity:
-
-- You break big modules into smaller ones
-- You have deep dependency trees (A → B → C)
-- You want to pass dependencies across layers:
-  - Controllers
-  - Domain managers
-  - Repositories
-  - Infrastructure services
-
-## Architecture
-
-`RSDI` works best when you organize your app as a dependency tree.
-
-A typical backend app might have:
-
-- Controllers (REST or GraphQL)
-- Domain managers (use-cases, handlers)
-- Repositories (DB access)
-- Infrastructure (DB pools, loggers)
+RSDI earns its place once an app has depth: controllers calling domain managers calling repositories
+calling infrastructure, each layer needing whatever the one below it built. Wiring that by hand means
+threading constructor arguments through every layer and rebuilding the whole chain in every test.
 
 ![architecture](https://github.com/radzserg/rsdi/raw/main/docs/RSDI_architecture.jpg 'RSDI Architecture')
 
-Set up your DI container at the app entry point — from there, all other parts can pull in what they need.
+Build the container once at your entry point and let each layer pull what it needs from it.
+
+If your app is a handful of modules deep, you probably do not need a container yet — a few `new`
+calls in `index.ts` are clearer, and RSDI will still be here when they stop being clearer.
+
+## How it compares
+
+Every library below is a good one; they disagree about what you should have to write.
+
+| Library                                                 | Decorators | Runtime deps | How the resolved type is known           |
+| ------------------------------------------------------- | ---------- | ------------ | ---------------------------------------- |
+| **RSDI**                                                | no         | 0            | inferred from the factory's return type  |
+| [typed-inject](https://github.com/nicojs/typed-inject)  | no         | 0            | inferred from the provider chain         |
+| [Awilix](https://github.com/jeffijoe/awilix)            | optional   | 1            | from a `cradle` interface you maintain   |
+| [InversifyJS](https://github.com/inversify/InversifyJS) | yes        | 3            | the type argument you pass to `get<T>()` |
+| [tsyringe](https://github.com/microsoft/tsyringe)       | yes        | 1            | from the class token you resolve         |
+
+_Checked against inversify 8, tsyringe 4, awilix 13, typed-inject 5._
+
+**Pick a decorator-based container instead** if you want auto-wiring — annotate a constructor and
+have the container work out what to pass it. RSDI deliberately cannot do that: it is what forces the
+explicit factory, and the explicit factory is what makes the types exact and the classes framework-free.
+
+**RSDI has little to offer plain JavaScript.** Most of its value is the compile-time half; without
+TypeScript you get a small lazy service locator and none of the safety.
 
 ## How to use
 
@@ -234,7 +223,8 @@ configureRouter(app, diContainer);
 app.listen(8000);
 ```
 
-🔗 Full example: [Express + RSDI](https://radzserg.medium.com/dependency-injection-in-express-application-dd85295694ab)
+That is the whole wiring — components, container, routes, entry point. For a longer walkthrough of
+the same setup, see [Dependency injection in an Express application](https://radzserg.medium.com/dependency-injection-in-express-application-dd85295694ab).
 
 ## Testing
 
@@ -548,3 +538,9 @@ object — see the [AI agent integration guide](./docs/ai-agent-guide.md) if you
   cost and the composition guidance, for contributors.
 - [Reading `pnpm bench:types`](./docs/type-benchmarks.md) — how to interpret the type-cost gate,
   for contributors.
+
+Background articles by the author, hosted on Medium — useful context, but everything you need to use
+RSDI is on this page and in the guides above:
+
+- [Dependency injection in an Express application](https://radzserg.medium.com/dependency-injection-in-express-application-dd85295694ab)
+- [Dependency injection in React](https://radzserg.medium.com/https-medium-com-radzserg-dependency-injection-in-react-part-2-995e93b3327c)

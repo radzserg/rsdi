@@ -5,7 +5,10 @@ export class Bar {
 }
 
 export class Foo {
-  constructor(public name: string, public bar: Bar) {}
+  constructor(
+    public name: string,
+    public bar: Bar,
+  ) {}
 }
 
 // src/__tests__/__sample__/ide_sample.ts

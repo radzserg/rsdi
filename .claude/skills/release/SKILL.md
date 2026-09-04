@@ -217,7 +217,7 @@ that runs `pnpm publish` — nothing publishes from a laptop any more, which is 
 the provenance attestation on npm worth anything: it says a specific workflow run built the tarball
 from a specific commit, and npm checks that against the `repository` field.
 
-So `git push --tags` is the irreversible, outward-facing step. A published npm version cannot be
+So pushing the tag is the irreversible, outward-facing step. A published npm version cannot be
 recalled, only deprecated. Offer the commands and let the user run them; never run them yourself.
 
 ```bash
@@ -225,8 +225,13 @@ git push          # the CHANGELOG and version commits
 ```
 
 ```bash
-git push --tags   # this one publishes
+git push origin v3.4.0   # name the tag — this one publishes
 ```
+
+**Push the one tag by name; never `git push --tags`.** That flag pushes every ref under
+`refs/tags`, so any old local tag that never reached the remote goes up with it, and each `v*` tag
+that lands starts its own publish run. A historical release tag even clears the workflow's
+tag-vs-manifest check, since `package.json` at that commit is the version the tag names.
 
 Push the branch first and let CI go green before the tag. The release workflow re-runs `build`,
 `lint`, `test` and `check:package` itself, so a red commit cannot reach npm — but discovering that

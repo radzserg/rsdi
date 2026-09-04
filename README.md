@@ -70,9 +70,10 @@ yarn add rsdi
 import { DIContainer } from 'rsdi';
 ```
 
-**Requirements.** The package is ESM-only and has zero runtime dependencies. Node 16.9+ to import it
-from ESM; a CommonJS project needs Node 20.19+ or 22.12+ to `require()` it, and TypeScript consumers
-need `"module": "nodenext"` in `tsconfig.json` — on `"Node16"` you get `TS1479`.
+**Requirements.** The package is ESM-only and has zero runtime dependencies. Importing it from ESM
+needs Node 16.9+ and nothing particular in `tsconfig.json`. Requiring it from CommonJS needs Node
+20.19+ or 22.12+, and a TypeScript CommonJS consumer needs `"module": "nodenext"` — a CommonJS file
+on `"Node16"` gets `TS1479`.
 
 ## When to use it
 
@@ -369,10 +370,12 @@ export const addValidators = (container: DIWithPool) => {
 };
 ```
 
-> **Give each module an explicit return type**, as `DIWithPool` and `DIWithValidators` do above. Deriving
-> one module's input from the previous module's output (`(c: ReturnType<typeof previousModule>) => …`) nests
-> every module's type inside the one before it, and past a handful of modules that surfaces as a slow build,
-> `TS2589`, or a container that collapses to `never`. A named type at each boundary flattens it.
+> **`.extend()` chains do not scale indefinitely.** What makes the above convenient — each module's input
+> being the previous module's output — is also what limits it, and naming that output with a type alias over
+> `ReturnType<typeof …>` does not flatten it: every module's type stays nested inside the one before it. Past
+> a handful of modules this shows up as a slow build, `TS2589`, or a container that collapses to `never`.
+> When you get there, move the leaves to [`compose`](#compose) with an explicitly declared seed —
+> `new DIContainer<{ databasePool: Pool }>()` — which is what actually cuts the chain.
 
 ---
 

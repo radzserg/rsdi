@@ -50,6 +50,8 @@ src/
     __benchmarks__/*.bench.ts     # runtime benchmarks (vitest bench, needs `pnpm bench`)
     __helpers__/fakeClasses.ts    # shared test fixtures
     __helpers__/syntheticGraph.ts # generated containers for the benchmarks
+    __sample__/ide_sample.ts      # source of the README's strict-types screenshot; its type
+                                  # errors are the point, so it is excluded from tsconfig and oxlint
 ```
 
 ## Architecture

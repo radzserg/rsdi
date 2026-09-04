@@ -6,6 +6,22 @@
 
 Manage your dependencies with ease and safety. RSDI is a minimal, powerful DI container with full TypeScript support — no decorators or metadata required.
 
+```typescript
+import { DIContainer } from 'rsdi';
+
+const container = new DIContainer()
+  .add('config', () => loadConfig())
+  .add('db', ({ config }) => new Database(config.dsn))
+  .add('userRepository', ({ db }) => new UserRepository(db));
+
+container.userRepository; // UserRepository — inferred, never cast
+container.get('userRepository'); // the same instance: built once, then cached
+container.userRepo; // compile error, not a runtime surprise
+```
+
+Your classes stay plain TypeScript — no decorators, no `reflect-metadata`, no base class to extend.
+The container is the only thing that knows they fit together, and it knows their exact types.
+
 > **Using an AI coding agent?** Point it at
 > **[docs/ai-agent-guide.md](./docs/ai-agent-guide.md)** — a single-page integration guide covering
 > the API, the mistakes that don't compile, how to structure a large container, and how to decode
@@ -17,14 +33,16 @@ Manage your dependencies with ease and safety. RSDI is a minimal, powerful DI co
 - [Best Use Cases](#best-use-cases)
 - [Architecture](#architecture)
 - [How to use](#how-to-use)
+- [Testing](#testing)
 - [Strict types](#strict-types)
 - [Advanced Usage](#advanced-usage)
-  - [Extend](#extend)
   - [Compose](#compose)
+  - [Extend](#extend)
   - [Merge](#merge)
   - [Clone](#clone)
   - [Naming your container type](#naming-your-container-type)
-  - [Other methods](#other-methods)
+  - [API reference](#api-reference)
+  - [Errors](#errors)
 - [Further reading](#further-reading)
 
 ## Motivation
@@ -70,6 +88,10 @@ yarn add rsdi
 import { DIContainer } from 'rsdi';
 ```
 
+**Requirements.** The package is ESM-only and has zero runtime dependencies. Node 16.9+ to import it
+from ESM; a CommonJS project needs Node 20.19+ or 22.12+ to `require()` it, and TypeScript consumers
+need `"module": "nodenext"` in `tsconfig.json` — on `"Node16"` you get `TS1479`.
+
 ## Best Use Cases
 
 Use `RSDI` when your app grows in complexity:
@@ -99,16 +121,24 @@ Set up your DI container at the app entry point — from there, all other parts 
 
 ## How to use
 
-### Basic Example
+### Registering and resolving
+
+Two things are worth knowing before you write your first container.
+
+**The second argument is always a function.** The container stores the factory, not the value, and
+calls it the first time something asks for that dependency:
 
 ```typescript
-const container = new DIContainer()
-  .add('a', () => 'name1')
-  .add('bar', () => new Bar())
-  .add('foo', ({ a, bar }) => new Foo(a, bar));
+const connection = await createConnection();
 
-const { foo } = container; // alternatively  container.get("foo");
+container.add('db', connection); // ✗ compile error — and InvalidResolverError at runtime
+container.add('db', () => connection); // ✓
 ```
+
+**Factories are synchronous.** `add('db', async () => …)` type-checks, but then `container.db` is a
+`Promise` that every consumer has to await. Do the async work up front and register the settled
+value, as above — [Async factory resolvers](./docs/async_factory_resolver.md) has the pattern for an
+application entry point.
 
 ### Real-World Example
 
@@ -206,6 +236,34 @@ app.listen(8000);
 
 🔗 Full example: [Express + RSDI](https://radzserg.medium.com/dependency-injection-in-express-application-dd85295694ab)
 
+## Testing
+
+Swapping a real dependency for a fake is the main reason to reach for a container at all. `clone()`
+gives each test its own container, and `update()` replaces a resolver inside it:
+
+```typescript
+const makeContainer = () =>
+  configureDI()
+    .clone()
+    .update('userRepository', () => new InMemoryUserRepository());
+
+test('registering a user stores it', async () => {
+  const container = makeContainer();
+
+  await container.userRegistrator.register({ email: 'grace@example.com' });
+
+  expect(container.userRepository.saved).toHaveLength(1);
+});
+```
+
+Two things make this pleasant in practice:
+
+- **Nothing is built until it is asked for.** Overriding `userRepository` before the first
+  resolution means the real one — and the database connection behind it — is never constructed.
+  There is no separate "test container" to keep in sync with the real one.
+- **`update()` throws if the name does not exist.** Rename a dependency in `src/` and the tests that
+  stub it fail loudly, instead of quietly wiring the real thing back in.
+
 ## Strict types
 
 `RSDI` uses TypeScript's type system to validate dependency trees at compile time, not runtime.
@@ -223,57 +281,6 @@ A common pattern is to keep a main `diContainer.ts` file that configures the bas
 dependencies to separate files like `dataAccess.ts`, `validators.ts`, or `controllers.ts`.
 
 This modular structure improves testability, readability, and clarity on how dependencies are wired across your app.
-
----
-
-### Extend
-
-You can extend a container with more dependencies using `.extend()`. This is ideal for building up your container in logical steps.
-
-```ts
-// diContainer.ts
-
-export const configureDI = async () => {
-  return (await buildDatabaseDependencies())
-    .extend(addDataAccessDependencies)
-    .extend(addValidators);
-};
-```
-
-```ts
-// addDataAccessDependencies.ts
-
-export type DIWithPool = Awaited<ReturnType<typeof buildDatabaseDependencies>>;
-
-export const addDataAccessDependencies = async () => {
-  const pool = await createDatabasePool();
-  const longRunningPool = await createLongRunningDatabasePool();
-
-  return new DIContainer()
-    .add('databasePool', () => pool)
-    .add('longRunningDatabasePool', () => longRunningPool);
-};
-```
-
-```ts
-// addValidators.ts
-
-export type DIWithValidators = ReturnType<typeof addValidators>;
-
-export const addValidators = (container: DIWithPool) => {
-  return container
-    .add('myValidatorA', ({ a, b, c }) => new MyValidatorA(a, b, c))
-    .add('myValidatorB', ({ a, b, c }) => new MyValidatorB(a, b, c));
-};
-```
-
-> **On long chains, annotate the return type.** Deriving each module's input from the previous module's
-> output (`(c: ReturnType<typeof previousModule>) => …`) is tempting, but it keeps every module's type nested
-> inside the one before it, so instantiation depth accumulates down the whole chain and your build becomes
-> coupled to RSDI's internals. Past a handful of modules this shows up as `TS2589` or a container that
-> collapses to `never`. Give each module an explicit named return type — `(c: DIWithPool): DIWithValidators
-=> …` — so every boundary flattens the accumulated type. A [`SealedContainer`](#naming-your-container-type)
-> boundary every few modules gets most of the same benefit.
 
 ---
 
@@ -321,14 +328,60 @@ TypeScript 7 on this repo's benchmark (1600 dependencies, no factory arguments):
 That is ~22× fewer instantiations and ~100× faster. If your editor feels sluggish in the file that wires your
 container, this is usually why.
 
-**Splitting alone is not the win — isolation is.** A module is cheap when it is checked against only the
-dependencies it declares it consumes. In a production app with ~340 dependencies, splitting a flat chain into
-`.extend()` modules that thread the whole accumulated container measured no better than the flat chain
-(3.41M → 3.48M instantiations); giving each leaf an explicit consumed-type seed and combining with `compose`
-made those leaves **~13× cheaper to check** (924.8 ms → 68.7 ms). Declare the seed as an explicit interface —
-`Pick<FullContainer, 'a' | 'b'>` forces TypeScript to normalise the entire accumulated map and couples the
-module to the whole graph. See the
-[AI agent integration guide](./docs/ai-agent-guide.md) for the full pattern.
+**Splitting alone is not the win — isolation is.** A module is only cheap if it is checked against the
+dependencies it declares it consumes, as `services` does above. Threading the whole accumulated container
+through each module measures no better than one flat chain. Write the seed as an explicit interface, too:
+`Pick<FullContainer, 'a' | 'b'>` makes TypeScript normalise the entire map and couples the module back to the
+whole graph. The [AI agent integration guide](./docs/ai-agent-guide.md) has the full pattern, and
+[type-performance-plan.md](./docs/type-performance-plan.md) the measurements behind it.
+
+---
+
+### Extend
+
+You can extend a container with more dependencies using `.extend()`. This is ideal for building up your container in logical steps.
+
+```ts
+// diContainer.ts
+
+export const configureDI = async () => {
+  return (await buildDatabaseDependencies())
+    .extend(addDataAccessDependencies)
+    .extend(addValidators);
+};
+```
+
+```ts
+// addDataAccessDependencies.ts
+
+export type DIWithPool = Awaited<ReturnType<typeof buildDatabaseDependencies>>;
+
+export const addDataAccessDependencies = async () => {
+  const pool = await createDatabasePool();
+  const longRunningPool = await createLongRunningDatabasePool();
+
+  return new DIContainer()
+    .add('databasePool', () => pool)
+    .add('longRunningDatabasePool', () => longRunningPool);
+};
+```
+
+```ts
+// addValidators.ts
+
+export type DIWithValidators = ReturnType<typeof addValidators>;
+
+export const addValidators = (container: DIWithPool) => {
+  return container
+    .add('myValidatorA', ({ a, b, c }) => new MyValidatorA(a, b, c))
+    .add('myValidatorB', ({ a, b, c }) => new MyValidatorB(a, b, c));
+};
+```
+
+> **Give each module an explicit return type**, as `DIWithPool` and `DIWithValidators` do above. Deriving
+> one module's input from the previous module's output (`(c: ReturnType<typeof previousModule>) => …`) nests
+> every module's type inside the one before it, and past a handful of modules that surfaces as a slow build,
+> `TS2589`, or a container that collapses to `never`. A named type at each boundary flattens it.
 
 ---
 
@@ -419,20 +472,24 @@ for it when your error messages get unreadable, not to speed up compilation — 
 
 ---
 
-### Other methods
+### API reference
 
-- **`.get(name)`** — resolve a dependency by name. Equivalent to property access (`container.foo`). Throws
-  `DependencyIsMissingError` if the name isn't registered, and `CircularDependencyError` if resolving it leads back to
-  itself — the message names the path (`a -> b -> a`) so the cycle is easy to find. A factory that destructures a name
-  the container doesn't have throws the same `DependencyIsMissingError`, naming the factory that asked, rather than
-  receiving `undefined`.
-- **`.has(name)`** — returns `true` if a resolver is registered under `name` (whether or not it has been resolved yet).
-- **`.hasResolvedDependency(name)`** — returns `true` only if the dependency has already been resolved and cached.
-- **`.update(name, resolver)`** — replace an existing dependency's resolver (see [How to use](#how-to-use)). Unlike
-  `.add()`, it expects the name to already exist.
-- **`.export()`** — returns `{ resolvers, resolvedDependencies }`, both copies, typed to the container's names.
-  `resolvedDependencies` holds only what has been resolved so far. Useful for inspecting a container in a test or a
-  debugger; writing into the copies does not affect the container.
+| Call                           | Returns                               | Notes                                                       |
+| ------------------------------ | ------------------------------------- | ----------------------------------------------------------- |
+| `.add(name, factory)`          | container + that name                 | Throws if `name` already exists                             |
+| `.get(name)`                   | the dependency                        | Same as property access; resolved once, then cached         |
+| `.update(name, factory)`       | container, name retyped               | Throws if `name` does **not** exist; drops the cached value |
+| `.has(name)`                   | `boolean`                             | Is a resolver registered?                                   |
+| `.hasResolvedDependency(name)` | `boolean`                             | Has it been _resolved_ yet?                                 |
+| `DIContainer.compose(...cs)`   | a new container                       | Static; inputs untouched — see [Compose](#compose)          |
+| `.merge(...containers)`        | the same container, mutated           | Later containers win — see [Merge](#merge)                  |
+| `.clone()`                     | a new, independent container          | Copies resolvers and resolved values — see [Clone](#clone)  |
+| `.extend(fn)`                  | whatever `fn` returns                 | For layered modules — see [Extend](#extend)                 |
+| `.export()`                    | `{ resolvers, resolvedDependencies }` | Copies, for inspection in a test or debugger                |
+
+A factory that destructures a name the container does not have throws `DependencyIsMissingError` naming
+the factory that asked, rather than handing it `undefined` — so a module composed without one of its
+dependencies fails at the first resolution instead of building a service around a hole.
 
 ```typescript
 const container = new DIContainer().add('bar', () => new Bar());
@@ -471,14 +528,9 @@ try {
 
 Each sets `error.name` to its class, so logs read `DependencyIsMissingError: …` rather than `Error: …`.
 
-The object a factory receives is read-only. Assigning to it, deleting from it, defining a property on it, freezing or
-sealing it, or changing its prototype throws a `TypeError` that names the operation and the factory that was running. That includes registering through it: call `add`,
-`update` and `merge` on the container, not on the `deps` argument.
-
-Locking the container itself is honoured with its platform meaning. After `Object.preventExtensions` or `Object.seal`,
-no new dependency can be added but existing ones can still be replaced with `update` or `merge`; after `Object.freeze`,
-replacements are refused too. Resolution always works, since it only fills the cache. A `clone()` is a fresh, unlocked
-container.
+The `deps` object a factory receives is read-only: register through the container, not through the
+argument. `Object.freeze`, `seal` and `preventExtensions` on a container behave the way they do on any
+object — see the [AI agent integration guide](./docs/ai-agent-guide.md) if you need the exact rules.
 
 ---
 

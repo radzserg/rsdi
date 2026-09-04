@@ -38,7 +38,13 @@ const HARNESS_PATHS = [
   'scripts/bench-types.mjs',
   'vitest.config.ts',
   'src/__tests__/__benchmarks__',
-  'src/__tests__/__helpers__',
+  // The two helpers the benchmarks import, named individually rather than the directory that holds
+  // them. Overlaying all of `__helpers__` also drags across test-only helpers, and one of those —
+  // `reservedNames.ts` — imports a type from `src/types.ts`. Laid over a baseline that predates the
+  // type, `tsc` fails on a file the benchmarks never load, and the whole comparison dies before it
+  // measures anything. A helper the benchmarks need must be added here explicitly.
+  'src/__tests__/__helpers__/fakeClasses.ts',
+  'src/__tests__/__helpers__/syntheticGraph.ts',
 ];
 
 // A runtime row has to move more than this before it is worth mentioning. Set from the observed

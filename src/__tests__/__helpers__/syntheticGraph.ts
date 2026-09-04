@@ -79,5 +79,21 @@ export const resolveAll = (container: SyntheticContainer, size: number): void =>
   }
 };
 
+/** Resolves a linked graph from its root, keeping the whole dependency path in flight. */
+export const resolveRoot = (container: SyntheticContainer, size: number): void => {
+  sink.value = container.get(`k${size - 1}`);
+};
+
+/** Replaces every resolver in a built graph without rebuilding the container. */
+export const updateAll = (container: SyntheticContainer, size: number): void => {
+  let updated = container;
+
+  for (let index = 0; index < size; index++) {
+    updated = updated.update(`k${index}` as never, () => ({ v: -index })) as SyntheticContainer;
+  }
+
+  sink.value = updated;
+};
+
 export const keysOf = (size: number): string[] =>
   Array.from({ length: size }, (_, index) => `k${index}`);

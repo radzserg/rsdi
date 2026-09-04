@@ -1,0 +1,120 @@
+name: Release
+
+on:
+  # The tag is the trigger, because the tag is already this repo's release marker:
+  # `/release` ends with `pnpm version`, which writes `v<x.y.z>` and hands the push
+  # back to the user. Pushing that tag is therefore the irreversible step — nothing
+  # here runs until it lands, and a published npm version cannot be recalled.
+  push:
+    tags: ['v*']
+  # …which would make the first run of this workflow a real publish. Dispatching it
+  # from a branch instead does everything except the upload: same checks, same auth,
+  # `pnpm publish --dry-run`. Use it after editing this file.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Naming an environment lets a human approval be armed later without touching
+    # this file: add required reviewers to `npm` in the repo settings and every
+    # publish waits for one. GitHub creates it unprotected on first use, so this
+    # is inert until somebody arms it.
+    environment: npm
+    permissions:
+      # `id-token: write` is what mints the provenance attestation — `--provenance`
+      # fails without it. `contents: write` is for the GitHub Release below.
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # `pnpm version` keeps the tag and the manifest in step; a hand-written tag is
+      # what this catches. Publishing 3.4.0 from a tag that says v3.4.1 leaves a
+      # version nobody can trace back to a commit, and npm will not let it be
+      # replaced afterwards.
+      - name: Verify the tag matches package.json
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::tag $GITHUB_REF_NAME disagrees with package.json version $PKG"
+            exit 1
+          fi
+          echo "publishing $PKG"
+
+      # The same gate `ci.yml` applies, re-run here on purpose: a tag can point at a
+      # commit CI never saw, and this is the one job whose output cannot be withdrawn.
+      # Four extra minutes against an unrecallable publish.
+      - name: Build
+        run: pnpm build
+
+      - name: Lint with oxfmt and oxlint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Check packed package and published types
+        run: pnpm check:package
+
+      # `--no-git-checks` because a tag checkout is a detached HEAD, which pnpm
+      # otherwise refuses to publish from. `--provenance` records which workflow,
+      # commit and runner built the tarball, and npm verifies that against the
+      # `repository` field — so it is the manifest, not a claim in the release notes.
+      - name: Publish to npm with provenance
+        if: github.event_name == 'push'
+        run: pnpm publish --provenance --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # No `--provenance`: there is no tag to attest to, and the point of the dry run
+      # is to exercise packing and auth without uploading anything.
+      - name: Dry-run publish (nothing is uploaded)
+        if: github.event_name == 'workflow_dispatch'
+        run: pnpm publish --access public --no-git-checks --dry-run
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # The CHANGELOG entry the release skill already wrote is the release note;
+      # rewriting it here would just be a second, drifting copy.
+      - name: Extract the CHANGELOG entry
+        if: github.event_name == 'push'
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v want="# $VERSION" '$0 == want { found = 1; next } found && /^# / { exit } found' \
+            CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "::warning::no CHANGELOG section for $VERSION; publishing bare release notes"
+            echo "Released $GITHUB_REF_NAME." > release-notes.md
+          fi
+          cat release-notes.md
+
+      # Last, deliberately: npm refuses to republish a version, so a failure here must
+      # not be able to strand a publish that already succeeded.
+      - name: Create the GitHub Release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file release-notes.md

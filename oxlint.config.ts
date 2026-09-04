@@ -8,7 +8,10 @@ export default defineConfig({
   },
   extends: [config],
   globals: {},
-  ignorePatterns: ['**/*.d.ts', '**/node_modules/**', '**/dist/**'],
+  // `__sample__` holds the fixture behind the strict-types screenshot in the README. Its type
+  // errors are the content — they are what the screenshot shows — so it is excluded here and
+  // in `tsconfig.json` rather than fixed. Keep the two lists in step.
+  ignorePatterns: ['**/*.d.ts', '**/node_modules/**', '**/dist/**', '**/__sample__/**'],
   overrides: [
     {
       files: ['**/*.ts'],

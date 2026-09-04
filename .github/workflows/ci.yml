@@ -51,7 +51,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [22, 24, 26]
+        # The low entry is the exact `devEngines` floor, not `22`: a major-only entry floats to
+        # the newest 22.x, which tests above the floor and hides a tool that needs more than
+        # the repo admits — the same trap the min-node job spells out below. Keep it in step
+        # with `devEngines.runtime` in package.json; the high entry is `.nvmrc`.
+        node: ['22.22.1', 26]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -141,14 +145,52 @@ jobs:
           echo "engines.node floor resolves to Node $MIN"
           docker run --rm -v "$PWD":/app -w /app "node:$MIN-alpine" node scripts/smoke-min-node.mjs
 
+  # `exports` condition order, the deep-import block and `files` are consumer-facing
+  # contracts that nothing in `src/` can see: each one is correct in this checkout and
+  # wrong only in the tarball, so no test reaches them. publint packs the package and
+  # reads it the way a registry consumer would; attw resolves the published types under
+  # each module mode, which is what actually pins `types` ahead of `default`.
+  # `cjs-resolves-to-esm` is ignored because ESM-only is a deliberate choice, not a defect.
+  package:
+    name: Validate published package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Check packed package and published types
+        run: pnpm check:package
+
   # Single stable status check to require in branch protection, so the matrix
   # can change without anyone having to update the repo settings.
   ci:
     name: CI
     if: always()
-    needs: [lint, test, types-perf, min-node]
+    needs: [lint, test, types-perf, min-node, package]
     runs-on: ubuntu-latest
     steps:
       - name: Verify all jobs succeeded
-        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        # `skipped` counts as a failure too: a required job that never ran must not
+        # report success to branch protection.
+        if: >-
+          contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+          || contains(needs.*.result, 'skipped')
         run: exit 1

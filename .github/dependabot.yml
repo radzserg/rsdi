@@ -1,0 +1,17 @@
+# Actions only. npm is deliberately excluded: this repo pins vitest exactly because
+# `--typecheck` is experimental, re-baselines the `bench:types` budgets in the same
+# commit as a TypeScript bump, and installs under a pnpm `minimumReleaseAge` policy
+# that rejects very fresh versions — so automated dependency PRs would be noise to
+# close rather than changes to merge. Bump devDependencies by hand.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: 'ci'
+    groups:
+      actions:
+        patterns:
+          - '*'

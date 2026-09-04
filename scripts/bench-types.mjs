@@ -8,7 +8,7 @@
 // time, with nothing in the normal test run to notice. `docs/type-performance-plan.md`
 // has the measurements.
 //
-// It also guards two failure modes that are *silent* — they produce no error at
+// It also guards failure modes that are *silent* — they produce no error at
 // the size the type tests use, and only degrade once a real app hits them:
 //
 //   - A recursive tuple fold in `MergedResolvers` (instead of the current
@@ -16,9 +16,11 @@
 //     collapses inference to `never`.
 //   - A `Simplify`-style flatten on the accumulator does the same at ~50 chained
 //     `add` calls.
+//   - An eager key-exclusion rewrite on `update` stays correct at small sizes but
+//     multiplies the checker work on a real, already-large container.
 //
-// Both look fine with three dependencies. The `compose-scale` scenario below uses
-// enough containers to reach them.
+// All look fine with three dependencies. The scale and seeded scenarios below use
+// enough containers and keys to expose them.
 //
 // Every fixture asserts exact types as well as staying under a budget: a change
 // that degraded inference to `any` would be *faster*, so a budget alone would wave
@@ -47,6 +49,7 @@ const BUDGETS = {
   'compose-scale': 45_000,
   'module-seeded-64': 48_000,
   'update-chain-80': 18_000,
+  'update-changing-40': 30_000,
 };
 
 // `[any] extends [T]` and `[T] extends [any]` are both true, so a plain bidirectional-extends
@@ -142,6 +145,32 @@ const updateChainFixture = (updates, seed) => {
   return s;
 };
 
+/**
+ * Type-changing updates cannot take the same-map shortcut: every link has to rewrite one key.
+ * This guards the homomorphic rewrite itself. An `Exclude<keyof CR, N>` implementation eagerly
+ * enumerates the other 299 keys at every link and costs several times more; more eager mapped
+ * forms eventually trip TS2589 while the shipped form stays deferred.
+ */
+const typeChangingUpdateFixture = (updates, seed) => {
+  let s = `import { DIContainer } from '../../src/DIContainer.js';\n${EXACT}\n`;
+  s += `type Seed = {\n`;
+  for (let i = 0; i < seed; i++) {
+    s += `  s${i}: { v: number; name: string };\n`;
+  }
+
+  s += `};\n\nconst container = new DIContainer<Seed>()\n`;
+  for (let i = 0; i < updates; i++) {
+    s +=
+      `  .update('s${i}', ({ s${(i + 1) % seed}, s${seed - 1} }) => ` +
+      `({ v: s${(i + 1) % seed}.v + s${seed - 1}.v, name: 'u${i}', updated: true as const }))\n`;
+  }
+
+  s += `;\n`;
+  s += `export const exactChanged: Exact<typeof container.s${updates - 1}, { v: number; name: string; updated: true }> = true;\n`;
+  s += `export const exactUntouched: Exact<typeof container.s${seed - 1}, { v: number; name: string }> = true;\n`;
+  return s;
+};
+
 /** The recommended layout: independent modules combined with `compose`. */
 const composeFixture = (n, m) => {
   let s = `import { DIContainer } from '../../src/DIContainer.js';\n${EXACT}\n`;
@@ -206,6 +235,11 @@ const SCENARIOS = [
     build: () => updateChainFixture(80, 300),
     name: 'update-chain-80',
     what: '80 chained update() overrides on a 300-key container (test-harness shape)',
+  },
+  {
+    build: () => typeChangingUpdateFixture(40, 300),
+    name: 'update-changing-40',
+    what: '40 type-changing update() calls on a 300-key container (rewrite path)',
   },
 ];
 

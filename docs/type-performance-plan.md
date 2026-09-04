@@ -300,15 +300,17 @@ version. `SealedContainer` and `ResolversOf` are now exported from the package e
 
 `scripts/bench-types.mjs`, wired into CI as the `types-perf` job and runnable locally with
 `pnpm bench:types` — see [type-benchmarks.md](./type-benchmarks.md) for how to read its report.
-Three scenarios, each gated on a type-instantiation budget (~25% headroom over the measured value
+Six scenarios, each gated on a type-instantiation budget (~25% headroom over the measured value
 on TypeScript 7.0.2):
 
-| Scenario           | What it guards                                           | Measured | Budget |
-| ------------------ | -------------------------------------------------------- | -------: | -----: |
-| `chain-200`        | per-`add` constant factor on a flat chain                |     268K |   330K |
-| `compose-400`      | the `compose` path, 400 deps as 20 modules               |      97K |   130K |
-| `compose-scale`    | 60 composed containers — depth-limiter guard             |      35K |    45K |
-| `module-seeded-64` | 64 `add` calls on a 300-key seed — the real-module shape |      38K |    48K |
+| Scenario             | What it guards                                              | Measured | Budget |
+| -------------------- | ----------------------------------------------------------- | -------: | -----: |
+| `chain-200`          | per-`add` constant factor on a flat chain                   |     265K |   330K |
+| `compose-400`        | the `compose` path, 400 deps as 20 modules                  |      88K |   130K |
+| `compose-scale`      | 60 composed containers — depth-limiter guard                |      28K |    45K |
+| `module-seeded-64`   | 64 `add` calls on a 300-key seed — the real-module shape    |      35K |    48K |
+| `update-chain-80`    | 80 same-type overrides on a 300-key seed — passthrough path |      10K |    18K |
+| `update-changing-40` | 40 type-changing overrides on a 300-key seed — rewrite path |      23K |    30K |
 
 `module-seeded-64` was added after the field report. The seed is the load-bearing part: starting from
 an _empty_ container understates per-`add` cost, so an eager-mapped-type regression that breaks real
@@ -316,13 +318,14 @@ code at 64 chained calls only surfaces around 200 from empty. Both scenarios cat
 this one catches it at the size real modules reach.
 
 **Why this is not redundant with the type tests.** The `*.test-d.ts` assertions run at three or
-four dependencies. Both known failure modes are invisible at that size — verified by
-reintroducing each one and running the full suite:
+four dependencies. The known performance failure modes are invisible at that size — verified by
+reintroducing them and running the full suite:
 
-| Reintroduced regression                     | `pnpm test`             | `pnpm bench:types`          |
-| ------------------------------------------- | ----------------------- | --------------------------- |
-| recursive tuple fold in `MergedResolvers`   | 82 passed, no errors ✅ | FAILED — TS2589 + `never` ✗ |
-| `Simplify` flatten on the `add` accumulator | 82 passed, no errors ✅ | FAILED — 507× TS2589 ✗      |
+| Reintroduced regression                     | `pnpm test`          | `pnpm bench:types`          |
+| ------------------------------------------- | -------------------- | --------------------------- |
+| recursive tuple fold in `MergedResolvers`   | passed, no errors ✅ | FAILED — TS2589 + `never` ✗ |
+| `Simplify` flatten on the `add` accumulator | passed, no errors ✅ | FAILED — 507× TS2589 ✗      |
+| eager `Exclude` rewrite on `update`         | passed, no errors ✅ | FAILED — 67K / 30K ✗        |
 
 Every fixture also asserts exact types via a compile-time `Exact<>` check, so the gate cannot be
 satisfied by making inference _worse_: a change degrading everything to `any` would lower the

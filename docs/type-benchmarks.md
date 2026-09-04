@@ -30,18 +30,24 @@ Above 100% it fails.
 
 ### What each scenario guards
 
-| Scenario           | Catches                                                                                         |
-| ------------------ | ----------------------------------------------------------------------------------------------- |
-| `chain-200`        | the per-`add` cost — what every user pays on every dependency                                   |
-| `compose-400`      | the `compose` path specifically                                                                 |
-| `compose-scale`    | the depth limiter at 60 containers — the trap that produces no error when small                 |
-| `module-seeded-64` | one domain module layered on a large container — the shape that breaks before a flat chain does |
-| `update-chain-80`  | a long `update()` override chain off a built container — the shape test harnesses reach         |
+| Scenario             | Catches                                                                                                    |
+| -------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `chain-200`          | the per-`add` cost — what every user pays on every dependency                                              |
+| `compose-400`        | the `compose` path specifically                                                                            |
+| `compose-scale`      | the depth limiter at 60 containers — the trap that produces no error when small                            |
+| `module-seeded-64`   | one domain module layered on a large container — the shape that breaks before a flat chain does            |
+| `update-chain-80`    | a long `update()` override chain off a built container — the shape test harnesses reach                    |
+| `update-changing-40` | type-changing `update()` calls — guards the homomorphic one-key rewrite rather than its same-type shortcut |
 
-The last two are deliberately the _seeded_ shapes. Starting from an empty container understates
+The last three are deliberately the _seeded_ shapes. Starting from an empty container understates
 what an `add` or an `update` costs, because each candidate return type is checked against a map
-that is still small. Both scenarios were added after field reports from a ~340-dependency
-application hit `TS2589` on shapes the empty-start scenarios waved through.
+that is still small. The seeded coverage follows field reports from a ~340-dependency application
+that hit `TS2589` on shapes the empty-start scenarios waved through.
+
+The two update scenarios exercise different branches. `update-chain-80` protects the same-type
+passthrough used by test doubles; `update-changing-40` forces the mapped rewrite used when a
+replacement narrows or otherwise changes a dependency's type. Making one branch cheaper cannot
+hide a regression in the other.
 
 ---
 
@@ -70,11 +76,11 @@ something cheaper could do.
 ```
 
 `TS2589` means a type started recursing per dependency; `… does not exist on type 'never'` means
-inference collapsed entirely. **Never raise a budget to silence this.** Both known causes are
-recorded in [type-performance-plan.md](./type-performance-plan.md#what-does-not-help-ruled-out--dont-re-attempt):
-a recursive tuple fold in `MergedResolvers`, and a `Simplify`-style flatten on the `add`
-accumulator. Both look perfectly fine at three dependencies — that is exactly why this gate exists,
-and both pass the full 82-test suite untouched.
+inference collapsed entirely. **Never raise a budget to silence this.** Known causes are recorded in
+[type-performance-plan.md](./type-performance-plan.md#what-does-not-help-ruled-out--dont-re-attempt):
+a recursive tuple fold in `MergedResolvers`, a `Simplify`-style flatten on the `add` accumulator,
+and an eager key-exclusion rewrite on `update`. All look perfectly fine at three dependencies —
+that is exactly why this gate exists, and all pass the ordinary type assertions untouched.
 
 ---
 

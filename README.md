@@ -134,7 +134,10 @@ application entry point.
 ```typescript
 // sample web application components
 
-export function UserController(userRegistrator: UserRegistrator, userRepository: UserRepository) {
+export function buildUserController(
+  userRegistrator: UserRegistrator,
+  userRepository: UserRepository,
+) {
   return {
     async create(req: Request, res: Response) {
       const user = await userRegistrator.register(req.body);
@@ -156,7 +159,7 @@ export class UserRegistrator {
   }
 }
 
-export function MyDbProviderUserRepository(db: DbConnection): UserRepository {
+export function buildDbUserRepository(db: DbConnection): UserRepository {
   return {
     async saveNewUser(userAccountData: SignupData): Promise<void> {
       await db('insert').insert(userAccountData);
@@ -169,6 +172,11 @@ export function buildDbConnection(): DbConnection {
 }
 ```
 
+RSDI does not care what a dependency is — a class instance, an object returned by a factory
+function, or a plain value. The example mixes them on purpose: classes where there is domain
+behavior to test, factory functions where an interface has swappable implementations. PascalCase is
+reserved for classes here, so anything named `buildX` is a plain call rather than a `new`.
+
 Now let's configure the dependency injection container. Dependencies are only created when they're actually needed.
 Your `configureDI` function will declare and connect everything in one place.
 
@@ -180,10 +188,10 @@ export type AppDIContainer = ReturnType<typeof configureDI>;
 export default function configureDI() {
   return new DIContainer()
     .add('dbConnection', () => buildDbConnection())
-    .add('userRepository', ({ dbConnection }) => MyDbProviderUserRepository(dbConnection))
+    .add('userRepository', ({ dbConnection }) => buildDbUserRepository(dbConnection))
     .add('userRegistrator', ({ userRepository }) => new UserRegistrator(userRepository))
     .add('userController', ({ userRepository, userRegistrator }) =>
-      UserController(userRegistrator, userRepository),
+      buildUserController(userRegistrator, userRepository),
     );
 }
 ```
@@ -192,14 +200,7 @@ When a resolver runs for the first time, its result is cached and reused for fut
 
 By default, you should always use `.add()` to register dependencies — it throws if the name already exists, which
 prevents accidental overwrites and keeps your setup predictable. If you need to replace an existing dependency —
-usually in tests — use `.update()` instead:
-
-```typescript
-const container = configureDI();
-
-// override a real dependency with a stub in tests
-container.update('userRepository', () => new InMemoryUserRepository());
-```
+usually in tests — use `.update()` instead. [Testing](#testing) covers that.
 
 Let's map our web application routes to configured controllers
 

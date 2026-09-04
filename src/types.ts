@@ -8,8 +8,41 @@ export type ContainerLike<R extends ResolvedDependencies = ResolvedDependencies>
   | DIContainer<R>
   | IDIContainer<R>;
 
+/**
+ * What `export()` returns: copies of the container's resolver map and of the values it has
+ * resolved so far. `resolvedDependencies` is partial because resolution is lazy — a name is
+ * present only once something has asked for it.
+ *
+ * The factories are typed through `SnapshotFactory`, not `Factory`, and the difference is
+ * load-bearing. This type sits in a *return* position on `IDIContainer`, so a plain
+ * `(resolvers: CR) => V` there puts the resolver map in a contravariant slot. Assigning
+ * `IDIContainer<{ b: Date }>` to `ContainerLike` — which every `merge` and `compose` argument
+ * does — then needs `Record<string, any>` assignable to `{ b: Date }`, and it is not: with `Factory`
+ * here, every widened container stopped being a `ContainerLike` and every `merge`/`compose` call
+ * site broke. The method-shorthand indirection makes the parameter bivariant, as method parameters
+ * always are, so the check passes in both directions and the hover still shows the real parameter
+ * type. The type tests pin both the shape and the assignability.
+ */
+export type ContainerSnapshot<ContainerResolvers extends ResolvedDependencies> = {
+  resolvedDependencies: Partial<ContainerResolvers>;
+  resolvers: {
+    [K in keyof ContainerResolvers]?: SnapshotFactory<ContainerResolvers, ContainerResolvers[K]>;
+  };
+};
+
 export type DenyInputKeys<T, Disallowed> = T & (T extends Disallowed ? never : T);
 
+/**
+ * A dependency's factory. It receives the container's dependencies — the container itself behind a
+ * proxy whose `set`, `deleteProperty` and `defineProperty` traps throw, so the object is read-only
+ * at runtime.
+ *
+ * Not `Readonly<ContainerResolvers>` here, although that is the honest type. Measured with
+ * `bench-types`, the mapped type costs a fresh instantiation over the whole resolver map at every
+ * `add` link: the flat 200-chain scenario went from 81% to 94% of its budget and the module-seeded
+ * one from 77% to 90%, for a compile error on a write the runtime already refuses with a clear
+ * message. Type-check cost is what this library sells, so the runtime check stands alone.
+ */
 export type Factory<
   ContainerResolvers extends ResolvedDependencies,
   Value = ResolvedDependencyValue,
@@ -18,10 +51,11 @@ export type Factory<
 export type IDIContainer<ContainerResolvers extends ResolvedDependencies = {}> =
   ContainerResolvers & {
     add: <N extends string, V>(
-      name: StringLiteral<DenyInputKeys<N, keyof ContainerResolvers>>,
+      name: StringLiteral<DenyInputKeys<N, keyof ContainerResolvers | ReservedName>>,
       resolver: Factory<ContainerResolvers, V>,
     ) => IDIContainer<ContainerResolvers & { [n in N]: V }>;
     clone: () => IDIContainer<ContainerResolvers>;
+    export: () => ContainerSnapshot<ContainerResolvers>;
     extend: <E extends (container: IDIContainer<ContainerResolvers>) => IDIContainer>(
       f: E,
     ) => ReturnType<E>;
@@ -51,12 +85,33 @@ export type MergedResolvers<T extends readonly unknown[]> =
       : {}
     : {};
 
+/**
+ * Every name a dependency cannot take, so that `add` rejects it at compile time and not only at
+ * runtime. The runtime Set is derived from `DIContainer.prototype` (`containerMembers` in
+ * `DIContainer.ts`); this is its type-level twin, and it is derived too: `keyof DIContainer<{}>`
+ * is exactly the public methods. The non-public members are symbol-keyed, so a string can never
+ * collide with them and they need no reserving on either side.
+ *
+ * `constructor` is on every prototype, so the runtime Set always holds it, but `keyof` of an
+ * instance type never lists it. Reserved on purpose: an own `constructor` getter would shadow the
+ * inherited one, and anything reading `instance.constructor` for a class name would resolve a
+ * dependency as a side effect. `reservedNames.test.ts` asserts the two sides are equal.
+ */
+export type ReservedName = 'constructor' | keyof DIContainer<{}>;
+
 export type ResolvedDependencies = {
   [k: string]: ResolvedDependencyValue;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ResolvedDependencyValue = any;
+
+/**
+ * The container's cache of resolved values, keyed like the resolver map. Optional throughout:
+ * resolution is lazy, so a name is present only once something has asked for it.
+ */
+export type ResolvedValues<ContainerResolvers extends ResolvedDependencies> = {
+  [name in keyof ContainerResolvers]?: ResolvedDependencyValue;
+};
 
 export type Resolvers<CR extends ResolvedDependencies> = {
   [k in keyof CR]?: Factory<CR>;
@@ -101,6 +156,10 @@ export type RewrittenResolvers<CR extends ResolvedDependencies, N extends keyof 
  * The dependency types themselves are unchanged.
  */
 export type SealedContainer<C> = IDIContainer<ResolversOf<C>>;
+
+export type SnapshotFactory<ContainerResolvers extends ResolvedDependencies, Value> = {
+  bivarianceHack(resolvers: ContainerResolvers): Value;
+}['bivarianceHack'];
 
 export type StringLiteral<T> = T extends string ? (string extends T ? never : T) : never;
 

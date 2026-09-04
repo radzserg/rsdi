@@ -1,4 +1,5 @@
 import { DIContainer } from '../DIContainer.js';
+import { INTERNAL_STATE } from '../internalState.js';
 import { describe, expect, test } from 'vitest';
 
 /**
@@ -7,11 +8,11 @@ import { describe, expect, test } from 'vitest';
  */
 class MapProbe extends DIContainer {
   public get resolvedMap(): unknown {
-    return this.resolvedDependencies;
+    return this[INTERNAL_STATE].resolvedDependencies;
   }
 
   public get resolverMap(): unknown {
-    return this.resolvers;
+    return this[INTERNAL_STATE].resolvers;
   }
 }
 
@@ -22,7 +23,7 @@ class MapProbe extends DIContainer {
  *
  * Wall clock cannot guard that in CI: it does not transfer between machines, which is why
  * `pnpm bench` has no CI job and `bench:types` gates on instantiation counts instead. Map identity
- * states the same invariant deterministically — a `{ ...this.resolvers }` reintroduced on any of
+ * states the same invariant deterministically — a `{ ...resolvers }` reintroduced on any of
  * these paths fails here rather than silently handing every consumer quadratic wiring back.
  */
 describe('the container writes into its maps in place', () => {
@@ -74,18 +75,15 @@ describe('the container writes into its maps in place', () => {
 });
 
 /**
- * The flip side of those in-place writes: before them, `add` replaced `this.resolvers` outright,
+ * The flip side of those in-place writes: before them, `add` replaced the resolver map outright,
  * so whatever `export()` handed out was a de-facto snapshot that no later call could reach. Now
  * the live map would keep changing under the caller — and let the caller change the container —
  * so `export()` copies. Nothing inside the class goes through it; `clone` and `merge` read the
  * protected maps directly, so no internal path pays for the copy.
  */
 describe('export hands out copies, not the live maps', () => {
-  // `export` is declared on the class but not on `IDIContainer`, which is what `add` returns — so
-  // these hold the instance reference and use the widened one only to read values off it.
   test('a later registration is not visible through an earlier export', () => {
-    const container = new DIContainer();
-    container.add('a', () => 'a');
+    const container = new DIContainer().add('a', () => 'a');
     const exported = container.export();
 
     container.add('b', () => 'b');
@@ -95,23 +93,22 @@ describe('export hands out copies, not the live maps', () => {
   });
 
   test('writing into an exported map does not reach the container', () => {
-    const container = new DIContainer();
-    const typed = container.add('a', () => 'a');
+    const container = new DIContainer().add('a', () => 'a');
     const exported = container.export();
 
-    exported.resolvers.injected = () => 'injected';
+    // The snapshot is typed to the container's names, so the tampering has to go around the types.
+    (exported.resolvers as Record<string, unknown>).injected = () => 'injected';
     exported.resolvedDependencies.a = 'tampered';
 
     expect(container.has('injected')).toBe(false);
-    expect(typed.a).toEqual('a');
+    expect(container.a).toEqual('a');
   });
 
   test('a later resolution is not visible through an earlier export', () => {
-    const container = new DIContainer();
-    const typed = container.add('a', () => 'a');
+    const container = new DIContainer().add('a', () => 'a');
     const exported = container.export();
 
-    expect(typed.a).toEqual('a');
+    expect(container.a).toEqual('a');
 
     expect('a' in exported.resolvedDependencies).toBe(false);
     expect(container.hasResolvedDependency('a')).toBe(true);

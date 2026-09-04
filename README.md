@@ -342,6 +342,8 @@ the container it is called on.
   replaced resolver had already produced is evicted). Types intersect, so a key defined twice with
   different types becomes `never`.
 - Already resolved values are reused — not re-created.
+- All-or-nothing: every incoming name is checked before anything is written, so a `merge` that throws leaves the
+  container exactly as it was.
 
 ```ts
 const containerA = new DIContainer().add('a', () => '1').add('bar', () => new Bar());
@@ -420,11 +422,17 @@ for it when your error messages get unreadable, not to speed up compilation — 
 ### Other methods
 
 - **`.get(name)`** — resolve a dependency by name. Equivalent to property access (`container.foo`). Throws
-  `DependencyIsMissingError` if the name isn't registered.
+  `DependencyIsMissingError` if the name isn't registered, and `CircularDependencyError` if resolving it leads back to
+  itself — the message names the path (`a -> b -> a`) so the cycle is easy to find. A factory that destructures a name
+  the container doesn't have throws the same `DependencyIsMissingError`, naming the factory that asked, rather than
+  receiving `undefined`.
 - **`.has(name)`** — returns `true` if a resolver is registered under `name` (whether or not it has been resolved yet).
 - **`.hasResolvedDependency(name)`** — returns `true` only if the dependency has already been resolved and cached.
 - **`.update(name, resolver)`** — replace an existing dependency's resolver (see [How to use](#how-to-use)). Unlike
   `.add()`, it expects the name to already exist.
+- **`.export()`** — returns `{ resolvers, resolvedDependencies }`, both copies, typed to the container's names.
+  `resolvedDependencies` holds only what has been resolved so far. Useful for inspecting a container in a test or a
+  debugger; writing into the copies does not affect the container.
 
 ```typescript
 const container = new DIContainer().add('bar', () => new Bar());
@@ -435,6 +443,42 @@ container.hasResolvedDependency('bar'); // false — not resolved yet
 container.get('bar');
 container.hasResolvedDependency('bar'); // true — now cached
 ```
+
+### Errors
+
+Every error the container throws is a class exported from the package, so it can be caught by type:
+
+```typescript
+import { DependencyIsMissingError, DIContainer } from 'rsdi';
+
+try {
+  container.get('nope');
+} catch (error) {
+  if (error instanceof DependencyIsMissingError) {
+    // register it, or fall back
+  }
+}
+```
+
+| Class                         | Thrown by                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| `DependencyIsMissingError`    | `get` or `update` on a name that isn't registered                                                |
+| `DenyOverrideDependencyError` | `add` on a name that already exists — use `update`                                               |
+| `ForbiddenNameError`          | a reserved name such as `get` or `merge`, or a name the container already has as an own property |
+| `CircularDependencyError`     | Resolving a dependency that leads back to itself; names the path                                 |
+| `InvalidResolverError`        | `add` or `update` given a value instead of a factory                                             |
+| `InvalidContainerError`       | `merge` or `compose` given something that is not a container                                     |
+
+Each sets `error.name` to its class, so logs read `DependencyIsMissingError: …` rather than `Error: …`.
+
+The object a factory receives is read-only. Assigning to it, deleting from it, defining a property on it, freezing or
+sealing it, or changing its prototype throws a `TypeError` that names the operation and the factory that was running. That includes registering through it: call `add`,
+`update` and `merge` on the container, not on the `deps` argument.
+
+Locking the container itself is honoured with its platform meaning. After `Object.preventExtensions` or `Object.seal`,
+no new dependency can be added but existing ones can still be replaced with `update` or `merge`; after `Object.freeze`,
+replacements are refused too. Resolution always works, since it only fills the cache. A `clone()` is a fresh, unlocked
+container.
 
 ---
 

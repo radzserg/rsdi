@@ -1,7 +1,12 @@
-// eslint-disable-next-line canonical/filename-match-regex
 import { DIContainer } from '../../DIContainer.js';
-import { type SealedContainer } from '../../types.js';
+import {
+  type ContainerSnapshot,
+  type ReservedName,
+  type ResolversOf,
+  type SealedContainer,
+} from '../../types.js';
 import { Bar, Foo } from '../__helpers__/fakeClasses.js';
+import type { RESERVED_NAMES } from '../__helpers__/reservedNames.js';
 import { describe, expectTypeOf, test } from 'vitest';
 
 describe('DIContainer typescript type resolution', () => {
@@ -175,6 +180,83 @@ describe('DIContainer typescript type resolution', () => {
 
     expectTypeOf(sealed.a).toEqualTypeOf<string>();
     expectTypeOf(sealed.bar).toEqualTypeOf<Bar>();
+  });
+
+  // The class and `IDIContainer` are maintained by hand and the class methods return `this` under a
+  // cast, so a mismatch between them is not a compile error anywhere but here. `clone()` said
+  // `DIContainer<R>` on the class and `IDIContainer<R>` on the interface; only the latter carries
+  // the resolver map, so on a subclass instance `clone().foo` did not exist.
+  test('clone returns a typed container from the class and from the widened chain', () => {
+    class AppContainer extends DIContainer<{ foo: Foo }> {}
+    const fromClass = new AppContainer().clone();
+
+    expectTypeOf<ResolversOf<typeof fromClass>>().toEqualTypeOf<{ foo: Foo }>();
+    expectTypeOf(fromClass.foo).toEqualTypeOf<Foo>();
+
+    const fromChain = new DIContainer()
+      .add('a', () => 'string')
+      .add('bar', () => new Bar())
+      .clone();
+
+    expectTypeOf<ResolversOf<typeof fromChain>>().toEqualTypeOf<{ a: string } & { bar: Bar }>();
+    expectTypeOf(fromChain.a).toEqualTypeOf<string>();
+    expectTypeOf(fromChain.add('c', () => 1).c).toEqualTypeOf<number>();
+  });
+
+  // `export()` was typed as `ResolvedDependencies` — `Record<string, any>` — and was absent from
+  // `IDIContainer`, so it vanished from the type after the first `add`.
+  test('export is reachable after add and returns a typed snapshot', () => {
+    const container = new DIContainer().add('a', () => 'string').add('bar', () => new Bar());
+    const snapshot = container.export();
+
+    expectTypeOf(snapshot).toEqualTypeOf<ContainerSnapshot<{ a: string } & { bar: Bar }>>();
+    expectTypeOf(snapshot.resolvedDependencies.a).toEqualTypeOf<string | undefined>();
+    expectTypeOf(snapshot.resolvedDependencies.bar).toEqualTypeOf<Bar | undefined>();
+    expectTypeOf(snapshot.resolvers.bar).toEqualTypeOf<
+      ((resolvers: { a: string } & { bar: Bar }) => Bar) | undefined
+    >();
+    expectTypeOf<keyof typeof snapshot.resolvers>().toEqualTypeOf<'a' | 'bar'>();
+  });
+
+  // The snapshot's factories sit in a return position on `IDIContainer`. Typed with the plain
+  // `Factory`, that made the resolver map contravariant and every widened container stopped being
+  // a `ContainerLike` — `merge` and `compose` rejected all of their arguments.
+  test('a widened container is still accepted by merge and compose', () => {
+    const module = new DIContainer().add('a', () => 'string');
+    const other = new DIContainer().add('bar', () => new Bar());
+
+    expectTypeOf(DIContainer.compose(module, other).a).toEqualTypeOf<string>();
+    expectTypeOf(new DIContainer().merge(module, other).bar).toEqualTypeOf<Bar>();
+  });
+
+  // The agent guide promises a reserved name is "rejected at compile time". Until this test, it was
+  // not: `DenyInputKeys` excluded registered names only, and `add('get', …)` type-checked.
+  test('every reserved name is a compile-time error for add', () => {
+    const container = new DIContainer();
+
+    // @ts-expect-error - reserved: public method
+    container.add('get', () => 1);
+    // @ts-expect-error - reserved: public method
+    container.add('merge', () => 1);
+    // @ts-expect-error - reserved: public method
+    container.add('export', () => 1);
+
+    // Not reserved: the internals are symbol-keyed, so their former names are ordinary.
+    expectTypeOf(container.add('resolvers', () => 1).resolvers).toEqualTypeOf<number>();
+    expectTypeOf(container.add('setResolver', () => 1).setResolver).toEqualTypeOf<number>();
+    // @ts-expect-error - reserved: on every prototype, and never in keyof
+    container.add('constructor', () => 1);
+
+    // Not reserved: a static, and Object.prototype names, both by design.
+    expectTypeOf(container.add('compose', () => 1).compose).toEqualTypeOf<number>();
+    expectTypeOf(container.add('toString', () => 1).toString).toEqualTypeOf<number>();
+  });
+
+  // The hand-kept half of `ReservedName` is pinned from both sides: `satisfies` on the helper says
+  // every listed name is reserved, this says nothing reserved is unlisted, and reservedNames.test.ts
+  // compares the list with the class at runtime.
+  test('ReservedName is exactly the pinned list', () => {
+    expectTypeOf<ReservedName>().toEqualTypeOf<(typeof RESERVED_NAMES)[number]>();
   });
 
   test('extend function', () => {

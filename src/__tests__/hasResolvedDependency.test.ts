@@ -2,25 +2,16 @@ import { DIContainer } from '../DIContainer.js';
 import { describe, expect, test } from 'vitest';
 
 describe('DIContainer hasResolvedDependency', () => {
-  test('has resolves dependency', () => {
-    const container = new DIContainer().add('foo', (diContainer) => {
-      // @ts-expect-error - expected type error
-      diContainer.add('c', () => '2');
-      return 123;
-    });
+  test('is true once the dependency has been resolved', () => {
+    const container = new DIContainer().add('foo', () => 123);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    container.foo;
-
+    expect(container.foo).toEqual(123);
     expect(container.hasResolvedDependency('foo')).toBe(true);
   });
 
-  test('does not have resolves dependency', () => {
-    const container = new DIContainer().add('foo', (diContainer) => {
-      // @ts-expect-error - expected type error
-      diContainer.add('c', () => '2');
-      return 123;
-    });
+  test('is false for a registered dependency nothing has asked for', () => {
+    const container = new DIContainer().add('foo', () => 123);
+
     expect(container.hasResolvedDependency('foo')).toBe(false);
   });
 });

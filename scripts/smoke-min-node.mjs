@@ -11,7 +11,7 @@
 //
 // Keep this to the public API and plain assertions, with no dev dependencies:
 // it has to run on nothing but the floor's built-ins.
-import { DIContainer } from '../dist/index.js';
+import { DependencyIsMissingError, DIContainer } from '../dist/index.js';
 
 const assert = (condition, message) => {
   if (!condition) {
@@ -50,5 +50,14 @@ assert(
 );
 
 assert(container.clone().get('a') === 'name2', 'clone() lost state');
+
+// The error classes are public API and have to be catchable by class from the entry point.
+try {
+  container.get('nope');
+  assert(false, 'get() on an unknown name did not throw');
+} catch (error) {
+  assert(error instanceof DependencyIsMissingError, 'thrown error is not the exported class');
+  assert(error.name === 'DependencyIsMissingError', `error.name is ${error.name}`);
+}
 
 console.log(`smoke: OK on ${process.version}`);

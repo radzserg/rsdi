@@ -26,18 +26,19 @@ container.userRepository; // UserRepository — resolved on first access, then c
 container.get('userRepository'); // identical
 ```
 
-| Call                           | Returns                     | Notes                                                        |
-| ------------------------------ | --------------------------- | ------------------------------------------------------------ |
-| `new DIContainer()`            | empty container             | Constructor takes **no** arguments                           |
-| `.add(name, factory)`          | container + that name       | **Throws** if `name` already exists                          |
-| `.get(name)`                   | the dependency              | Same as property access; throws if not registered            |
-| `.update(name, factory)`       | container, name retyped     | **Throws** if `name` does not exist; evicts the cached value |
-| `.has(name)`                   | `boolean`                   | Is a resolver registered?                                    |
-| `.hasResolvedDependency(name)` | `boolean`                   | Has it been _resolved_ yet?                                  |
-| `.merge(...containers)`        | **mutated** `this`          | Later containers win on duplicate names                      |
-| `DIContainer.compose(...cs)`   | a **new** container         | Static; inputs untouched                                     |
-| `.clone()`                     | a new, independent instance | Copies resolvers and already-resolved values                 |
-| `.extend(fn)`                  | whatever `fn` returns       | For layered modules that need earlier types                  |
+| Call                           | Returns                               | Notes                                                                |
+| ------------------------------ | ------------------------------------- | -------------------------------------------------------------------- |
+| `new DIContainer()`            | empty container                       | Constructor takes **no** arguments                                   |
+| `.add(name, factory)`          | container + that name                 | **Throws** if `name` already exists                                  |
+| `.get(name)`                   | the dependency                        | Same as property access; throws if not registered                    |
+| `.update(name, factory)`       | container, name retyped               | **Throws** if `name` does not exist; evicts the cached value         |
+| `.has(name)`                   | `boolean`                             | Is a resolver registered?                                            |
+| `.hasResolvedDependency(name)` | `boolean`                             | Has it been _resolved_ yet?                                          |
+| `.merge(...containers)`        | **mutated** `this`                    | Later containers win on duplicate names                              |
+| `DIContainer.compose(...cs)`   | a **new** container                   | Static; inputs untouched                                             |
+| `.clone()`                     | a new, independent instance           | Copies resolvers and already-resolved values                         |
+| `.extend(fn)`                  | whatever `fn` returns                 | For layered modules that need earlier types                          |
+| `.export()`                    | `{ resolvers, resolvedDependencies }` | Copies, typed to the container's names; for inspection and debugging |
 
 Install: `npm install rsdi` (or `pnpm add rsdi`). The package is **ESM-only**; `engines.node` is
 `>=16.9.0`. A CommonJS project needs Node 20.19+/22.12+ to `require()` it, and TypeScript consumers
@@ -55,12 +56,13 @@ or fail at runtime.
 ```ts
 const connection = await createConnection();
 
-container.add('db', connection); // ✗ TS2345, and at runtime: "resolver is not a function"
+container.add('db', connection); // ✗ TS2345, and at runtime: InvalidResolverError
 container.add('db', () => connection); // ✓
 ```
 
 Registering a value directly is the single most common mistake. `add` stores the argument as a
-resolver and calls it on first access.
+resolver and calls it on first access. Without types to stop it, `add` and `update` throw
+`InvalidResolverError` at the registration site, naming the dependency and what was received.
 
 ### 2. Names must be inline string literals
 
@@ -79,10 +81,10 @@ rather than casting.
 
 ### 3. These names are reserved
 
-`add`, `clone`, `extend`, `get`, `has`, `hasResolvedDependency`, `merge`, `update`.
+`add`, `clone`, `export`, `extend`, `get`, `has`, `hasResolvedDependency`, `merge`, `update`.
 
 A dependency named after a container method would shadow it, so it throws `ForbiddenNameError` at
-runtime and is rejected at compile time. `compose` is _not_ reserved — it is a static method, so it
+runtime and is rejected at compile time (the `name` parameter becomes `never`). `compose` is _not_ reserved — it is a static method, so it
 never collides with an instance property.
 
 ### 4. `add` refuses to overwrite; `update` requires an existing name
@@ -320,20 +322,30 @@ type in the file, which is most of what the container is for.
 
 ## Decoding errors
 
-| Symptom                                                                 | Cause                                                        | Fix                                                                                                       |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
-| `Argument of type '"x"' is not assignable to parameter of type 'never'` | Name already registered, or not a literal                    | Use `update`, or make the name a literal                                                                  |
-| `Property 'x' does not exist on type 'IDIContainer<…>'`                 | Not registered, or module not composed in                    | Register it, or add its module to `compose`                                                               |
-| `Argument of type '{…}' is not assignable to … 'Factory<…>'`            | Passed a value instead of a factory                          | Wrap it: `() => value`                                                                                    |
-| `ForbiddenNameError`                                                    | Used a reserved method name                                  | Rename the dependency                                                                                     |
-| `DenyOverrideDependencyError`                                           | `add` on an existing name                                    | Use `update`                                                                                              |
-| `DependencyIsMissingError`                                              | `get`/`update` on an unknown name                            | Register it first                                                                                         |
-| `TypeError: resolver is not a function`                                 | Registered a value, not a factory                            | Wrap it: `() => value`                                                                                    |
-| Editor sluggish in the container file                                   | One long `.add()` chain (O(N²))                              | Split into modules and `compose`                                                                          |
-| `TS2589: Type instantiation is excessively deep`                        | Depth accumulated across a long chain                        | Give modules explicit named return types; stop chaining `ReturnType<typeof previousModule>`               |
-| `TS2589` on a chain of `update()` calls                                 | Overrides that change a dependency's type rewrite the map    | Give the fake the same type as the real dependency (`as` the interface); never reach for `container: any` |
-| Every `add` name reports `parameter of type 'never'`                    | The container type collapsed, usually the same depth problem | Same fix — check the module boundaries first                                                              |
-| Splitting into modules didn't speed anything up                         | Modules thread the whole accumulated type                    | Give each a declared consumed-type seed and `compose`                                                     |
+The runtime error classes are exported from `rsdi`, so catch them by class rather than by message:
+
+```ts
+import { CircularDependencyError, DependencyIsMissingError, DIContainer } from 'rsdi';
+```
+
+| Symptom                                                                                                                        | Cause                                                                                                                           | Fix                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `Argument of type '"x"' is not assignable to parameter of type 'never'`                                                        | Name already registered, reserved, or not a literal                                                                             | Use `update`, rename, or make the name a literal                                                          |
+| `Property 'x' does not exist on type 'IDIContainer<…>'`                                                                        | Not registered, or module not composed in                                                                                       | Register it, or add its module to `compose`                                                               |
+| `Argument of type '{…}' is not assignable to … 'Factory<…>'`                                                                   | Passed a value instead of a factory                                                                                             | Wrap it: `() => value`                                                                                    |
+| `ForbiddenNameError`                                                                                                           | Used a reserved name, or the container already has an own property with that name                                               | Rename the dependency                                                                                     |
+| `DenyOverrideDependencyError`                                                                                                  | `add` on an existing name                                                                                                       | Use `update`                                                                                              |
+| `DependencyIsMissingError`                                                                                                     | `get`/`update` on an unknown name, or a factory destructured a name no composed module provides — the message names the factory | Register it, or add its module to `compose`                                                               |
+| `CircularDependencyError: … a -> b -> a`                                                                                       | A factory reads a dependency whose factory reads it back                                                                        | Break the cycle — pass one side in lazily, or split the shared part into its own dependency               |
+| `InvalidResolverError`                                                                                                         | Registered a value, not a factory — thrown at `add`/`update`                                                                    | Wrap it: `() => value`                                                                                    |
+| `InvalidContainerError`                                                                                                        | `merge`/`compose` given `undefined`, a plain object, or another class — the message names the argument position                 | Check the import; pass containers                                                                         |
+| `TypeError: The dependencies object passed to a factory is read-only`                                                          | A factory assigned to, deleted from, defined a property on, froze, sealed or re-prototyped its `deps` argument                  | Return the value instead; the container is not a scratch space                                            |
+| `TypeError: Cannot add dependency x: the container is not extensible` / `Cannot replace dependency x: the container is frozen` | The container itself was frozen, sealed or made non-extensible                                                                  | Register before locking, or `clone()` and register on the clone                                           |
+| Editor sluggish in the container file                                                                                          | One long `.add()` chain (O(N²))                                                                                                 | Split into modules and `compose`                                                                          |
+| `TS2589: Type instantiation is excessively deep`                                                                               | Depth accumulated across a long chain                                                                                           | Give modules explicit named return types; stop chaining `ReturnType<typeof previousModule>`               |
+| `TS2589` on a chain of `update()` calls                                                                                        | Overrides that change a dependency's type rewrite the map                                                                       | Give the fake the same type as the real dependency (`as` the interface); never reach for `container: any` |
+| Every `add` name reports `parameter of type 'never'`                                                                           | The container type collapsed, usually the same depth problem                                                                    | Same fix — check the module boundaries first                                                              |
+| Splitting into modules didn't speed anything up                                                                                | Modules thread the whole accumulated type                                                                                       | Give each a declared consumed-type seed and `compose`                                                     |
 
 ---
 

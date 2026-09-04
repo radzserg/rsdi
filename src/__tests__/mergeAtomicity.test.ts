@@ -192,9 +192,9 @@ describe('merge and compose refuse a non-container argument', () => {
 // first new getter — after it had already replaced the existing names in the same merge.
 describe('a non-extensible receiver', () => {
   const lockers: Array<[string, (container: object) => void]> = [
-    ['Object.preventExtensions', (container) => void Object.preventExtensions(container)],
-    ['Object.seal', (container) => void Object.seal(container)],
-    ['Object.freeze', (container) => void Object.freeze(container)],
+    ['Object.preventExtensions', Object.preventExtensions],
+    ['Object.seal', Object.seal],
+    ['Object.freeze', Object.freeze],
   ];
 
   test.each(lockers)(
@@ -220,8 +220,8 @@ describe('a non-extensible receiver', () => {
   // ones, so it forbids replacing a resolver too. Resolution writes into the cache behind the state
   // symbol, which no lock reaches, and is never refused.
   test.each([
-    ['Object.seal', (container: object) => void Object.seal(container)],
-    ['Object.preventExtensions', (container: object) => void Object.preventExtensions(container)],
+    ['Object.seal', Object.seal],
+    ['Object.preventExtensions', Object.preventExtensions],
   ])('%s: a merge that only replaces existing names still works', (_, lock) => {
     const base = new DIContainer().add('x', () => 'original');
     lock(base);

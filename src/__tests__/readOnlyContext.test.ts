@@ -183,9 +183,9 @@ describe('the dependencies object a factory receives is read-only', () => {
   // `trap result did not include Symbol(rsdi.internalState)`.
   describe('enumerating the deps object still works on a locked container', () => {
     const lockers: Array<[string, (container: object) => void]> = [
-      ['Object.preventExtensions', (container) => void Object.preventExtensions(container)],
-      ['Object.seal', (container) => void Object.seal(container)],
-      ['Object.freeze', (container) => void Object.freeze(container)],
+      ['Object.preventExtensions', Object.preventExtensions],
+      ['Object.seal', Object.seal],
+      ['Object.freeze', Object.freeze],
     ];
 
     test.each(lockers)('%s', (_, lock) => {

@@ -50,14 +50,14 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
     "husky": "^9.1.7",
-    "lint-staged": "^17.1.1",
-    "oxfmt": "^0.60.0",
-    "oxlint": "^1.75.0",
+    "lint-staged": "^17.4.1",
+    "oxfmt": "^0.66.0",
+    "oxlint": "^1.81.0",
     "oxlint-config-canonical": "^1.1.2",
     "oxlint-tsgolint": "^7.0.2001",
     "publint": "^0.3.24",
     "typescript": "^7.0.2",
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   },
   "lint-staged": {
     "*.{ts,json,md,yml,yaml}": [
@@ -70,8 +70,8 @@
   "devEngines": {
     "runtime": {
       "name": "node",
-      "onFail": "error",
-      "version": ">=22.13.0"
+      "version": ">=22.13.0",
+      "onFail": "error"
     }
   },
   "engines": {

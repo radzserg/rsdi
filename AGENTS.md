@@ -197,6 +197,8 @@ Note this is a _type_-level cost only. The runtime `update()` path is the same i
 
 ## Publishing
 
+- **Publishing happens in CI, never from a laptop.** `.github/workflows/release.yml` triggers on a `v*` tag — the tag `pnpm version` writes — and is the only thing that runs `pnpm publish`. It refuses a tag that disagrees with `package.json`, re-runs build/lint/test/`check:package` (a tag can point at a commit CI never saw), publishes with `--provenance` under `id-token: write`, and opens a GitHub Release from the matching `# X.Y.Z` CHANGELOG section. Publishing by hand still works but produces no attestation, so don't — and note that pushing a tag is therefore an irreversible, outward-facing act. The `/release` skill owns the steps up to the bump and hands the push back to the user; keep the two in step when either changes.
+- The workflow needs an `NPM_TOKEN` repository secret with publish rights, the one thing it cannot provide for itself. Its job names the `npm` environment, so adding required reviewers there gates every publish behind a human approval; it is unarmed by default.
 - `prepublishOnly` runs `pnpm build`, so `dist/` is always fresh on publish.
 - `files` publishes `dist/**` but excludes `dist/**/__tests__/**` — compiled tests are not shipped. It also ships `docs/ai-agent-guide.md`, so an AI agent working in a consumer's project can read the integration guide straight out of `node_modules`; that file is the only doc that ships, so any link in it to another doc must be an absolute GitHub URL rather than a relative path.
 - License is **Apache-2.0** (matches the `LICENSE` file).

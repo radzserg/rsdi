@@ -10,7 +10,8 @@ version number that matches what actually changed. Work through the steps in ord
 matters, because `pnpm version` refuses to run on a dirty tree, so the CHANGELOG has to be committed
 before the bump.
 
-Stop after the bump. Pushing and publishing are the user's calls to make, not yours.
+Stop after the bump. Pushing is the user's call to make, not yours — and since
+`.github/workflows/release.yml` triggers on the tag, pushing the tag _is_ publishing.
 
 ## Step 1 — See what is actually unreleased
 
@@ -211,12 +212,34 @@ git log --oneline -1 && git tag --points-at HEAD
 
 Report the new version, the tag, and what the CHANGELOG says. Then stop.
 
-Pushing the tag and running `pnpm publish` are irreversible and outward-facing — a published npm
-version cannot be recalled, only deprecated. Offer the commands and let the user run them:
+**Pushing the tag publishes.** `.github/workflows/release.yml` fires on `v*` and is the only thing
+that runs `pnpm publish` — nothing publishes from a laptop any more, which is precisely what makes
+the provenance attestation on npm worth anything: it says a specific workflow run built the tarball
+from a specific commit, and npm checks that against the `repository` field.
+
+So `git push --tags` is the irreversible, outward-facing step. A published npm version cannot be
+recalled, only deprecated. Offer the commands and let the user run them; never run them yourself.
 
 ```bash
-git push && git push --tags
+git push          # the CHANGELOG and version commits
 ```
+
+```bash
+git push --tags   # this one publishes
+```
+
+Push the branch first and let CI go green before the tag. The release workflow re-runs `build`,
+`lint`, `test` and `check:package` itself, so a red commit cannot reach npm — but discovering that
+_after_ the tag is pushed means deleting and re-pushing a tag, which is worse than waiting a few
+minutes.
+
+Tell the user what the tag will set off, in order:
+
+1. refuses the tag outright if it disagrees with `package.json`
+2. re-runs build, lint, test and `check:package` — a tag can point at a commit CI never saw
+3. `pnpm publish --provenance`, from a `pnpm/action-setup` runner with `id-token: write`
+4. opens a GitHub Release whose body is the CHANGELOG section written in Step 5 — which is why that
+   heading has to be exactly `# X.Y.Z` and nothing else
 
 ## Gotchas
 
@@ -237,5 +260,21 @@ version` has already written the new number into `package.json` and staged it, b
   attempt bumps from the already-bumped number and skips a version.
 - **`dist/` is gitignored and rebuilt on publish** by `prepublishOnly`. Never commit build output as
   part of a release.
-- **The tag is the only release marker.** There is no release branch and no GitHub release automation,
-  so `git describe --tags` is the source of truth for "what was last shipped".
+- **The tag is the only release marker.** There is no release branch, so `git describe --tags` stays
+  the source of truth for "what was last shipped" — and the tag is now also the publish trigger, so
+  never push one speculatively.
+- **`NPM_TOKEN` has to exist as a repository secret** — a granular automation token with publish
+  rights on `rsdi`, and one that has not expired. It is the single thing the release workflow cannot
+  provide for itself, and a missing or stale token fails _after_ the tag is already pushed. Check it
+  before tagging if a release has not gone out in a while.
+- **A step that fails after the publish succeeded cannot be fixed by re-running the workflow.** npm
+  refuses to republish a version, so the re-run dies at the publish step. Creating the GitHub Release
+  is deliberately the last step for this reason; if it is the one that failed, the package is already
+  live and the fix is `gh release create v<x.y.z> --notes-file <the CHANGELOG section>` by hand.
+- **The release workflow can be rehearsed without publishing.** It also accepts a manual run from
+  the Actions tab, and a `workflow_dispatch` run does everything a tag does except the upload —
+  same checks, same auth, `pnpm publish --dry-run`, no GitHub Release. Use it after editing the
+  workflow, so the first real tag is not also the first time the file has ever run.
+- **Publishing can be put behind a human approval** without touching the workflow: the job names the
+  `npm` environment, so adding required reviewers to that environment in the repo settings makes
+  every publish wait for one. It is unarmed by default.

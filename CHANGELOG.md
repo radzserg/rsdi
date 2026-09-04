@@ -1,5 +1,59 @@
 # Changelog
 
+# 3.4.0
+
+A hardening release: several things that used to fail silently now fail loudly, and a few that used
+to compile no longer do. Three changes can break existing code despite the minor version — they are
+the first three entries under **Changed**.
+
+## Added
+
+- Every error the container throws is now exported from the package entry point, so it can be caught
+  by type: `DependencyIsMissingError`, `DenyOverrideDependencyError`, `ForbiddenNameError`,
+  `CircularDependencyError`, `InvalidResolverError` and `InvalidContainerError`. Each sets
+  `error.name` to its class, so logs read `DependencyIsMissingError: …` rather than `Error: …`.
+- Resolving a dependency that leads back to itself throws `CircularDependencyError` naming the path
+  (`a -> b -> a`), instead of exhausting the call stack.
+- `add` or `update` given a value where a factory belongs throws `InvalidResolverError` at
+  registration rather than failing later.
+- `merge` or `compose` given something that is not a container throws `InvalidContainerError` naming
+  the argument position.
+- `ContainerSnapshot` — the return type of `export()` — is exported.
+
+## Fixed
+
+- A factory destructuring a name the container does not have now throws `DependencyIsMissingError`
+  naming the factory that asked. It previously received `undefined` and built its service around the
+  hole, which surfaced far from the cause.
+- A dependency whose factory returns `undefined` is now cached. It previously re-ran its factory on
+  every access.
+- A dependency named after an `Object.prototype` member resolves to its own value. `add('toString',
+…)` previously handed back the inherited function.
+- Reserved container method names are rejected at compile time. `add('get', …)` used to type-check
+  and then shadow the method.
+- `merge` is all-or-nothing: every incoming name is checked before anything is written, so a refused
+  merge leaves the container exactly as it was instead of half-merged.
+- `update` called while the name's own factory is running no longer caches the superseded value.
+
+## Changed
+
+- **`clone()` returns `IDIContainer<R>` rather than `DIContainer<R>`.** `const c: DIContainer<X> =
+container.clone()` stops compiling — annotate with `IDIContainer<X>` or `SealedContainer<…>`.
+- **The protected `resolvers`, `resolvedDependencies` and `setResolvers` members are gone.** A
+  subclass that reached for them breaks; the container's internals now live behind a symbol.
+- **The dependencies object a factory receives is read-only.** Assigning to it, deleting from it,
+  freezing it or changing its prototype throws a `TypeError`. Register through the container, not
+  through the `deps` argument.
+- `Object.freeze`, `seal` and `preventExtensions` on a container are honoured with their platform
+  meaning: sealing forbids new dependencies, freezing also forbids replacing a resolver. Resolution
+  is never refused, and `clone()` returns a fresh, unlocked container.
+- Some operations pay for the checks above. Resolving an already-cached dependency goes from roughly
+  15ns to 21ns, `update` is about 60% slower per call, and a `merge` onto names the container
+  already holds is roughly 3x slower, since every incoming name is validated before anything is
+  written. If your workload merges or updates in a hot path, that is the trade.
+- Type-checking got cheaper in every measured shape — a long `update()` override chain by 18%, a
+  domain module on a large container by 5%.
+
 # 3.3.0
 
 ## Fixed

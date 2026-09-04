@@ -51,7 +51,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [22, 26]
+        # The low entry is the exact `devEngines` floor, not `22`: a major-only entry floats to
+        # the newest 22.x, which tests above the floor and hides a tool that needs more than
+        # the repo admits — the same trap the min-node job spells out below. Keep it in step
+        # with `devEngines.runtime` in package.json; the high entry is `.nvmrc`.
+        node: ['22.22.1', 26]
     steps:
       - name: Checkout
         uses: actions/checkout@v7

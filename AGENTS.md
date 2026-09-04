@@ -169,9 +169,14 @@ Note this is a _type_-level cost only. The runtime `update()` path is the same i
   Its value is squeezed from three directions, and getting it wrong breaks installs in ways that look nothing like a version problem:
   - **At or above what pnpm itself needs.** pnpm 11.17.0 declares `engines.node >=22.13`, and its launcher hard-exits (`ERROR: This version of pnpm requires at least Node.js v22.13`, exit 1) below that — so a lower `devEngines` would wave through a contributor who then cannot run a single repo command. Re-check this when bumping `packageManager`.
   - **A subset of the range the native bindings declare.** oxfmt, oxlint, and rolldown ship their binaries as optional dependencies with `engines: ^20.19.0 || >=22.12.0`, and pnpm skips an optional dependency unless _every_ version in the declared range satisfies it. `>=22` looks harmless but admits 22.0–22.11, so pnpm silently drops the platform binding — 137 packages install instead of 140 — and every command dies with `Cannot find native binding` / `Cannot find module '@oxfmt/binding-linux-x64-gnu'`. A local install won't reveal it if `node_modules` already exists; reproduce with a clean install in a container.
-  - **At or below the lowest entry in the CI test matrix**, or the matrix's own `pnpm install` fails.
+  - **Equal to the lowest entry in the CI test matrix**, which must name the floor's every component —
+    `22.22.1`, not `22`. A major-only matrix entry floats to the newest patch in that line, so it runs
+    above the floor and cannot see a tool that needs more than this repo admits. That is how the
+    lint-staged mismatch below survived: it was true on `main` before anyone noticed.
 
-  `>=22.13.0` satisfies all three today.
+  `>=22.22.1` satisfies all three today, and the number comes from lint-staged, which declares
+  `engines.node >=22.22.1` — a dev tool's floor is the repo's floor, because the pre-commit hook runs it
+  on every commit. Re-check this when bumping any tool, not only `packageManager`.
 
 - **The floor is 16.9.0 because of `Object.hasOwn`**, which `DIContainer` uses in four places and which landed in 16.9 — not 16.0. Because development happens on Node 26, nothing about day-to-day work would reveal a newer built-in sneaking in, so two guards exist:
   - `tsconfig` pins `target` and `lib` to `ES2022`, the match for Node 16.9. A post-ES2022 API is then a compile error rather than a runtime failure at a consumer. Raising the floor means raising these together.

@@ -143,7 +143,11 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
       ownResolvers[name] = source[name];
     }
 
-    state.registrations++;
+    // Only if something was registered, as `mergeInto` does. Nothing can be in flight on a fresh
+    // container, so this is consistency rather than correctness.
+    if (names.length > 0) {
+      state.registrations++;
+    }
 
     const ownResolvedDependencies = state.resolvedDependencies as Record<
       string,
@@ -716,7 +720,9 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
     }
 
     if (!this.has(name)) {
-      throw new DependencyIsMissingError(name);
+      // With the in-flight path, as `get` reports it: an `update` of a wrong name from inside a
+      // factory — through a closure — then names the factory that made the mistake.
+      throw new DependencyIsMissingError(name, [...this[INTERNAL_STATE].resolving]);
     }
 
     // One descriptor read; see `isFrozenContainer`. `add` needs no such check — a frozen container

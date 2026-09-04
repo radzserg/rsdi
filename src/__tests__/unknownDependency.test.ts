@@ -36,6 +36,17 @@ describe('a factory that asks for an unregistered name', () => {
     expect(() => container.get('a')).toThrow(new DependencyIsMissingError('nope', ['a']));
   });
 
+  test('update() of a wrong name from inside a factory reports the same path', () => {
+    let container: DIContainer<{ a: string }>;
+    container = new DIContainer().add('a', () => {
+      container.update('nope' as never, () => 1);
+
+      return 'unreachable';
+    }) as unknown as DIContainer<{ a: string }>;
+
+    expect(() => container.get('a')).toThrow(new DependencyIsMissingError('nope', ['a']));
+  });
+
   test('a module composed without the module it depends on fails at resolution, not silently', () => {
     const services = new DIContainer().add('mailer', ({ smtpConfig }: Deps) => ({ smtpConfig }));
     const config = new DIContainer().add('smtpConfig', () => ({ host: 'smtp.example' }));

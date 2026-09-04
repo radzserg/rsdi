@@ -24,12 +24,13 @@ Use **pnpm** (pinned via `packageManager`; do not use npm/yarn).
 | Type-cost budgets    | `pnpm bench:types`                                    |
 | Runtime benchmarks   | `pnpm bench` (`vitest bench --run`)                   |
 | Compare vs last tag  | `pnpm bench:compare` (release step; clean tree)       |
+| Validate the tarball | `pnpm check:package` (needs a built `dist/`)          |
 
 `pnpm lint` runs `oxfmt --check` then `oxlint --type-aware --type-check`; `pnpm format` runs the same two tools in write/`--fix` mode.
 
 Type tests only run when `--typecheck` is passed, so a bare `npx vitest --run` silently skips every `*.test-d.ts` assertion. `pnpm test` includes it; ad-hoc filtered runs need it added back.
 
-There is no separate typecheck script — `pnpm test` runs both runtime tests and type tests in one pass. Always run `pnpm build`, `pnpm test`, and `pnpm lint` before considering a change done; CI (`.github/workflows/ci.yml`) runs `pnpm build` + `pnpm lint` in one job and `pnpm test` across a Node matrix in another, with an aggregate `CI` job as the single required status check.
+There is no separate typecheck script — `pnpm test` runs both runtime tests and type tests in one pass. Always run `pnpm build`, `pnpm test`, and `pnpm lint` before considering a change done; CI (`.github/workflows/ci.yml`) runs `pnpm build` + `pnpm lint` in one job and `pnpm test` across a Node matrix in another, alongside `bench:types`, the minimum-Node smoke test and `check:package`, with an aggregate `CI` job as the single required status check. The matrix is the two ends of the supported dev range — the `devEngines` floor and `.nvmrc` — because a break in the middle of that range has never been a real failure mode here; the floor in `engines.node` is a separate job, since Vitest cannot run there.
 
 **Run `pnpm bench:types` too whenever you touch `src/types.ts` or an `add`/`merge`/`compose` signature.** The type tests assert inference at three or four dependencies, which is too small to expose how these types actually fail — both known failure modes pass the full 82-test suite untouched. `scripts/bench-types.mjs` checks the shapes that are big enough, and gates them on instantiation budgets; it runs in CI as the `types-perf` job. Budgets are compiler-specific, so a TypeScript upgrade needs them re-baselined in the same commit. `docs/type-benchmarks.md` explains how to read the report and what to do with each kind of failure.
 
@@ -202,7 +203,7 @@ Note this is a _type_-level cost only. The runtime `update()` path is the same i
 
 - **The package is ESM-only and that is deliberate**, not a limitation — nothing in `src/` requires it (no `import.meta`, no top-level await). CommonJS consumers are not shut out: Node 20.19+ and 22.12+ resolve `require()` of an ESM package, so the effective floor for a CJS consumer is Node 20.19 even though `engines.node` says 16.9. TypeScript CJS consumers need `module: nodenext`; on `Node16` they get `TS1479`. Dual-publishing CJS has been considered and rejected — it doubles the build and invites the dual package hazard, where two loaded copies make `instanceof DIContainer` fail.
 
-- **`exports` condition order is significant.** `types` must stay before `default`, or TypeScript resolves the runtime entry and consumers lose every type. `oxfmt` preserves the order today, but nothing enforces it — if you reorder the block, re-check that a consumer on `moduleResolution: nodenext` still gets inference. The map also blocks deep imports (`rsdi/dist/…` now throws `ERR_PACKAGE_PATH_NOT_EXPORTED`), which is the point: `dist/` layout is not API. `main`/`types` stay alongside it for resolvers that predate `exports`.
+- **`exports` condition order is significant.** `types` must stay before `default`, or TypeScript resolves the runtime entry and consumers lose every type. `oxfmt` preserves the order today, and the `package` CI job (`pnpm check:package`) is what actually enforces it: `attw` resolves the _published_ types under each module mode, so a reordered block fails there rather than at a consumer. It runs with `--ignore-rules cjs-resolves-to-esm`, because ESM-only is the deliberate choice below, not a defect — don't silence any other rule to make the job pass. `publint --strict` alongside it reads the packed tarball the way a registry consumer would, which is the only thing that sees `files` and the deep-import block. The map also blocks deep imports (`rsdi/dist/…` now throws `ERR_PACKAGE_PATH_NOT_EXPORTED`), which is the point: `dist/` layout is not API. `main`/`types` stay alongside it for resolvers that predate `exports`.
 
 ## Git / PRs
 

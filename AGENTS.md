@@ -15,7 +15,7 @@ Use **pnpm** (pinned via `packageManager`; do not use npm/yarn).
 | Task                 | Command                                               |
 | -------------------- | ----------------------------------------------------- |
 | Install              | `pnpm install`                                        |
-| Build (emit `dist/`) | `pnpm build` (runs `tsc`)                             |
+| Build (emit `dist/`) | `pnpm build` (two `tsc` passes — see Publishing)      |
 | Test (unit + types)  | `pnpm test` (`vitest --run --typecheck`)              |
 | Single test file     | `npx vitest --run merge` (substring-matches the path) |
 | Single test case     | `npx vitest --run -t 'merge containers'`              |
@@ -207,6 +207,17 @@ Note this is a _type_-level cost only. The runtime `update()` path is the same i
 - **Publishing happens in CI, never from a laptop.** `.github/workflows/release.yml` triggers on a `v*` tag — the tag `pnpm version` writes — and is the only thing that runs `pnpm publish`. It refuses a tag that disagrees with `package.json`, re-runs build/lint/test/`check:package` (a tag can point at a commit CI never saw), publishes with `--provenance` under `id-token: write`, and opens a GitHub Release from the matching `# X.Y.Z` CHANGELOG section. Publishing by hand still works but produces no attestation, so don't — and note that pushing a tag is therefore an irreversible, outward-facing act. The `/release` skill owns the steps up to the bump and hands the push back to the user; keep the two in step when either changes.
 - The workflow needs an `NPM_TOKEN` repository secret with publish rights, the one thing it cannot provide for itself. Its job names the `npm` environment, so adding required reviewers there gates every publish behind a human approval; it is unarmed by default.
 - `prepublishOnly` runs `pnpm build`, so `dist/` is always fresh on publish.
+- **`pnpm build` is two `tsc` passes, and the second one is not redundant.** `tsconfig` sets
+  `removeComments`, which strips comments from the emitted `.js` — the architecture notes in `src/`
+  are for contributors reading this repo, and shipping them cost the tarball 32 KB unpacked (69% of
+  `dist/*.js`) and roughly a third of its gzipped weight. But `removeComments` applies to `.d.ts`
+  as well, where the same flag deletes 25 KB of JSDoc that is the _consumer's_ IntelliSense —
+  `compose`'s hover doc explaining module composition, `Factory`'s explanation of the read-only deps
+  object. For a library whose entire pitch is its types, that is the wrong trade. So the first pass
+  emits stripped `.js` and the second (`tsc --emitDeclarationOnly --removeComments false`) rewrites
+  the declarations with their comments intact. Collapsing this back to a bare `tsc` type-checks
+  clean, passes every test, passes `check:package`, and silently ships a package whose hover docs
+  are gone — nothing in CI can see it. The two passes cost ~2.3 s each.
 - `files` publishes `dist/**` but excludes `dist/**/__tests__/**` — compiled tests are not shipped. It also ships `docs/ai-agent-guide.md`, so an AI agent working in a consumer's project can read the integration guide straight out of `node_modules`; that file is the only doc that ships, so any link in it to another doc must be an absolute GitHub URL rather than a relative path.
 - License is **Apache-2.0** (matches the `LICENSE` file).
 

@@ -203,6 +203,9 @@ By default, you should always use `.add()` to register dependencies — it throw
 prevents accidental overwrites and keeps your setup predictable. If you need to replace an existing dependency —
 usually in tests — use `.update()` instead. [Testing](#testing) covers that.
 
+Both methods require a single literal name. Narrow a variable typed `'a' | 'b'` before passing it:
+each call registers or replaces only one dependency.
+
 Let's map our web application routes to configured controllers
 
 ```typescript
@@ -306,6 +309,10 @@ earlier container had already resolved. Be aware the _types_ intersect rather th
 same name registered with two different types resolves to `never` instead of the later type. That
 surfaces the collision rather than hiding it; if a replacement is intentional, use `.update()`.
 
+A conditional input keeps its alternatives in the result type. With
+`DIContainer.compose(condition ? repositories : services)`, only dependencies shared by both
+branches can be accessed without narrowing. The same rule applies to `merge()`.
+
 #### Why compose instead of one long chain
 
 Each `.add()` widens the container type, so a single chain of N dependencies costs **O(N²)** to type-check. Splitting
@@ -331,44 +338,47 @@ whole graph. The [AI agent integration guide](./docs/ai-agent-guide.md) has the 
 
 ### Extend
 
-You can extend a container with more dependencies using `.extend()`. This is ideal for building up your container in logical steps.
+Use `.extend()` to layer modules onto a container. Each callback receives the container and
+returns the next layer synchronously. Await resource initialization before starting the chain:
+
+<!-- example:extend -->
 
 ```ts
-// diContainer.ts
+import { DIContainer } from 'rsdi';
 
-export const configureDI = async () => {
-  return (await buildDatabaseDependencies())
-    .extend(addDataAccessDependencies)
-    .extend(addValidators);
+// database.ts
+export type Pool = { query: (sql: string) => Promise<unknown[]> };
+
+export const buildDatabaseDependencies = async (createPool: () => Promise<Pool>) => {
+  const pool = await createPool();
+  return new DIContainer().add('databasePool', () => pool);
+};
+
+// dataAccess.ts
+type DIWithPool = Awaited<ReturnType<typeof buildDatabaseDependencies>>;
+
+export const addDataAccessDependencies = (container: DIWithPool) =>
+  container.add('userRepository', ({ databasePool }) => ({
+    findAll: () => databasePool.query('SELECT * FROM users'),
+  }));
+
+// services.ts
+type DIWithDataAccess = ReturnType<typeof addDataAccessDependencies>;
+
+export const addServices = (container: DIWithDataAccess) =>
+  container.add('userService', ({ userRepository }) => ({
+    listUsers: () => userRepository.findAll(),
+  }));
+
+// diContainer.ts — pass your database driver's async pool initializer here
+export const configureDI = async (createPool: () => Promise<Pool>) => {
+  const container = await buildDatabaseDependencies(createPool);
+  return container.extend(addDataAccessDependencies).extend(addServices);
 };
 ```
 
-```ts
-// addDataAccessDependencies.ts
-
-export type DIWithPool = Awaited<ReturnType<typeof buildDatabaseDependencies>>;
-
-export const addDataAccessDependencies = async () => {
-  const pool = await createDatabasePool();
-  const longRunningPool = await createLongRunningDatabasePool();
-
-  return new DIContainer()
-    .add('databasePool', () => pool)
-    .add('longRunningDatabasePool', () => longRunningPool);
-};
-```
-
-```ts
-// addValidators.ts
-
-export type DIWithValidators = ReturnType<typeof addValidators>;
-
-export const addValidators = (container: DIWithPool) => {
-  return container
-    .add('myValidatorA', ({ a, b, c }) => new MyValidatorA(a, b, c))
-    .add('myValidatorB', ({ a, b, c }) => new MyValidatorB(a, b, c));
-};
-```
+The example is compiled and run in the test suite. Each section can live in its own module,
+with the corresponding imports and exported container types.
 
 > **`.extend()` chains do not scale indefinitely.** What makes the above convenient — each module's input
 > being the previous module's output — is also what limits it, and naming that output with a type alias over

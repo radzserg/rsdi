@@ -64,6 +64,13 @@ Four small files, but the design is not obvious from any one of them.
 
 **Every signature change to a public method must be made in both files.** The class methods return `this as unknown as IDIContainer<…>` — a cast, not a real conversion — so a mismatch does not produce a compile error anywhere in this repo. It silently ships wrong types to consumers, and only a `*.test-d.ts` assertion will catch it.
 
+`add` and `update` reject union names: one runtime registration cannot add or retype every key in
+`'a' | 'b'`. Check the original name with `StringLiteral` before filtering forbidden keys, or a
+reserved/registered member can disappear and make an unsafe union look like a single name.
+`MergedResolvers` wraps each argument's resolver map before the intersection fold, preserving
+unions within a conditional argument; it also distributes over conditional tuples. Do not flatten
+those alternatives into containers that were all supplied together. Regression type tests cover both.
+
 **A member added to `IDIContainer` must keep `R` out of contravariant positions.** `ContainerLike` accepts `IDIContainer<ResolvedDependencies>`, so every `merge`/`compose` argument has to pass `IDIContainer<{ b: Date }>` → `IDIContainer<Record<string, any>>`. That holds only while `R` appears covariantly (return types, `R[K]`) or inside a parameter of a method, where the double flip makes it covariant again. `export()` returning factories typed `(resolvers: R) => R[K]` put `R` in a parameter of a _returned_ function — one flip — and every widened container silently stopped being a `ContainerLike`: all `merge` and `compose` call sites failed, and `bench-types`' compose scenarios with them. `SnapshotFactory` in `types.ts` uses the method-shorthand bivariance hack for exactly this; `testTypes.test-d.ts` pins that a widened container is still accepted by `merge` and `compose`.
 
 ### Types are the product; the runtime is a thin map
@@ -145,6 +152,10 @@ Factories receive `this.context`, a `Proxy` built in the constructor that forwar
 
 `UpdatedResolvers` in `types.ts` avoids the rewrite in the case that actually chains: when the replacement's type is _mutually assignable_ with the one already registered — a test double for the real service — the container type passes through unchanged. The check has to be mutual, not one-way; one-way would also swallow the subtype case, which is supposed to narrow the container type. `bench-types.mjs`'s `update-chain-80` scenario fails with `TS2589` if the shortcut is removed.
 
+The shortcut must also distinguish `any` from a concrete type, so a typed replacement restores inference
+and an `any` replacement does not retain the previous concrete type. Keep that guard inside the
+mutual-assignability branch: checking first eagerly expands maps in type-changing update chains.
+
 Note this is a _type_-level cost only. The runtime `update()` path is the same in-place `setResolver` write `add` uses, and `resolverMapOwnership.test.ts` covers it.
 
 ## Runtime benchmarks
@@ -188,6 +199,11 @@ Note this is a _type_-level cost only. The runtime `update()` path is the same i
 
 - **Type tests are real assertions.** In `*.test-d.ts`, always use `expectTypeOf(value).toEqualTypeOf<T>()` (exact equality). Do **not** use the bare `expectTypeOf<T>(value)` form — it only checks assignability and silently misses widened/incorrect types. Type tests run only under `--typecheck` (already wired into `pnpm test`).
 
+- **The README's Extend example is checked.** Its `example:extend` block must match
+  `src/__tests__/__helpers__/readmeExtend.ts`, apart from the package import. Update both together.
+  The fixture is compiled by the build and exercised by `readmeExamples.test.js`; the JavaScript
+  test reads the files without adding Node ambient types to the library's TypeScript configuration.
+
 - **Keep runtime dependencies at zero.** Never add a `dependencies` entry. Dev-only tooling goes in `devDependencies`.
 
 - **Resolvers are lazy and cached.** `add(name, factory)` registers a factory; it runs once on first `get`/property access, then the result is cached. `add` throws if the name already exists — use `update` to replace (mainly for test mocking). Reserved container method names (`add`, `get`, `merge`, …) cannot be used as dependency names.
@@ -204,7 +220,7 @@ Note this is a _type_-level cost only. The runtime `update()` path is the same i
 
 ## Publishing
 
-- **Publishing happens in CI, never from a laptop.** `.github/workflows/release.yml` triggers on a `v*` tag — the tag `pnpm version` writes — and is the only thing that runs `pnpm publish`. It refuses a tag that disagrees with `package.json`, re-runs build/lint/test/`check:package` (a tag can point at a commit CI never saw), publishes with `--provenance` under `id-token: write`, and opens a GitHub Release from the matching `# X.Y.Z` CHANGELOG section. Publishing by hand still works but produces no attestation, so don't — and note that pushing a tag is therefore an irreversible, outward-facing act. The `/release` skill owns the steps up to the bump and hands the push back to the user; keep the two in step when either changes.
+- **Publishing happens in CI, never from a laptop.** `.github/workflows/release.yml` triggers on a `v*` tag — the tag `pnpm version` writes — and is the only thing that runs `pnpm publish`. It refuses a tag that disagrees with `package.json`, re-runs build/lint/test/`bench:types`/`check:package` and the exact minimum-Node smoke test (a tag can point at a commit CI never saw), publishes with `--provenance` under `id-token: write`, and opens a GitHub Release from the matching `# X.Y.Z` CHANGELOG section. Publishing by hand still works but produces no attestation, so don't — and note that pushing a tag is therefore an irreversible, outward-facing act. The `/release` skill owns the steps up to the bump and hands the push back to the user; keep the two in step when either changes.
 - The workflow needs an `NPM_TOKEN` repository secret with publish rights, the one thing it cannot provide for itself. Its job names the `npm` environment, so adding required reviewers there gates every publish behind a human approval; it is unarmed by default.
 - `prepublishOnly` runs `pnpm build`, so `dist/` is always fresh on publish.
 - **`pnpm build` is two `tsc` passes, and the second one is not redundant.** `tsconfig` sets

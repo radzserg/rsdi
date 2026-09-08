@@ -51,7 +51,7 @@ export type Factory<
 export type IDIContainer<ContainerResolvers extends ResolvedDependencies = {}> =
   ContainerResolvers & {
     add: <N extends string, V>(
-      name: StringLiteral<DenyInputKeys<N, keyof ContainerResolvers | ReservedName>>,
+      name: DenyInputKeys<N, keyof ContainerResolvers | ReservedName> & StringLiteral<N>,
       resolver: Factory<ContainerResolvers, V>,
     ) => IDIContainer<ContainerResolvers & { [n in N]: V }>;
     clone: () => IDIContainer<ContainerResolvers>;
@@ -71,19 +71,29 @@ export type IDIContainer<ContainerResolvers extends ResolvedDependencies = {}> =
     ) => IDIContainer<UpdatedResolvers<ContainerResolvers, N, V>>;
   };
 
+/** Unlike mutual assignability, this distinguishes `any` from a concrete type. */
+export type IsAny<T> = 0 extends 1 & T ? true : false;
+
+/** Distribute over members while retaining the whole union for comparison. */
+export type IsUnion<T, Whole = T> = T extends Whole ? ([Whole] extends [T] ? false : true) : never;
+
 /**
  * Collapses the resolver maps of a tuple of containers into a single map.
  *
  * Uses a union-to-intersection fold rather than a recursive tuple walk: a
  * recursive fold trips TypeScript's instantiation depth limiter (TS2589) once a
- * few dozen containers are combined, which silently degrades inference.
+ * few dozen containers are combined, which silently degrades inference. Wrap each tuple
+ * element before folding: a union inside one argument describes alternatives, not two
+ * containers supplied together. Intersecting the wrappers preserves that union in their
+ * `resolvers` property. Distribute over alternative tuples for the same reason.
  */
-export type MergedResolvers<T extends readonly unknown[]> =
-  UnionToIntersection<ResolversOf<T[number]>> extends infer Merged
-    ? Merged extends ResolvedDependencies
-      ? Merged
-      : {}
-    : {};
+export type MergedResolvers<T extends readonly unknown[]> = T extends unknown
+  ? UnionToIntersection<{ [K in keyof T]: { resolvers: ResolversOf<T[K]> } }[number]> extends {
+      resolvers: infer Merged extends ResolvedDependencies;
+    }
+    ? Merged
+    : {}
+  : never;
 
 /**
  * Every name a dependency cannot take, so that `add` rejects it at compile time and not only at
@@ -161,7 +171,14 @@ export type SnapshotFactory<ContainerResolvers extends ResolvedDependencies, Val
   bivarianceHack(resolvers: ContainerResolvers): Value;
 }['bivarianceHack'];
 
-export type StringLiteral<T> = T extends string ? (string extends T ? never : T) : never;
+/** A single literal: registering or updating one runtime key cannot change an entire union. */
+export type StringLiteral<T> = [T] extends [string]
+  ? string extends T
+    ? never
+    : IsUnion<T> extends true
+      ? never
+      : T
+  : never;
 
 export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
   k: infer I,
@@ -191,11 +208,16 @@ export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) ex
  * container type (`Animal` updated to a `Dog` factory makes the container's `pet` a
  * `Dog`), and a one-way check would silently widen it back. Every inference the
  * `Exclude` form produced is preserved; `__typetests__` pins the cases.
+ * The tuple checks both directions together. `IsAny` must agree as well: `any`
+ * is mutually assignable with concrete types but must not conceal a replacement.
+ * Keep that check inside the shortcut; checking first eagerly expands resolver maps
+ * in type-changing update chains and exceeds their instantiation budget.
  */
-export type UpdatedResolvers<CR extends ResolvedDependencies, N extends keyof CR, V> = [V] extends [
+export type UpdatedResolvers<CR extends ResolvedDependencies, N extends keyof CR, V> = [
   CR[N],
-]
-  ? [CR[N]] extends [V]
+  V,
+] extends [V, CR[N]]
+  ? IsAny<CR[N]> extends IsAny<V>
     ? CR
     : RewrittenResolvers<CR, N, V>
   : RewrittenResolvers<CR, N, V>;

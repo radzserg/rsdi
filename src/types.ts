@@ -51,7 +51,7 @@ export type Factory<
 export type IDIContainer<ContainerResolvers extends ResolvedDependencies = {}> =
   ContainerResolvers & {
     add: <N extends string, V>(
-      name: DenyInputKeys<N, keyof ContainerResolvers | ReservedName> & StringLiteral<N>,
+      name: DenyInputKeys<N, KeysOfUnion<ContainerResolvers> | ReservedName> & StringLiteral<N>,
       resolver: Factory<ContainerResolvers, V>,
     ) => IDIContainer<ContainerResolvers & { [n in N]: V }>;
     clone: () => IDIContainer<ContainerResolvers>;
@@ -76,6 +76,9 @@ export type IsAny<T> = 0 extends 1 & T ? true : false;
 
 /** Distribute over members while retaining the whole union for comparison. */
 export type IsUnion<T, Whole = T> = T extends Whole ? ([Whole] extends [T] ? false : true) : never;
+
+/** Every possibly registered name, including keys present in only one conditional branch. */
+export type KeysOfUnion<T> = T extends unknown ? keyof T : never;
 
 /**
  * Collapses the resolver maps of a tuple of containers into a single map.

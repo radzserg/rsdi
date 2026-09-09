@@ -70,6 +70,9 @@ reserved/registered member can disappear and make an unsafe union look like a si
 `MergedResolvers` wraps each argument's resolver map before the intersection fold, preserving
 unions within a conditional argument; it also distributes over conditional tuples. Do not flatten
 those alternatives into containers that were all supplied together. Regression type tests cover both.
+`add` reserves `KeysOfUnion<R>`, the keys from every resolver-map branch: plain `keyof R` only
+includes shared keys and would allow a name that might already be registered. `get` and `update`
+still use `keyof R`, because they need a dependency guaranteed to exist in every branch.
 
 **A member added to `IDIContainer` must keep `R` out of contravariant positions.** `ContainerLike` accepts `IDIContainer<ResolvedDependencies>`, so every `merge`/`compose` argument has to pass `IDIContainer<{ b: Date }>` → `IDIContainer<Record<string, any>>`. That holds only while `R` appears covariantly (return types, `R[K]`) or inside a parameter of a method, where the double flip makes it covariant again. `export()` returning factories typed `(resolvers: R) => R[K]` put `R` in a parameter of a _returned_ function — one flip — and every widened container silently stopped being a `ContainerLike`: all `merge` and `compose` call sites failed, and `bench-types`' compose scenarios with them. `SnapshotFactory` in `types.ts` uses the method-shorthand bivariance hack for exactly this; `testTypes.test-d.ts` pins that a widened container is still accepted by `merge` and `compose`.
 

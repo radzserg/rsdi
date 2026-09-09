@@ -205,6 +205,38 @@ describe('DIContainer typescript type resolution', () => {
     }
   });
 
+  test('add reserves dependency names from every conditional branch', () => {
+    const a = new DIContainer().add('a', () => 1);
+    const b = new DIContainer().add('b', () => 'text');
+    const conditional = Math.random() > 0.5 ? a : b;
+    const composed = DIContainer.compose(conditional);
+    const merged = new DIContainer().add('base', () => true).merge(conditional);
+    const raw = new DIContainer<{ a: number } | { b: string }>();
+
+    // @ts-expect-error - a may already be registered
+    composed.add('a', () => 2);
+    // @ts-expect-error - b may already be registered
+    composed.add('b', () => 'replacement');
+    // @ts-expect-error - merging must reserve names from every input branch too
+    merged.add('a', () => 2);
+    // @ts-expect-error - the other merge branch must also be reserved
+    merged.add('b', () => 'replacement');
+    // @ts-expect-error - the class signature must enforce the same rule
+    raw.add('a', () => 2);
+    // @ts-expect-error - the class must check both branches
+    raw.add('b', () => 'replacement');
+
+    expectTypeOf(composed.add('fresh', () => true).fresh).toEqualTypeOf<boolean>();
+    expectTypeOf(merged.add('fresh', () => true).fresh).toEqualTypeOf<boolean>();
+    expectTypeOf(raw.add('fresh', () => true).fresh).toEqualTypeOf<boolean>();
+    // @ts-expect-error - adding a new key must not lose the existing branch keys
+    composed.add('another', () => true).add('a', () => 2);
+    // @ts-expect-error - get still requires a key present in every branch
+    composed.get('a');
+    // @ts-expect-error - update still requires a key present in every branch
+    merged.update('b', () => 'replacement');
+  });
+
   test('composition preserves conditional tuples and empty alternatives', () => {
     const a = new DIContainer().add('a', () => 1);
     const b = new DIContainer().add('b', () => 'text');

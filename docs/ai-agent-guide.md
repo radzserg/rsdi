@@ -98,6 +98,11 @@ container.update('nope', () => 1); // DependencyIsMissingError
 This is deliberate — accidental redefinition is a common DI bug. Use `update` only when you mean it
 (mostly test mocking).
 
+`update` replaces the implementation, not the type. A replacement that is mutually assignable with
+the registered type leaves the container type untouched, so `update('db', () => fake as any)` keeps
+`db` typed as `Db` rather than collapsing it to `any` — and a dependency registered as `any` cannot
+be re-typed by `update`. Fix the `add` instead.
+
 ### 5. `merge` mutates, `compose` does not
 
 ```ts

@@ -40,7 +40,7 @@
     "bench:compare": "node scripts/bench-compare.mjs",
     "bench:types": "node scripts/bench-types.mjs",
     "build": "tsc && tsc --emitDeclarationOnly --removeComments false",
-    "check:package": "publint --strict && attw --pack --ignore-rules cjs-resolves-to-esm",
+    "check:package": "node scripts/check-emit.mjs && publint --strict && attw --pack --ignore-rules cjs-resolves-to-esm",
     "format": "oxfmt --threads=1 && oxlint --type-aware --type-check --quiet --fix",
     "lint": "oxfmt --threads=1 --check && oxlint --type-aware --type-check --quiet --format unix",
     "prepublishOnly": "pnpm build",

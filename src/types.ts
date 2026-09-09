@@ -71,9 +71,6 @@ export type IDIContainer<ContainerResolvers extends ResolvedDependencies = {}> =
     ) => IDIContainer<UpdatedResolvers<ContainerResolvers, N, V>>;
   };
 
-/** Unlike mutual assignability, this distinguishes `any` from a concrete type. */
-export type IsAny<T> = 0 extends 1 & T ? true : false;
-
 /** Distribute over members while retaining the whole union for comparison. */
 export type IsUnion<T, Whole = T> = T extends Whole ? ([Whole] extends [T] ? false : true) : never;
 
@@ -211,16 +208,27 @@ export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) ex
  * container type (`Animal` updated to a `Dog` factory makes the container's `pet` a
  * `Dog`), and a one-way check would silently widen it back. Every inference the
  * `Exclude` form produced is preserved; `__typetests__` pins the cases.
- * The tuple checks both directions together. `IsAny` must agree as well: `any`
- * is mutually assignable with concrete types but must not conceal a replacement.
- * Keep that check inside the shortcut; checking first eagerly expands resolver maps
- * in type-changing update chains and exceeds their instantiation budget.
+ *
+ * The tuple checks both directions in one conditional rather than the nested pair it
+ * replaced, which is measurably cheaper: `update-chain-80` costs 13,459 instantiations
+ * nested against 12,688 as a tuple.
+ *
+ * **`any` deliberately takes the shortcut in both directions, and that is a convention, not
+ * an oversight.** `any` is mutually assignable with everything, so a dependency registered
+ * as `any` stays `any` however it is updated, and an `any` replacement — a test double cast
+ * with `as any` — leaves the registered type intact. Telling the two apart needs an
+ * `IsAny<CR[N]> extends IsAny<V>` guard inside this branch, and it was measured and
+ * rejected: it costs `update-chain-80` 12,688 -> 15,345 instantiations (70% -> 85% of
+ * budget) and `compose-scale` 33,722 -> 35,995, while the one-directional form that would
+ * spare concrete types costs more still — 46,190 against a 45,000 budget on
+ * `compose-scale`, a hard failure. What it buys is narrow: re-typing a dependency that was
+ * already `any`, which belongs at the `add` that made it `any`. Erasing a concrete type in
+ * exchange would be the worse trade, so neither direction is special-cased.
+ * `testTypes.test-d.ts` pins both.
  */
 export type UpdatedResolvers<CR extends ResolvedDependencies, N extends keyof CR, V> = [
   CR[N],
   V,
 ] extends [V, CR[N]]
-  ? IsAny<CR[N]> extends IsAny<V>
-    ? CR
-    : RewrittenResolvers<CR, N, V>
+  ? CR
   : RewrittenResolvers<CR, N, V>;

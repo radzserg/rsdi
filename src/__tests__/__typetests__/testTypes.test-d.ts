@@ -70,24 +70,39 @@ describe('DIContainer typescript type resolution', () => {
     }
   });
 
-  test('update replaces any with the new factory type and vice versa', () => {
+  // `any` is mutually assignable with everything, so it takes the `UpdatedResolvers`
+  // shortcut in both directions. That is a deliberate convention — `update` swaps an
+  // implementation, it does not re-type a dependency — and the guard that would change it
+  // was measured and rejected; the comment on `UpdatedResolvers` carries the numbers. These
+  // pin both directions so a future change to that shortcut has to be a deliberate one.
+  test('update does not re-type a dependency through any, in either direction', () => {
     const raw = new DIContainer<{ a: any; untouched: boolean }>();
+
+    // A dependency registered as `any` stays `any`; the repair belongs at its `add`.
     const fromClass = raw.update('a', () => 42);
-    expectTypeOf(fromClass.a).toEqualTypeOf<number>();
+    expectTypeOf(fromClass.a).toEqualTypeOf<any>();
     expectTypeOf(fromClass.untouched).toEqualTypeOf<boolean>();
 
     const fromChain = new DIContainer().add('a', (): any => 'old').update('a', () => 42);
-    expectTypeOf(fromChain.a).toEqualTypeOf<number>();
-    expectTypeOf(fromChain.get('a')).toEqualTypeOf<number>();
+    expectTypeOf(fromChain.a).toEqualTypeOf<any>();
+    expectTypeOf(fromChain.get('a')).toEqualTypeOf<any>();
     expectTypeOf(fromChain.update('a', (): any => 'new').a).toEqualTypeOf<any>();
+    expectTypeOf(raw.update('a', (): unknown => 1).a).toEqualTypeOf<any>();
+    expectTypeOf(raw.update('a', (): any => 1).a).toEqualTypeOf<any>();
 
-    expectTypeOf(raw.update('a', (): unknown => 1).a).toEqualTypeOf<unknown>();
+    // The direction that matters more: an `any` replacement — a test double cast with
+    // `as any` — must not erase a concrete dependency's type for everything downstream.
+    const typed = new DIContainer().add('repo', () => ({ find: (id: string) => id }));
+    const doubled = typed.update('repo', () => ({}) as any);
+    expectTypeOf(doubled.repo).toEqualTypeOf<{ find: (id: string) => string }>();
+    expectTypeOf(doubled.get('repo')).toEqualTypeOf<{ find: (id: string) => string }>();
+
+    // A replacement that is not mutually assignable still rewrites the map.
     expectTypeOf(
       raw.update('a', (): never => {
         throw new Error('no value');
       }).a,
     ).toEqualTypeOf<never>();
-    expectTypeOf(raw.update('a', (): any => 1).a).toEqualTypeOf<any>();
   });
 
   // `update` passes the container type through untouched when the replacement has the

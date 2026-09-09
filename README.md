@@ -206,6 +206,12 @@ usually in tests — use `.update()` instead. [Testing](#testing) covers that.
 Both methods require a single literal name. Narrow a variable typed `'a' | 'b'` before passing it:
 each call registers or replaces only one dependency.
 
+`.update()` swaps an implementation, not a type. When the replacement is mutually assignable with
+what is already registered, the container type passes through unchanged — so a test double cast
+with `as any` leaves the dependency's real type intact for everything downstream, and a dependency
+registered as `any` stays `any` however you update it. If you need to change a dependency's type,
+change its `.add()`.
+
 Let's map our web application routes to configured controllers
 
 ```typescript

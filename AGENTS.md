@@ -155,9 +155,17 @@ Factories receive `this.context`, a `Proxy` built in the constructor that forwar
 
 `UpdatedResolvers` in `types.ts` avoids the rewrite in the case that actually chains: when the replacement's type is _mutually assignable_ with the one already registered — a test double for the real service — the container type passes through unchanged. The check has to be mutual, not one-way; one-way would also swallow the subtype case, which is supposed to narrow the container type. `bench-types.mjs`'s `update-chain-80` scenario fails with `TS2589` if the shortcut is removed.
 
-The shortcut must also distinguish `any` from a concrete type, so a typed replacement restores inference
-and an `any` replacement does not retain the previous concrete type. Keep that guard inside the
-mutual-assignability branch: checking first eagerly expands maps in type-changing update chains.
+**`any` takes that shortcut in both directions on purpose — don't add a guard for it.** `any` is
+mutually assignable with everything, so `update` cannot re-type a dependency registered as `any`,
+and an `any` replacement leaves the registered type intact. Distinguishing them needs an
+`IsAny<CR[N]> extends IsAny<V>` check inside the mutual-assignability branch, which was written,
+measured and reverted: it costs `update-chain-80` 12,688 → 15,345 instantiations (70% → 85% of
+budget) and `compose-scale` 33,722 → 35,995, and the one-directional form that would spare concrete
+types fails outright at 46,190 against a 45,000 budget on `compose-scale`. What it buys is re-typing
+a dependency that was already `any`, which belongs at the `add` that made it `any`; erasing a
+concrete type in exchange — the `as any` test double, the common case — is the worse trade. The
+convention is documented in the README and `docs/ai-agent-guide.md`, and pinned in both directions
+by `testTypes.test-d.ts`.
 
 Note this is a _type_-level cost only. The runtime `update()` path is the same in-place `setResolver` write `add` uses, and `resolverMapOwnership.test.ts` covers it.
 
@@ -234,15 +242,23 @@ Note this is a _type_-level cost only. The runtime `update()` path is the same i
   `compose`'s hover doc explaining module composition, `Factory`'s explanation of the read-only deps
   object. For a library whose entire pitch is its types, that is the wrong trade. So the first pass
   emits stripped `.js` and the second (`tsc --emitDeclarationOnly --removeComments false`) rewrites
-  the declarations with their comments intact. Collapsing this back to a bare `tsc` type-checks
-  clean, passes every test, passes `check:package`, and silently ships a package whose hover docs
-  are gone — nothing in CI can see it. The two passes cost ~2.3 s each.
+  the declarations with their comments intact. The two passes cost ~2.3 s each.
+
+  Collapsing this back to a bare `tsc` type-checks clean and passes build, lint, test and
+  `bench:types` while silently shipping a package whose hover docs are gone, so
+  `scripts/check-emit.mjs` is the check that fails instead. It runs first in `check:package` and
+  asserts both halves: no JSDoc in any shipped `dist/**/*.js`, and JSDoc still present in the
+  `.d.ts` of every source file that has it. The file list is derived from `src/`, so a new or
+  renamed module is covered without touching the script — don't replace that with a hard-coded
+  list. Verified in both directions: dropping the second pass fails on five `.d.ts`, and dropping
+  `removeComments` from `tsconfig` fails on three `.js`.
+
 - `files` publishes `dist/**` but excludes `dist/**/__tests__/**` — compiled tests are not shipped. It also ships `docs/ai-agent-guide.md`, so an AI agent working in a consumer's project can read the integration guide straight out of `node_modules`; that file is the only doc that ships, so any link in it to another doc must be an absolute GitHub URL rather than a relative path.
 - License is **Apache-2.0** (matches the `LICENSE` file).
 
 - **The package is ESM-only and that is deliberate**, not a limitation — nothing in `src/` requires it (no `import.meta`, no top-level await). CommonJS consumers are not shut out: Node 20.19+ and 22.12+ resolve `require()` of an ESM package, so the effective floor for a CJS consumer is Node 20.19 even though `engines.node` says 16.9. TypeScript CJS consumers need `module: nodenext`; on `Node16` they get `TS1479`. Dual-publishing CJS has been considered and rejected — it doubles the build and invites the dual package hazard, where two loaded copies make `instanceof DIContainer` fail.
 
-- **`exports` condition order is significant.** `types` must stay before `default`, or TypeScript resolves the runtime entry and consumers lose every type. `oxfmt` preserves the order today, and the `package` CI job (`pnpm check:package`) is what actually enforces it: `attw` resolves the _published_ types under each module mode, so a reordered block fails there rather than at a consumer. It runs with `--ignore-rules cjs-resolves-to-esm`, because ESM-only is the deliberate choice below, not a defect — don't silence any other rule to make the job pass. `publint --strict` alongside it reads the packed tarball the way a registry consumer would, which is the only thing that sees `files` and the deep-import block. The map also blocks deep imports (`rsdi/dist/…` now throws `ERR_PACKAGE_PATH_NOT_EXPORTED`), which is the point: `dist/` layout is not API. `main`/`types` stay alongside it for resolvers that predate `exports`.
+- **`exports` condition order is significant.** `types` must stay before `default`, or TypeScript resolves the runtime entry and consumers lose every type. `oxfmt` preserves the order today, and the `package` CI job (`pnpm check:package`) is what actually enforces it: `attw` resolves the _published_ types under each module mode, so a reordered block fails there rather than at a consumer. It runs with `--ignore-rules cjs-resolves-to-esm`, because ESM-only is the deliberate choice below, not a defect — don't silence any other rule to make the job pass. `publint --strict` alongside it reads the packed tarball the way a registry consumer would, which is the only thing that sees `files` and the deep-import block. `scripts/check-emit.mjs` runs ahead of both and covers the emit itself — see Publishing. The map also blocks deep imports (`rsdi/dist/…` now throws `ERR_PACKAGE_PATH_NOT_EXPORTED`), which is the point: `dist/` layout is not API. `main`/`types` stay alongside it for resolvers that predate `exports`.
 
 ## Git / PRs
 

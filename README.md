@@ -203,14 +203,42 @@ By default, you should always use `.add()` to register dependencies — it throw
 prevents accidental overwrites and keeps your setup predictable. If you need to replace an existing dependency —
 usually in tests — use `.update()` instead. [Testing](#testing) covers that.
 
-Both methods require a single literal name. Narrow a variable typed `'a' | 'b'` before passing it:
-each call registers or replaces only one dependency.
+Both methods require a single literal name. One call registers or replaces exactly one dependency,
+so a name typed `'a' | 'b'` is rejected — the container type cannot promise both:
+
+```typescript
+const driver = usePostgres ? 'postgres' : 'mysql';
+
+container.add(driver, () => createDriver());
+// ✗ Argument of type '"mysql" | "postgres"' is not assignable to parameter of type 'never'
+
+// Pick the name, and let the factory decide what goes behind it
+container.add('driver', () => (usePostgres ? createPostgres() : createMysql()));
+```
 
 `.update()` swaps an implementation, not a type. When the replacement is mutually assignable with
 what is already registered, the container type passes through unchanged — so a test double cast
-with `as any` leaves the dependency's real type intact for everything downstream, and a dependency
-registered as `any` stays `any` however you update it. If you need to change a dependency's type,
-change its `.add()`.
+with `as any` leaves the dependency's real type intact for everything downstream:
+
+```typescript
+const container = new DIContainer()
+  .add('pool', () => new Pool())
+  .add('userRepository', ({ pool }) => new UserRepository(pool));
+
+const underTest = container.update('userRepository', () => fakeRepository as any);
+
+underTest.userRepository.findAll(); // ✓ still a UserRepository — `as any` did not erase it
+underTest.userRepository.nope();
+// ✗ Property 'nope' does not exist on type 'UserRepository'
+```
+
+The same rule runs the other way: a dependency registered as `any` stays `any` however you update
+it. `.update()` cannot repair a type, so fix the `.add()` that produced it:
+
+```typescript
+new DIContainer().add('settings', () => JSON.parse(raw)); // settings: any, and stays any
+new DIContainer().add('settings', (): Settings => JSON.parse(raw)); // settings: Settings
+```
 
 Let's map our web application routes to configured controllers
 
@@ -315,9 +343,29 @@ earlier container had already resolved. Be aware the _types_ intersect rather th
 same name registered with two different types resolves to `never` instead of the later type. That
 surfaces the collision rather than hiding it; if a replacement is intentional, use `.update()`.
 
-A conditional input keeps its alternatives in the result type. With
-`DIContainer.compose(condition ? repositories : services)`, only dependencies shared by both
-branches can be accessed without narrowing. The same rule applies to `merge()`.
+A conditional input keeps its alternatives in the result type, so only dependencies registered by
+every branch are reachable. The same rule applies to `merge()`.
+
+```typescript
+const fakes = new DIContainer().add('userRepository', () => fakeRepository);
+
+const container = DIContainer.compose(useFakes ? fakes : repositories);
+
+container.userRepository.findAll(); // ✓ both branches register it
+container.migrator;
+// ✗ Property 'migrator' does not exist — only `repositories` registers it
+```
+
+Checking `'migrator' in container` does not recover the type; it narrows to `unknown`. Give both
+branches the same names instead, and the composed container has no holes:
+
+```typescript
+const fakes = new DIContainer()
+  .add('userRepository', () => fakeRepository)
+  .add('migrator', () => ({ run: () => 'noop' }));
+
+DIContainer.compose(useFakes ? fakes : repositories).migrator.run(); // ✓
+```
 
 #### Why compose instead of one long chain
 

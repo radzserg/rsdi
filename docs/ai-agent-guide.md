@@ -99,9 +99,22 @@ This is deliberate — accidental redefinition is a common DI bug. Use `update` 
 (mostly test mocking).
 
 `update` replaces the implementation, not the type. A replacement that is mutually assignable with
-the registered type leaves the container type untouched, so `update('db', () => fake as any)` keeps
-`db` typed as `Db` rather than collapsing it to `any` — and a dependency registered as `any` cannot
-be re-typed by `update`. Fix the `add` instead.
+the registered type leaves the container type untouched, and a dependency registered as `any`
+cannot be re-typed by `update` — fix the `add` instead.
+
+```ts
+container.update('db', () => fake as any).db; // still Db — `as any` does not erase it
+new DIContainer().add('cfg', () => JSON.parse(raw)); // cfg: any, and no update will fix it
+new DIContainer().add('cfg', (): Config => JSON.parse(raw)); // do this instead
+```
+
+Both `add` and `update` take one literal name. A name typed `'a' | 'b'` is rejected, because one
+call registers or replaces one dependency:
+
+```ts
+container.add(flag ? 'a' : 'b', () => 1); // ✗ not assignable to parameter of type 'never'
+container.add('a', () => (flag ? 1 : 2)); // ✓ branch inside the factory
+```
 
 ### 5. `merge` mutates, `compose` does not
 
@@ -335,7 +348,7 @@ import { CircularDependencyError, DependencyIsMissingError, DIContainer } from '
 
 | Symptom                                                                                                                        | Cause                                                                                                                           | Fix                                                                                                       |
 | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `Argument of type '"x"' is not assignable to parameter of type 'never'`                                                        | Name already registered, reserved, or not a literal                                                                             | Use `update`, rename, or make the name a literal                                                          |
+| `Argument of type '"x"' is not assignable to parameter of type 'never'`                                                        | Name already registered, reserved, a union, or not a literal                                                                    | Use `update`, rename, narrow to one literal, or branch inside the factory                                 |
 | `Property 'x' does not exist on type 'IDIContainer<…>'`                                                                        | Not registered, or module not composed in                                                                                       | Register it, or add its module to `compose`                                                               |
 | `Argument of type '{…}' is not assignable to … 'Factory<…>'`                                                                   | Passed a value instead of a factory                                                                                             | Wrap it: `() => value`                                                                                    |
 | `ForbiddenNameError`                                                                                                           | Used a reserved name, or the container already has an own property with that name                                               | Rename the dependency                                                                                     |

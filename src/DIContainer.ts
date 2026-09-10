@@ -24,6 +24,7 @@ import {
   type DenyInputKeys,
   type Factory,
   type IDIContainer,
+  type KeysOfUnion,
   type MergedResolvers,
   type ReservedName,
   type ResolvedDependencies,
@@ -495,7 +496,7 @@ export class DIContainer<ContainerResolvers extends ResolvedDependencies = {}> {
    * @param resolver a function of the container's dependencies to the value
    */
   public add<N extends string, V>(
-    name: StringLiteral<DenyInputKeys<N, keyof ContainerResolvers | ReservedName>>,
+    name: DenyInputKeys<N, KeysOfUnion<ContainerResolvers> | ReservedName> & StringLiteral<N>,
     resolver: Factory<ContainerResolvers, V>,
   ): IDIContainer<ContainerResolvers & { [n in N]: V }> {
     // Only the reserved half of `assertNameAvailable` here: the foreign-own-property half is what

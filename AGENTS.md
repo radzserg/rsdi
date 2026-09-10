@@ -15,7 +15,7 @@ Use **pnpm** (pinned via `packageManager`; do not use npm/yarn).
 | Task                 | Command                                               |
 | -------------------- | ----------------------------------------------------- |
 | Install              | `pnpm install`                                        |
-| Build (emit `dist/`) | `pnpm build` (runs `tsc`)                             |
+| Build (emit `dist/`) | `pnpm build` (two `tsc` passes — see Publishing)      |
 | Test (unit + types)  | `pnpm test` (`vitest --run --typecheck`)              |
 | Single test file     | `npx vitest --run merge` (substring-matches the path) |
 | Single test case     | `npx vitest --run -t 'merge containers'`              |
@@ -63,6 +63,16 @@ Four small files, but the design is not obvious from any one of them.
 `DIContainer` (in `DIContainer.ts`) is the runtime class. `IDIContainer<R>` (in `types.ts`) is a hand-maintained type describing the same surface. They are not derived from each other.
 
 **Every signature change to a public method must be made in both files.** The class methods return `this as unknown as IDIContainer<…>` — a cast, not a real conversion — so a mismatch does not produce a compile error anywhere in this repo. It silently ships wrong types to consumers, and only a `*.test-d.ts` assertion will catch it.
+
+`add` and `update` reject union names: one runtime registration cannot add or retype every key in
+`'a' | 'b'`. Check the original name with `StringLiteral` before filtering forbidden keys, or a
+reserved/registered member can disappear and make an unsafe union look like a single name.
+`MergedResolvers` wraps each argument's resolver map before the intersection fold, preserving
+unions within a conditional argument; it also distributes over conditional tuples. Do not flatten
+those alternatives into containers that were all supplied together. Regression type tests cover both.
+`add` reserves `KeysOfUnion<R>`, the keys from every resolver-map branch: plain `keyof R` only
+includes shared keys and would allow a name that might already be registered. `get` and `update`
+still use `keyof R`, because they need a dependency guaranteed to exist in every branch.
 
 **A member added to `IDIContainer` must keep `R` out of contravariant positions.** `ContainerLike` accepts `IDIContainer<ResolvedDependencies>`, so every `merge`/`compose` argument has to pass `IDIContainer<{ b: Date }>` → `IDIContainer<Record<string, any>>`. That holds only while `R` appears covariantly (return types, `R[K]`) or inside a parameter of a method, where the double flip makes it covariant again. `export()` returning factories typed `(resolvers: R) => R[K]` put `R` in a parameter of a _returned_ function — one flip — and every widened container silently stopped being a `ContainerLike`: all `merge` and `compose` call sites failed, and `bench-types`' compose scenarios with them. `SnapshotFactory` in `types.ts` uses the method-shorthand bivariance hack for exactly this; `testTypes.test-d.ts` pins that a widened container is still accepted by `merge` and `compose`.
 
@@ -145,6 +155,18 @@ Factories receive `this.context`, a `Proxy` built in the constructor that forwar
 
 `UpdatedResolvers` in `types.ts` avoids the rewrite in the case that actually chains: when the replacement's type is _mutually assignable_ with the one already registered — a test double for the real service — the container type passes through unchanged. The check has to be mutual, not one-way; one-way would also swallow the subtype case, which is supposed to narrow the container type. `bench-types.mjs`'s `update-chain-80` scenario fails with `TS2589` if the shortcut is removed.
 
+**`any` takes that shortcut in both directions on purpose — don't add a guard for it.** `any` is
+mutually assignable with everything, so `update` cannot re-type a dependency registered as `any`,
+and an `any` replacement leaves the registered type intact. Distinguishing them needs an
+`IsAny<CR[N]> extends IsAny<V>` check inside the mutual-assignability branch, which was written,
+measured and reverted: it costs `update-chain-80` 12,688 → 15,345 instantiations (70% → 85% of
+budget) and `compose-scale` 33,722 → 35,995, and the one-directional form that would spare concrete
+types fails outright at 46,190 against a 45,000 budget on `compose-scale`. What it buys is re-typing
+a dependency that was already `any`, which belongs at the `add` that made it `any`; erasing a
+concrete type in exchange — the `as any` test double, the common case — is the worse trade. The
+convention is documented in the README and `docs/ai-agent-guide.md`, and pinned in both directions
+by `testTypes.test-d.ts`.
+
 Note this is a _type_-level cost only. The runtime `update()` path is the same in-place `setResolver` write `add` uses, and `resolverMapOwnership.test.ts` covers it.
 
 ## Runtime benchmarks
@@ -188,6 +210,11 @@ Note this is a _type_-level cost only. The runtime `update()` path is the same i
 
 - **Type tests are real assertions.** In `*.test-d.ts`, always use `expectTypeOf(value).toEqualTypeOf<T>()` (exact equality). Do **not** use the bare `expectTypeOf<T>(value)` form — it only checks assignability and silently misses widened/incorrect types. Type tests run only under `--typecheck` (already wired into `pnpm test`).
 
+- **The README's Extend example is checked.** Its `example:extend` block must match
+  `src/__tests__/__helpers__/readmeExtend.ts`, apart from the package import. Update both together.
+  The fixture is compiled by the build and exercised by `readmeExamples.test.js`; the JavaScript
+  test reads the files without adding Node ambient types to the library's TypeScript configuration.
+
 - **Keep runtime dependencies at zero.** Never add a `dependencies` entry. Dev-only tooling goes in `devDependencies`.
 
 - **Resolvers are lazy and cached.** `add(name, factory)` registers a factory; it runs once on first `get`/property access, then the result is cached. `add` throws if the name already exists — use `update` to replace (mainly for test mocking). Reserved container method names (`add`, `get`, `merge`, …) cannot be used as dependency names.
@@ -204,15 +231,34 @@ Note this is a _type_-level cost only. The runtime `update()` path is the same i
 
 ## Publishing
 
-- **Publishing happens in CI, never from a laptop.** `.github/workflows/release.yml` triggers on a `v*` tag — the tag `pnpm version` writes — and is the only thing that runs `pnpm publish`. It refuses a tag that disagrees with `package.json`, re-runs build/lint/test/`check:package` (a tag can point at a commit CI never saw), publishes with `--provenance` under `id-token: write`, and opens a GitHub Release from the matching `# X.Y.Z` CHANGELOG section. Publishing by hand still works but produces no attestation, so don't — and note that pushing a tag is therefore an irreversible, outward-facing act. The `/release` skill owns the steps up to the bump and hands the push back to the user; keep the two in step when either changes.
+- **Publishing happens in CI, never from a laptop.** `.github/workflows/release.yml` triggers on a `v*` tag — the tag `pnpm version` writes — and is the only thing that runs `pnpm publish`. It refuses a tag that disagrees with `package.json`, re-runs build/lint/test/`bench:types`/`check:package` and the exact minimum-Node smoke test (a tag can point at a commit CI never saw), publishes with `--provenance` under `id-token: write`, and opens a GitHub Release from the matching `# X.Y.Z` CHANGELOG section. Publishing by hand still works but produces no attestation, so don't — and note that pushing a tag is therefore an irreversible, outward-facing act. The `/release` skill owns the steps up to the bump and hands the push back to the user; keep the two in step when either changes.
 - The workflow needs an `NPM_TOKEN` repository secret with publish rights, the one thing it cannot provide for itself. Its job names the `npm` environment, so adding required reviewers there gates every publish behind a human approval; it is unarmed by default.
 - `prepublishOnly` runs `pnpm build`, so `dist/` is always fresh on publish.
+- **`pnpm build` is two `tsc` passes, and the second one is not redundant.** `tsconfig` sets
+  `removeComments`, which strips comments from the emitted `.js` — the architecture notes in `src/`
+  are for contributors reading this repo, and shipping them cost the tarball 32 KB unpacked (69% of
+  `dist/*.js`) and roughly a third of its gzipped weight. But `removeComments` applies to `.d.ts`
+  as well, where the same flag deletes 25 KB of JSDoc that is the _consumer's_ IntelliSense —
+  `compose`'s hover doc explaining module composition, `Factory`'s explanation of the read-only deps
+  object. For a library whose entire pitch is its types, that is the wrong trade. So the first pass
+  emits stripped `.js` and the second (`tsc --emitDeclarationOnly --removeComments false`) rewrites
+  the declarations with their comments intact. The two passes cost ~2.3 s each.
+
+  Collapsing this back to a bare `tsc` type-checks clean and passes build, lint, test and
+  `bench:types` while silently shipping a package whose hover docs are gone, so
+  `scripts/check-emit.mjs` is the check that fails instead. It runs first in `check:package` and
+  asserts both halves: no JSDoc in any shipped `dist/**/*.js`, and JSDoc still present in the
+  `.d.ts` of every source file that has it. The file list is derived from `src/`, so a new or
+  renamed module is covered without touching the script — don't replace that with a hard-coded
+  list. Verified in both directions: dropping the second pass fails on five `.d.ts`, and dropping
+  `removeComments` from `tsconfig` fails on three `.js`.
+
 - `files` publishes `dist/**` but excludes `dist/**/__tests__/**` — compiled tests are not shipped. It also ships `docs/ai-agent-guide.md`, so an AI agent working in a consumer's project can read the integration guide straight out of `node_modules`; that file is the only doc that ships, so any link in it to another doc must be an absolute GitHub URL rather than a relative path.
 - License is **Apache-2.0** (matches the `LICENSE` file).
 
 - **The package is ESM-only and that is deliberate**, not a limitation — nothing in `src/` requires it (no `import.meta`, no top-level await). CommonJS consumers are not shut out: Node 20.19+ and 22.12+ resolve `require()` of an ESM package, so the effective floor for a CJS consumer is Node 20.19 even though `engines.node` says 16.9. TypeScript CJS consumers need `module: nodenext`; on `Node16` they get `TS1479`. Dual-publishing CJS has been considered and rejected — it doubles the build and invites the dual package hazard, where two loaded copies make `instanceof DIContainer` fail.
 
-- **`exports` condition order is significant.** `types` must stay before `default`, or TypeScript resolves the runtime entry and consumers lose every type. `oxfmt` preserves the order today, and the `package` CI job (`pnpm check:package`) is what actually enforces it: `attw` resolves the _published_ types under each module mode, so a reordered block fails there rather than at a consumer. It runs with `--ignore-rules cjs-resolves-to-esm`, because ESM-only is the deliberate choice below, not a defect — don't silence any other rule to make the job pass. `publint --strict` alongside it reads the packed tarball the way a registry consumer would, which is the only thing that sees `files` and the deep-import block. The map also blocks deep imports (`rsdi/dist/…` now throws `ERR_PACKAGE_PATH_NOT_EXPORTED`), which is the point: `dist/` layout is not API. `main`/`types` stay alongside it for resolvers that predate `exports`.
+- **`exports` condition order is significant.** `types` must stay before `default`, or TypeScript resolves the runtime entry and consumers lose every type. `oxfmt` preserves the order today, and the `package` CI job (`pnpm check:package`) is what actually enforces it: `attw` resolves the _published_ types under each module mode, so a reordered block fails there rather than at a consumer. It runs with `--ignore-rules cjs-resolves-to-esm`, because ESM-only is the deliberate choice below, not a defect — don't silence any other rule to make the job pass. `publint --strict` alongside it reads the packed tarball the way a registry consumer would, which is the only thing that sees `files` and the deep-import block. `scripts/check-emit.mjs` runs ahead of both and covers the emit itself — see Publishing. The map also blocks deep imports (`rsdi/dist/…` now throws `ERR_PACKAGE_PATH_NOT_EXPORTED`), which is the point: `dist/` layout is not API. `main`/`types` stay alongside it for resolvers that predate `exports`.
 
 ## Git / PRs
 

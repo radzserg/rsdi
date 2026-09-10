@@ -33,6 +33,78 @@ describe('DIContainer typescript type resolution', () => {
     expectTypeOf(container.a).not.toEqualTypeOf<string>();
   });
 
+  test('add and update require one literal name on both API definitions', () => {
+    const name = Math.random() > 0.5 ? 'a' : 'b';
+    const raw = new DIContainer();
+    const widened = new DIContainer().add('existing', () => true);
+
+    // @ts-expect-error - only one of these names would be registered
+    raw.add(name, () => 1);
+    // @ts-expect-error - the widened API must reject the same union
+    widened.add(name, () => 1);
+    // @ts-expect-error - explicit type arguments must not bypass the check
+    raw.add<'a' | 'b', number>('a', () => 1);
+
+    const reservedOrNew = Math.random() > 0.5 ? 'get' : 'newName';
+    // @ts-expect-error - filtering a forbidden key must not hide the original union
+    raw.add(reservedOrNew, () => 1);
+    const existingOrNew = Math.random() > 0.5 ? 'existing' : 'newName';
+    // @ts-expect-error - neither may an already registered key hide the union
+    widened.add(existingOrNew, () => 1);
+
+    const registered = new DIContainer().add('a', () => 1).add('b', () => 2);
+    // @ts-expect-error - only one key would be replaced
+    registered.update(name, () => 'text');
+    // @ts-expect-error - the class signature must reject the same union
+    new DIContainer<{ a: number; b: number }>().update(name, () => 'text');
+
+    const dynamic = String('dynamic');
+    // @ts-expect-error - widened strings still cannot register names
+    raw.add(dynamic, () => 1);
+    // @ts-expect-error - widened strings still cannot update names
+    registered.update(dynamic, () => 'text');
+
+    if (name === 'a') {
+      expectTypeOf(raw.add(name, () => 1).a).toEqualTypeOf<number>();
+      expectTypeOf(registered.update(name, () => 'text').a).toEqualTypeOf<string>();
+    }
+  });
+
+  // `any` is mutually assignable with everything, so it takes the `UpdatedResolvers`
+  // shortcut in both directions. That is a deliberate convention — `update` swaps an
+  // implementation, it does not re-type a dependency — and the guard that would change it
+  // was measured and rejected; the comment on `UpdatedResolvers` carries the numbers. These
+  // pin both directions so a future change to that shortcut has to be a deliberate one.
+  test('update does not re-type a dependency through any, in either direction', () => {
+    const raw = new DIContainer<{ a: any; untouched: boolean }>();
+
+    // A dependency registered as `any` stays `any`; the repair belongs at its `add`.
+    const fromClass = raw.update('a', () => 42);
+    expectTypeOf(fromClass.a).toEqualTypeOf<any>();
+    expectTypeOf(fromClass.untouched).toEqualTypeOf<boolean>();
+
+    const fromChain = new DIContainer().add('a', (): any => 'old').update('a', () => 42);
+    expectTypeOf(fromChain.a).toEqualTypeOf<any>();
+    expectTypeOf(fromChain.get('a')).toEqualTypeOf<any>();
+    expectTypeOf(fromChain.update('a', (): any => 'new').a).toEqualTypeOf<any>();
+    expectTypeOf(raw.update('a', (): unknown => 1).a).toEqualTypeOf<any>();
+    expectTypeOf(raw.update('a', (): any => 1).a).toEqualTypeOf<any>();
+
+    // The direction that matters more: an `any` replacement — a test double cast with
+    // `as any` — must not erase a concrete dependency's type for everything downstream.
+    const typed = new DIContainer().add('repo', () => ({ find: (id: string) => id }));
+    const doubled = typed.update('repo', () => ({}) as any);
+    expectTypeOf(doubled.repo).toEqualTypeOf<{ find: (id: string) => string }>();
+    expectTypeOf(doubled.get('repo')).toEqualTypeOf<{ find: (id: string) => string }>();
+
+    // A replacement that is not mutually assignable still rewrites the map.
+    expectTypeOf(
+      raw.update('a', (): never => {
+        throw new Error('no value');
+      }).a,
+    ).toEqualTypeOf<never>();
+  });
+
   // `update` passes the container type through untouched when the replacement has the
   // same type, which is what keeps a long override chain from accumulating depth. These
   // pin the inference that shortcut must not cost — see `UpdatedResolvers` in types.ts.
@@ -113,6 +185,86 @@ describe('DIContainer typescript type resolution', () => {
     expectTypeOf(container.a).toEqualTypeOf<string>();
     expectTypeOf(container.b).toEqualTypeOf<Date>();
     expectTypeOf(container.bar).toEqualTypeOf<Bar>();
+  });
+
+  test('composition preserves alternatives within a single input', () => {
+    const a = new DIContainer().add('a', () => 1).add('shared', () => 'text');
+    const b = new DIContainer().add('b', () => new Date()).add('shared', () => 42);
+    const conditional = Math.random() > 0.5 ? a : b;
+    const composed = DIContainer.compose(conditional);
+    const merged = new DIContainer().add('base', () => true).merge(conditional);
+    const fromClass = new DIContainer().merge(conditional);
+
+    expectTypeOf<ResolversOf<typeof composed>>().toEqualTypeOf<
+      ResolversOf<typeof a> | ResolversOf<typeof b>
+    >();
+    expectTypeOf(composed.shared).toEqualTypeOf<number | string>();
+    expectTypeOf(merged.shared).toEqualTypeOf<number | string>();
+    expectTypeOf(merged.base).toEqualTypeOf<boolean>();
+    expectTypeOf(fromClass.shared).toEqualTypeOf<number | string>();
+    // @ts-expect-error - a exists only in one branch
+    expectTypeOf(composed.a).toEqualTypeOf<number>();
+    // @ts-expect-error - b exists only in the other branch
+    expectTypeOf(merged.b).toEqualTypeOf<Date>();
+    // @ts-expect-error - get must also require a key present in every branch
+    fromClass.get('a');
+
+    const combined = DIContainer.compose(
+      new DIContainer().add('base', () => true),
+      conditional,
+    );
+    expectTypeOf(combined.base).toEqualTypeOf<boolean>();
+    expectTypeOf(combined.shared).toEqualTypeOf<number | string>();
+    if ('a' in combined) {
+      expectTypeOf(combined.a).toEqualTypeOf<number>();
+    }
+  });
+
+  test('add reserves dependency names from every conditional branch', () => {
+    const a = new DIContainer().add('a', () => 1);
+    const b = new DIContainer().add('b', () => 'text');
+    const conditional = Math.random() > 0.5 ? a : b;
+    const composed = DIContainer.compose(conditional);
+    const merged = new DIContainer().add('base', () => true).merge(conditional);
+    const raw = new DIContainer<{ a: number } | { b: string }>();
+
+    // @ts-expect-error - a may already be registered
+    composed.add('a', () => 2);
+    // @ts-expect-error - b may already be registered
+    composed.add('b', () => 'replacement');
+    // @ts-expect-error - merging must reserve names from every input branch too
+    merged.add('a', () => 2);
+    // @ts-expect-error - the other merge branch must also be reserved
+    merged.add('b', () => 'replacement');
+    // @ts-expect-error - the class signature must enforce the same rule
+    raw.add('a', () => 2);
+    // @ts-expect-error - the class must check both branches
+    raw.add('b', () => 'replacement');
+
+    expectTypeOf(composed.add('fresh', () => true).fresh).toEqualTypeOf<boolean>();
+    expectTypeOf(merged.add('fresh', () => true).fresh).toEqualTypeOf<boolean>();
+    expectTypeOf(raw.add('fresh', () => true).fresh).toEqualTypeOf<boolean>();
+    // @ts-expect-error - adding a new key must not lose the existing branch keys
+    composed.add('another', () => true).add('a', () => 2);
+    // @ts-expect-error - get still requires a key present in every branch
+    composed.get('a');
+    // @ts-expect-error - update still requires a key present in every branch
+    merged.update('b', () => 'replacement');
+  });
+
+  test('composition preserves conditional tuples and empty alternatives', () => {
+    const a = new DIContainer().add('a', () => 1);
+    const b = new DIContainer().add('b', () => 'text');
+    const inputs = Math.random() > 0.5 ? ([a] as const) : ([b] as const);
+    const composed = DIContainer.compose(...inputs);
+    expectTypeOf<ResolversOf<typeof composed>>().toEqualTypeOf<{ a: number } | { b: string }>();
+    // @ts-expect-error - spreading a conditional tuple must not promise both branches
+    composed.get('a');
+
+    const optional = DIContainer.compose(Math.random() > 0.5 ? a : new DIContainer());
+    // @ts-expect-error - an empty branch cannot supply a
+    expectTypeOf(optional.a).toEqualTypeOf<number>();
+    expectTypeOf(DIContainer.compose().has('a')).toEqualTypeOf<boolean>();
   });
 
   test('compose keeps the container chainable', () => {

@@ -203,6 +203,43 @@ By default, you should always use `.add()` to register dependencies — it throw
 prevents accidental overwrites and keeps your setup predictable. If you need to replace an existing dependency —
 usually in tests — use `.update()` instead. [Testing](#testing) covers that.
 
+Both methods require a single literal name. One call registers or replaces exactly one dependency,
+so a name typed `'a' | 'b'` is rejected — the container type cannot promise both:
+
+```typescript
+const driver = usePostgres ? 'postgres' : 'mysql';
+
+container.add(driver, () => createDriver());
+// ✗ Argument of type '"mysql" | "postgres"' is not assignable to parameter of type 'never'
+
+// Pick the name, and let the factory decide what goes behind it
+container.add('driver', () => (usePostgres ? createPostgres() : createMysql()));
+```
+
+`.update()` swaps an implementation, not a type. When the replacement is mutually assignable with
+what is already registered, the container type passes through unchanged — so a test double cast
+with `as any` leaves the dependency's real type intact for everything downstream:
+
+```typescript
+const container = new DIContainer()
+  .add('pool', () => new Pool())
+  .add('userRepository', ({ pool }) => new UserRepository(pool));
+
+const underTest = container.update('userRepository', () => fakeRepository as any);
+
+underTest.userRepository.findAll(); // ✓ still a UserRepository — `as any` did not erase it
+underTest.userRepository.nope();
+// ✗ Property 'nope' does not exist on type 'UserRepository'
+```
+
+The same rule runs the other way: a dependency registered as `any` stays `any` however you update
+it. `.update()` cannot repair a type, so fix the `.add()` that produced it:
+
+```typescript
+new DIContainer().add('settings', () => JSON.parse(raw)); // settings: any, and stays any
+new DIContainer().add('settings', (): Settings => JSON.parse(raw)); // settings: Settings
+```
+
 Let's map our web application routes to configured controllers
 
 ```typescript
@@ -306,6 +343,30 @@ earlier container had already resolved. Be aware the _types_ intersect rather th
 same name registered with two different types resolves to `never` instead of the later type. That
 surfaces the collision rather than hiding it; if a replacement is intentional, use `.update()`.
 
+A conditional input keeps its alternatives in the result type, so only dependencies registered by
+every branch are reachable. The same rule applies to `merge()`.
+
+```typescript
+const fakes = new DIContainer().add('userRepository', () => fakeRepository);
+
+const container = DIContainer.compose(useFakes ? fakes : repositories);
+
+container.userRepository.findAll(); // ✓ both branches register it
+container.migrator;
+// ✗ Property 'migrator' does not exist — only `repositories` registers it
+```
+
+Checking `'migrator' in container` does not recover the type; it narrows to `unknown`. Give both
+branches the same names instead, and the composed container has no holes:
+
+```typescript
+const fakes = new DIContainer()
+  .add('userRepository', () => fakeRepository)
+  .add('migrator', () => ({ run: () => 'noop' }));
+
+DIContainer.compose(useFakes ? fakes : repositories).migrator.run(); // ✓
+```
+
 #### Why compose instead of one long chain
 
 Each `.add()` widens the container type, so a single chain of N dependencies costs **O(N²)** to type-check. Splitting
@@ -331,44 +392,47 @@ whole graph. The [AI agent integration guide](./docs/ai-agent-guide.md) has the 
 
 ### Extend
 
-You can extend a container with more dependencies using `.extend()`. This is ideal for building up your container in logical steps.
+Use `.extend()` to layer modules onto a container. Each callback receives the container and
+returns the next layer synchronously. Await resource initialization before starting the chain:
+
+<!-- example:extend -->
 
 ```ts
-// diContainer.ts
+import { DIContainer } from 'rsdi';
 
-export const configureDI = async () => {
-  return (await buildDatabaseDependencies())
-    .extend(addDataAccessDependencies)
-    .extend(addValidators);
+// database.ts
+export type Pool = { query: (sql: string) => Promise<unknown[]> };
+
+export const buildDatabaseDependencies = async (createPool: () => Promise<Pool>) => {
+  const pool = await createPool();
+  return new DIContainer().add('databasePool', () => pool);
+};
+
+// dataAccess.ts
+type DIWithPool = Awaited<ReturnType<typeof buildDatabaseDependencies>>;
+
+export const addDataAccessDependencies = (container: DIWithPool) =>
+  container.add('userRepository', ({ databasePool }) => ({
+    findAll: () => databasePool.query('SELECT * FROM users'),
+  }));
+
+// services.ts
+type DIWithDataAccess = ReturnType<typeof addDataAccessDependencies>;
+
+export const addServices = (container: DIWithDataAccess) =>
+  container.add('userService', ({ userRepository }) => ({
+    listUsers: () => userRepository.findAll(),
+  }));
+
+// diContainer.ts — pass your database driver's async pool initializer here
+export const configureDI = async (createPool: () => Promise<Pool>) => {
+  const container = await buildDatabaseDependencies(createPool);
+  return container.extend(addDataAccessDependencies).extend(addServices);
 };
 ```
 
-```ts
-// addDataAccessDependencies.ts
-
-export type DIWithPool = Awaited<ReturnType<typeof buildDatabaseDependencies>>;
-
-export const addDataAccessDependencies = async () => {
-  const pool = await createDatabasePool();
-  const longRunningPool = await createLongRunningDatabasePool();
-
-  return new DIContainer()
-    .add('databasePool', () => pool)
-    .add('longRunningDatabasePool', () => longRunningPool);
-};
-```
-
-```ts
-// addValidators.ts
-
-export type DIWithValidators = ReturnType<typeof addValidators>;
-
-export const addValidators = (container: DIWithPool) => {
-  return container
-    .add('myValidatorA', ({ a, b, c }) => new MyValidatorA(a, b, c))
-    .add('myValidatorB', ({ a, b, c }) => new MyValidatorB(a, b, c));
-};
-```
+The example is compiled and run in the test suite. Each section can live in its own module,
+with the corresponding imports and exported container types.
 
 > **`.extend()` chains do not scale indefinitely.** What makes the above convenient — each module's input
 > being the previous module's output — is also what limits it, and naming that output with a type alias over

@@ -6,6 +6,7 @@
     "moduleResolution": "NodeNext",
     "noImplicitAny": true,
     "outDir": "./dist",
+    "removeComments": true,
     "rootDir": "./src",
     "skipLibCheck": true,
     "strict": true,

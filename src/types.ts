@@ -51,7 +51,7 @@ export type Factory<
 export type IDIContainer<ContainerResolvers extends ResolvedDependencies = {}> =
   ContainerResolvers & {
     add: <N extends string, V>(
-      name: StringLiteral<DenyInputKeys<N, keyof ContainerResolvers | ReservedName>>,
+      name: DenyInputKeys<N, KeysOfUnion<ContainerResolvers> | ReservedName> & StringLiteral<N>,
       resolver: Factory<ContainerResolvers, V>,
     ) => IDIContainer<ContainerResolvers & { [n in N]: V }>;
     clone: () => IDIContainer<ContainerResolvers>;
@@ -71,19 +71,29 @@ export type IDIContainer<ContainerResolvers extends ResolvedDependencies = {}> =
     ) => IDIContainer<UpdatedResolvers<ContainerResolvers, N, V>>;
   };
 
+/** Distribute over members while retaining the whole union for comparison. */
+export type IsUnion<T, Whole = T> = T extends Whole ? ([Whole] extends [T] ? false : true) : never;
+
+/** Every possibly registered name, including keys present in only one conditional branch. */
+export type KeysOfUnion<T> = T extends unknown ? keyof T : never;
+
 /**
  * Collapses the resolver maps of a tuple of containers into a single map.
  *
  * Uses a union-to-intersection fold rather than a recursive tuple walk: a
  * recursive fold trips TypeScript's instantiation depth limiter (TS2589) once a
- * few dozen containers are combined, which silently degrades inference.
+ * few dozen containers are combined, which silently degrades inference. Wrap each tuple
+ * element before folding: a union inside one argument describes alternatives, not two
+ * containers supplied together. Intersecting the wrappers preserves that union in their
+ * `resolvers` property. Distribute over alternative tuples for the same reason.
  */
-export type MergedResolvers<T extends readonly unknown[]> =
-  UnionToIntersection<ResolversOf<T[number]>> extends infer Merged
-    ? Merged extends ResolvedDependencies
-      ? Merged
-      : {}
-    : {};
+export type MergedResolvers<T extends readonly unknown[]> = T extends unknown
+  ? UnionToIntersection<{ [K in keyof T]: { resolvers: ResolversOf<T[K]> } }[number]> extends {
+      resolvers: infer Merged extends ResolvedDependencies;
+    }
+    ? Merged
+    : {}
+  : never;
 
 /**
  * Every name a dependency cannot take, so that `add` rejects it at compile time and not only at
@@ -161,7 +171,14 @@ export type SnapshotFactory<ContainerResolvers extends ResolvedDependencies, Val
   bivarianceHack(resolvers: ContainerResolvers): Value;
 }['bivarianceHack'];
 
-export type StringLiteral<T> = T extends string ? (string extends T ? never : T) : never;
+/** A single literal: registering or updating one runtime key cannot change an entire union. */
+export type StringLiteral<T> = [T] extends [string]
+  ? string extends T
+    ? never
+    : IsUnion<T> extends true
+      ? never
+      : T
+  : never;
 
 export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
   k: infer I,
@@ -191,11 +208,27 @@ export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) ex
  * container type (`Animal` updated to a `Dog` factory makes the container's `pet` a
  * `Dog`), and a one-way check would silently widen it back. Every inference the
  * `Exclude` form produced is preserved; `__typetests__` pins the cases.
+ *
+ * The tuple checks both directions in one conditional rather than the nested pair it
+ * replaced, which is measurably cheaper: `update-chain-80` costs 13,459 instantiations
+ * nested against 12,688 as a tuple.
+ *
+ * **`any` deliberately takes the shortcut in both directions, and that is a convention, not
+ * an oversight.** `any` is mutually assignable with everything, so a dependency registered
+ * as `any` stays `any` however it is updated, and an `any` replacement — a test double cast
+ * with `as any` — leaves the registered type intact. Telling the two apart needs an
+ * `IsAny<CR[N]> extends IsAny<V>` guard inside this branch, and it was measured and
+ * rejected: it costs `update-chain-80` 12,688 -> 15,345 instantiations (70% -> 85% of
+ * budget) and `compose-scale` 33,722 -> 35,995, while the one-directional form that would
+ * spare concrete types costs more still — 46,190 against a 45,000 budget on
+ * `compose-scale`, a hard failure. What it buys is narrow: re-typing a dependency that was
+ * already `any`, which belongs at the `add` that made it `any`. Erasing a concrete type in
+ * exchange would be the worse trade, so neither direction is special-cased.
+ * `testTypes.test-d.ts` pins both.
  */
-export type UpdatedResolvers<CR extends ResolvedDependencies, N extends keyof CR, V> = [V] extends [
+export type UpdatedResolvers<CR extends ResolvedDependencies, N extends keyof CR, V> = [
   CR[N],
-]
-  ? [CR[N]] extends [V]
-    ? CR
-    : RewrittenResolvers<CR, N, V>
+  V,
+] extends [V, CR[N]]
+  ? CR
   : RewrittenResolvers<CR, N, V>;
